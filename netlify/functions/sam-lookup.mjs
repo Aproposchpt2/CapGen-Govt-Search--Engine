@@ -45,11 +45,10 @@ async function samFetch(params) {
 // ---- Mode: search by name -> lightweight candidates for the "is this you?" card
 async function searchByName(name, state) {
   const data = await samFetch({
-    q: name,
-    registrationStatus: "A",                       // active registrations only
+    legalBusinessName: name,                        // name-specific search
+    registrationStatus: "A",                        // active registrations only
     stateProvince: state || undefined,
     includeSections: "entityRegistration,coreData",
-    page: 0,
   });
   const rows = data.entityData || [];
   const candidates = rows.map((e) => {
