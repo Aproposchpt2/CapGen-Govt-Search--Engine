@@ -64,7 +64,7 @@
 </head>
 <body>
 <div class="shell">
-  <div class="brand"><div class="mk">FD</div><div><h1>FlowDesk Pro</h1><div class="sub">Capability Statement Generator</div></div></div>
+  <div class="brand"><div class="mk">CG</div><div><h1>CapGen</h1><div class="sub">by AI4 Businesses</div></div></div>
   <div class="steps"><div class="s on" id="st1"></div><div class="s" id="st2"></div><div class="s" id="st3"></div></div>
 
   <div class="card">
@@ -109,7 +109,7 @@
       </div>
       <label for="cSite">Website</label><input id="cSite" type="text">
 
-      <button class="btn full" id="genBtn">Generate my capability statement</button>
+      <button class="btn full" id="genBtn">Generate my CapGen statement</button>
       <div class="note" id="genNote"></div>
       <button class="back" id="backTo2">&larr; Pick a different business</button>
     </div>
@@ -117,11 +117,11 @@
     <!-- DONE -->
     <div id="done" class="hidden done">
       <div class="ring">&#10003;</div>
-      <h2>Your capability statement is on its way.</h2>
+      <h2>Your CapGen statement is on its way.</h2>
       <p class="lead" id="doneMsg" style="margin-top:8px"></p>
     </div>
   </div>
-  <div class="foot">Powered by FlowDesk Pro</div>
+  <div class="foot">CapGen by AI4 Businesses</div>
 </div>
 
 <script>
@@ -218,7 +218,7 @@
     try{
       const res = await fetch(GENERATE,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(RECORD)});
       if(!res.ok) throw new Error();
-      $("doneMsg").textContent = "We've emailed your branded capability statement to "+email+".";
+      $("doneMsg").textContent = "We've emailed your CapGen statement to "+email+".";
       show("done");
     }catch(e){ $("genBtn").disabled=false; note.className="note err"; note.textContent="Generation failed. Please try again."; }
   });
