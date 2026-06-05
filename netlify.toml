@@ -1,9 +1,10 @@
-﻿[build]
+[build]
   publish = "."
   functions = "netlify/functions"
 
   [build.environment]
     NODE_VERSION = "18"
+    PDF_RENDERER = "adobe"
 
 [functions]
   node_bundler = "esbuild"
