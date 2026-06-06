@@ -103,10 +103,10 @@ exports.handler = async (event) => {
     };
   });
 
-  // By default show only active (deadline in future or no deadline set).
-  // Pass ?include_closed=1 to see everything.
+  // Active = has a deadline AND that deadline is today or future.
+  // Pass ?include_closed=1 to see everything including expired/no-deadline.
   const results = mapped
-    .filter(o => includeClosed || o.days_left === null || o.days_left >= 0)
+    .filter(o => includeClosed || (o.days_left !== null && o.days_left >= 0))
     .sort((a, b) => {
       if (!a.deadline && !b.deadline) return 0;
       if (!a.deadline) return 1;

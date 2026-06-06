@@ -161,10 +161,11 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:14p
       <option value="RFI">RFI</option>
     </select>
     <select id="urgencyFilter">
-      <option value="">All deadlines</option>
+      <option value="active" selected>Open contracts only</option>
       <option value="hot">Due &lt; 7 days</option>
       <option value="warm">Due 7–30 days</option>
       <option value="ok">Due 30+ days</option>
+      <option value="">All (including closed)</option>
     </select>
     <input type="search" id="searchInput" placeholder="Search title or agency…" style="min-width:220px"/>
     <label style="display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--muted);cursor:pointer;white-space:nowrap">
@@ -249,7 +250,8 @@ function applyFilters() {
   let filtered = allOpps;
   if (naics)   filtered = filtered.filter(o => o.naics === naics);
   if (type)    filtered = filtered.filter(o => (o.type||'').includes(type));
-  if (urgency) filtered = filtered.filter(o => o.urgency === urgency);
+  if (urgency === 'active') filtered = filtered.filter(o => o.days_left !== null && o.days_left >= 0);
+  else if (urgency) filtered = filtered.filter(o => o.urgency === urgency);
   if (search)  filtered = filtered.filter(o =>
     (o.title||'').toLowerCase().includes(search) ||
     (o.agency||'').toLowerCase().includes(search)
