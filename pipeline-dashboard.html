@@ -82,7 +82,36 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:14p
 .stat-val.red{color:var(--red)}.stat-val.amber{color:var(--amber)}.stat-val.green{color:var(--green)}
 .stat-label{font-size:.64rem;text-transform:uppercase;letter-spacing:.08em;color:var(--soft);margin-top:4px}
 
-@media(max-width:800px){.opp-table th:nth-child(3),.opp-table td:nth-child(3),.opp-table th:nth-child(5),.opp-table td:nth-child(5){display:none}}
+/* ── Mobile card layout ── */
+.opp-cards{display:none;gap:12px;flex-direction:column}
+.opp-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.opp-card:hover{border-color:var(--line2)}
+.opp-card-title a{color:var(--text);text-decoration:none;font-weight:700;font-size:.92rem;line-height:1.35;display:block}
+.opp-card-title a:hover{color:var(--cyan)}
+.opp-card-agency{font-size:.76rem;color:var(--muted);margin-top:3px}
+.opp-card-row{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.opp-card-chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.opp-card-deadline{display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.opp-card-date{font-size:.68rem;color:var(--soft)}
+
+@media(max-width:700px){
+  .opp-table-wrap table{display:none}
+  .opp-cards{display:flex}
+  header{flex-direction:column;align-items:flex-start;gap:10px;padding:12px 16px}
+  .header-right{flex-wrap:wrap;gap:8px}
+  .page{padding:16px 14px}
+  .stat-bar{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .stat{min-width:0;padding:10px 12px}
+  .stat-val{font-size:1.3rem}
+  .entity-card{gap:12px}
+  .entity-field{min-width:80px}
+  .controls{gap:8px}
+  .controls select,.controls input{font-size:.8rem;padding:7px 10px}
+  .naics-ribbon{gap:6px}
+  .naics-bubble{padding:5px 9px}
+  .nb-code{font-size:.68rem}
+  .nb-label{font-size:.54rem}
+}
 
 /* Auth gate */
 #auth-gate{display:none !important;}
@@ -211,21 +240,28 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:14p
     <span class="count-badge" id="countBadge"></span>
   </div>
 
-  <!-- Table -->
-  <table class="opp-table">
-    <thead>
-      <tr>
-        <th>Opportunity</th>
-        <th>Agency</th>
-        <th>Type</th>
-        <th>Set-Aside</th>
-        <th>NAICS</th>
-        <th style="text-align:center">Deadline</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody id="tbody"><tr><td colspan="7" class="loading">Loading pipeline…</td></tr></tbody>
-  </table>
+  <!-- Desktop table -->
+  <div class="opp-table-wrap">
+    <table class="opp-table">
+      <thead>
+        <tr>
+          <th>Opportunity</th>
+          <th>Agency</th>
+          <th>Type</th>
+          <th>Set-Aside</th>
+          <th>NAICS</th>
+          <th style="text-align:center">Deadline</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tbody"><tr><td colspan="7" class="loading">Loading pipeline…</td></tr></tbody>
+    </table>
+  </div>
+
+  <!-- Mobile cards -->
+  <div class="opp-cards" id="oppCards">
+    <div class="loading" style="text-align:center;padding:40px;color:var(--muted)">Loading pipeline…</div>
+  </div>
 
 </div><!-- end .page -->
 </div><!-- end #auth-app -->
@@ -252,19 +288,23 @@ function fmtDeadline(d) {
 
 function render(opps) {
   const tbody = document.getElementById('tbody');
+  const cards = document.getElementById('oppCards');
   document.getElementById('countBadge').textContent = opps.length + ' opportunities';
+
   if (!opps.length) {
     tbody.innerHTML = '<tr><td colspan="7" class="empty">No opportunities match the current filters.</td></tr>';
+    cards.innerHTML = '<div class="empty">No opportunities match the current filters.</div>';
     return;
   }
+
+  const capgenUrl = `/capability-generator.html?uei=${UEI}`;
+
+  // Desktop table rows
   tbody.innerHTML = opps.map(o => {
     const daysCls = o.urgency === 'hot' ? 'days-hot' : o.urgency === 'warm' ? 'days-warm' : o.urgency === 'ok' ? 'days-ok' : 'days-none';
     const daysLabel = o.days_left !== null ? (o.days_left < 1 ? 'Closed' : o.days_left + 'd left') : 'No deadline';
-    const capgenUrl = `/capability-generator.html?uei=${UEI}`;
     return `<tr>
-      <td class="title-cell">
-        <a href="${o.url}" target="_blank" rel="noopener">${o.title || 'Untitled'}</a>
-      </td>
+      <td class="title-cell"><a href="${o.url}" target="_blank" rel="noopener">${o.title || 'Untitled'}</a></td>
       <td class="agency-cell">${o.agency || '—'}</td>
       <td><span class="type-chip ${typeClass(o.type)}">${o.type || '—'}</span></td>
       <td class="setaside-cell">${o.set_aside || 'Unrestricted'}</td>
@@ -273,8 +313,34 @@ function render(opps) {
         <div><span class="days-badge ${daysCls}">${daysLabel}</span></div>
         <div style="font-size:.68rem;color:var(--soft);margin-top:3px">${fmtDeadline(o.deadline)}</div>
       </td>
-      <td><a class="capgen-btn" href="${capgenUrl}" title="Generate capability statement">CapGen ↗</a></td>
+      <td><a class="capgen-btn" href="${capgenUrl}">CapGen ↗</a></td>
     </tr>`;
+  }).join('');
+
+  // Mobile cards
+  cards.innerHTML = opps.map(o => {
+    const daysCls = o.urgency === 'hot' ? 'days-hot' : o.urgency === 'warm' ? 'days-warm' : o.urgency === 'ok' ? 'days-ok' : 'days-none';
+    const daysLabel = o.days_left !== null ? (o.days_left < 1 ? 'Closed' : o.days_left + 'd left') : 'No deadline';
+    return `<div class="opp-card">
+      <div class="opp-card-title">
+        <a href="${o.url}" target="_blank" rel="noopener">${o.title || 'Untitled'}</a>
+        <div class="opp-card-agency">${o.agency || '—'}</div>
+      </div>
+      <div class="opp-card-row">
+        <div class="opp-card-chips">
+          <span class="type-chip ${typeClass(o.type)}">${o.type || '—'}</span>
+          <span class="naics-chip">${o.naics || '—'}</span>
+          ${o.set_aside && o.set_aside !== 'None' ? `<span class="setaside-cell">${o.set_aside}</span>` : ''}
+        </div>
+        <div class="opp-card-deadline">
+          <span class="days-badge ${daysCls}">${daysLabel}</span>
+          <span class="opp-card-date">${fmtDeadline(o.deadline)}</span>
+        </div>
+      </div>
+      <div>
+        <a class="capgen-btn" href="${capgenUrl}" style="width:100%;text-align:center;display:block;padding:8px">Generate CapGen Statement ↗</a>
+      </div>
+    </div>`;
   }).join('');
 }
 
