@@ -5,7 +5,7 @@
 
 const crypto = require('crypto');
 
-const PIPELINE_URL  = 'https://sam-gov-search-engine.netlify.app/pipeline';
+const PIPELINE_URL  = 'https://capgen.aproposgroupllc.com/pipeline';
 const SUPABASE_URL  = process.env.SUPABASE_URL;
 const SERVICE_KEY   = process.env.SUPABASE_SERVICE_KEY;
 const RESEND_KEY    = process.env.RESEND_API_KEY;
@@ -41,14 +41,14 @@ async function sendWelcomeEmail(email, firstName, businessName, stripeCustomerId
     <div style="max-width:520px;margin:0 auto;background:#0f2244;border:1px solid rgba(91,175,255,.25);border-radius:18px;padding:36px 32px;">
       <p style="margin:0 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:#5BD3FF;font-weight:700;">CapGen Pro · AI4 Businesses</p>
       <h2 style="margin:0 0 16px;font-size:22px;color:#f0f6ff;">You're in, ${firstName}. Welcome to CapGen Pro.</h2>
-      <p style="margin:0 0 24px;font-size:14px;color:#8facd0;line-height:1.7;">Your SAM.gov opportunity pipeline is being configured right now. You'll have access within 24 hours.</p>
+      <p style="margin:0 0 24px;font-size:14px;color:#8facd0;line-height:1.7;">Your personalized federal contract pipeline is ready. Sign in below to access your dashboard now.</p>
       <div style="background:#132954;border:1px solid rgba(91,175,255,.15);border-radius:10px;padding:18px 20px;margin-bottom:24px;">
         <p style="margin:0 0 12px;font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:#5a7899;font-weight:700;">How to Access Your Dashboard</p>
         <table width="100%" cellpadding="0" cellspacing="0">
-          <tr><td style="padding:6px 0;font-size:14px;color:#8facd0;"><span style="color:#5BD3FF;font-weight:700;">Step 1</span> &nbsp; Visit your pipeline at the link below</td></tr>
-          <tr><td style="padding:6px 0;font-size:14px;color:#8facd0;"><span style="color:#5BD3FF;font-weight:700;">Step 2</span> &nbsp; Enter your email address and click Submit</td></tr>
-          <tr><td style="padding:6px 0;font-size:14px;color:#8facd0;"><span style="color:#5BD3FF;font-weight:700;">Step 3</span> &nbsp; Check your inbox — a link to access your dashboard will be emailed to you</td></tr>
-          <tr><td style="padding:6px 0;font-size:14px;color:#8facd0;"><span style="color:#5BD3FF;font-weight:700;">Step 4</span> &nbsp; Click <strong style="color:#f0f6ff;">Confirm your email</strong> — your dashboard opens immediately</td></tr>
+          <tr><td style="padding:6px 0;font-size:14px;color:#8facd0;"><span style="color:#5BD3FF;font-weight:700;">Step 1</span> &nbsp; Click the button below to open your pipeline</td></tr>
+          <tr><td style="padding:6px 0;font-size:14px;color:#8facd0;"><span style="color:#5BD3FF;font-weight:700;">Step 2</span> &nbsp; Enter your email address and click Send Code</td></tr>
+          <tr><td style="padding:6px 0;font-size:14px;color:#8facd0;"><span style="color:#5BD3FF;font-weight:700;">Step 3</span> &nbsp; Check your inbox for your 6-digit access code</td></tr>
+          <tr><td style="padding:6px 0;font-size:14px;color:#8facd0;"><span style="color:#5BD3FF;font-weight:700;">Step 4</span> &nbsp; Enter the code — your dashboard opens immediately</td></tr>
         </table>
         <p style="margin:14px 0 0;font-size:12px;color:#3a5470;">No password required. Your email is your key.</p>
       </div>
