@@ -24,6 +24,16 @@
   to = "/sms-consent.html"
   status = 200
 
+[[redirects]]
+  from = "/pipeline"
+  to = "/pipeline-dashboard.html"
+  status = 200
+
+[[redirects]]
+  from = "/capgen"
+  to = "/capability-generator.html"
+  status = 200
+
 [[headers]]
   for = "/*"
   [headers.values]
