@@ -30,10 +30,21 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:14p
 .ef-value{font-size:.92rem;font-weight:700;color:var(--text)}
 .ef-value.active{color:var(--green)}
 
-.controls{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:18px;align-items:center}
+.controls{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;align-items:center}
 .controls select,.controls input{background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:8px;color:var(--text);padding:8px 12px;font-size:.84rem;outline:none}
 .controls select:focus,.controls input:focus{border-color:var(--cyan)}
 .count-badge{font-size:.8rem;color:var(--muted);margin-left:auto}
+
+/* NAICS ribbon */
+.naics-ribbon{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px;align-items:center}
+.naics-ribbon-label{font-size:.66rem;text-transform:uppercase;letter-spacing:.1em;color:var(--soft);margin-right:4px;white-space:nowrap}
+.naics-bubble{display:inline-flex;flex-direction:column;align-items:center;gap:2px;padding:7px 13px;border-radius:20px;cursor:pointer;border:1px solid var(--line);background:rgba(255,255,255,.04);transition:.18s;user-select:none}
+.naics-bubble:hover{border-color:var(--cyan);background:rgba(91,211,255,.08)}
+.naics-bubble.active{background:rgba(91,211,255,.15);border-color:var(--cyan);box-shadow:0 0 10px rgba(91,211,255,.2)}
+.naics-bubble.active .nb-code{color:var(--cyan)}
+.naics-bubble.inactive{opacity:.38;border-color:transparent}
+.nb-code{font-size:.75rem;font-weight:900;color:var(--muted);letter-spacing:.04em;line-height:1}
+.nb-label{font-size:.6rem;color:var(--soft);text-align:center;line-height:1.2;max-width:80px}
 
 .opp-table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
 .opp-table th{font-size:.64rem;text-transform:uppercase;letter-spacing:.1em;color:var(--soft);padding:11px 14px;text-align:left;border-bottom:1px solid var(--line);background:rgba(255,255,255,.03)}
@@ -151,8 +162,33 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:14p
   </div>
 
   <!-- Controls -->
+  <!-- NAICS ribbon -->
+  <div class="naics-ribbon" id="naicsRibbon">
+    <span class="naics-ribbon-label">NAICS</span>
+    <div class="naics-bubble active" data-naics="541519">
+      <span class="nb-code">541519 ⭐</span><span class="nb-label">Other IT Services</span>
+    </div>
+    <div class="naics-bubble active" data-naics="541511">
+      <span class="nb-code">541511</span><span class="nb-label">Custom Programming</span>
+    </div>
+    <div class="naics-bubble active" data-naics="541512">
+      <span class="nb-code">541512</span><span class="nb-label">Systems Design</span>
+    </div>
+    <div class="naics-bubble active" data-naics="541513">
+      <span class="nb-code">541513</span><span class="nb-label">IT Facilities Mgmt</span>
+    </div>
+    <div class="naics-bubble active" data-naics="541990">
+      <span class="nb-code">541990</span><span class="nb-label">Professional Svcs</span>
+    </div>
+    <div class="naics-bubble active" data-naics="541690">
+      <span class="nb-code">541690</span><span class="nb-label">Scientific Consulting</span>
+    </div>
+    <div class="naics-bubble active" data-naics="541370">
+      <span class="nb-code">541370</span><span class="nb-label">Surveying & Mapping</span>
+    </div>
+  </div>
+
   <div class="controls">
-    <select id="naicsFilter"><option value="">All NAICS</option></select>
     <select id="typeFilter">
       <option value="">All types</option>
       <option value="Solicitation">Solicitation</option>
@@ -242,14 +278,18 @@ function render(opps) {
   }).join('');
 }
 
+function activeNaics() {
+  return [...document.querySelectorAll('.naics-bubble.active')].map(b => b.dataset.naics);
+}
+
 function applyFilters() {
-  const naics   = document.getElementById('naicsFilter').value;
+  const selectedNaics = activeNaics();
   const type    = document.getElementById('typeFilter').value;
   const urgency = document.getElementById('urgencyFilter').value;
   const search  = document.getElementById('searchInput').value.toLowerCase();
 
   let filtered = allOpps;
-  if (naics)   filtered = filtered.filter(o => o.naics === naics);
+  if (selectedNaics.length < 7) filtered = filtered.filter(o => selectedNaics.includes(o.naics));
   if (type)    filtered = filtered.filter(o => (o.type||'').includes(type));
   if (urgency === 'active') filtered = filtered.filter(o => o.days_left !== null && o.days_left >= 0);
   else if (urgency) filtered = filtered.filter(o => o.urgency === urgency);
@@ -279,19 +319,26 @@ async function load() {
     document.getElementById('s-warm').textContent  = allOpps.filter(o => o.urgency === 'warm').length;
     document.getElementById('s-ok').textContent    = allOpps.filter(o => o.urgency === 'ok').length;
 
-    // Populate NAICS filter
-    const sel = document.getElementById('naicsFilter');
-    sel.innerHTML = '<option value="">All NAICS</option>' +
-      [...new Set(allOpps.map(o => o.naics).filter(Boolean))].sort()
-        .map(n => `<option value="${n}">${n}</option>`).join('');
-
     applyFilters();
   } catch (e) {
     document.getElementById('tbody').innerHTML = `<tr><td colspan="7" class="empty" style="color:var(--red)">${e.message}</td></tr>`;
   }
 }
 
-['naicsFilter','typeFilter','urgencyFilter'].forEach(id =>
+// NAICS bubble toggle
+document.querySelectorAll('.naics-bubble').forEach(b => {
+  b.addEventListener('click', () => {
+    const isActive = b.classList.contains('active');
+    const allActive = document.querySelectorAll('.naics-bubble.active').length;
+    // Don't let the last active bubble be deactivated
+    if (isActive && allActive === 1) return;
+    b.classList.toggle('active');
+    b.classList.toggle('inactive');
+    applyFilters();
+  });
+});
+
+['typeFilter','urgencyFilter'].forEach(id =>
   document.getElementById(id).addEventListener('change', applyFilters));
 document.getElementById('windowFilter').addEventListener('change', () => { currentPage = 0; load(); });
 document.getElementById('searchInput').addEventListener('input', applyFilters);
