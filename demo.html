@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CapGen Pro — Live Demo</title>
+<style>
+:root{--bg:#0A1A3A;--surface:#0f2244;--panel:#132954;--line:rgba(91,175,255,.15);--line2:rgba(91,175,255,.32);--text:#f0f6ff;--muted:#8facd0;--soft:#5a7899;--cyan:#5BD3FF;--gold:#d9a45b;--green:#2ecc8a;--red:#e05555;--amber:#f0a500;font-family:Arial,Helvetica,sans-serif;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);min-height:100vh}
+
+/* Nav */
+nav{display:flex;align-items:center;justify-content:space-between;padding:16px 5vw;border-bottom:1px solid var(--line);background:rgba(10,26,58,.9);backdrop-filter:blur(16px);position:sticky;top:0;z-index:50}
+.nav-brand{display:flex;align-items:center;gap:10px}
+.nav-mark{background:var(--surface);border:1px solid var(--line2);border-radius:8px;padding:6px 10px;font-weight:900;color:var(--cyan);font-family:monospace;font-size:13px}
+.nav-name{font-weight:700;font-size:.95rem}
+.nav-actions{display:flex;gap:10px;align-items:center}
+.btn-nav-ghost{font-size:.82rem;color:var(--muted);text-decoration:none;padding:8px 14px;border:1px solid var(--line);border-radius:8px;transition:.18s}
+.btn-nav-ghost:hover{border-color:var(--cyan);color:var(--cyan)}
+.btn-nav-cta{background:var(--cyan);color:#0A1A3A;font-size:.82rem;font-weight:700;text-decoration:none;padding:9px 18px;border-radius:8px;transition:.18s;white-space:nowrap}
+.btn-nav-cta:hover{opacity:.88}
+
+/* Build modal overlay */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.8);display:none;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(6px)}
+.modal.open{display:flex}
+.modal-card{background:var(--surface);border:1px solid var(--line2);border-radius:22px;padding:44px 40px;max-width:480px;width:90%;box-shadow:0 40px 100px rgba(0,0,0,.6)}
+.modal-logo{display:flex;align-items:center;gap:10px;margin-bottom:24px}
+.modal-mark{background:var(--bg);border:1px solid var(--line2);border-radius:8px;padding:6px 10px;font-weight:900;color:var(--cyan);font-family:monospace;font-size:13px}
+.modal-title{font-size:1.35rem;font-weight:900;line-height:1.1;letter-spacing:-.02em;margin-bottom:8px}
+.modal-sub{font-size:.88rem;color:var(--muted);line-height:1.65;margin-bottom:26px}
+.modal-input{width:100%;background:rgba(255,255,255,.07);border:1px solid var(--line2);border-radius:10px;color:var(--text);padding:13px 16px;font-size:1rem;outline:none;transition:.18s;margin-bottom:12px}
+.modal-input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(91,211,255,.1)}
+.modal-input::placeholder{color:var(--soft)}
+.modal-btn{width:100%;background:var(--cyan);color:#0A1A3A;border:none;border-radius:10px;padding:14px;font-weight:700;font-size:1rem;cursor:pointer;transition:.18s}
+.modal-btn:hover:not(:disabled){opacity:.88}
+.modal-btn:disabled{opacity:.5;cursor:wait}
+.modal-err{font-size:.82rem;color:#ff9999;margin-top:10px;display:none}
+
+/* Progress screen */
+.progress-screen{display:none;text-align:center;padding:8px 0}
+.progress-biz{font-size:1.1rem;font-weight:900;color:var(--text);margin-bottom:6px}
+.progress-label{font-size:.78rem;color:var(--muted);margin-bottom:24px}
+.steps{display:flex;flex-direction:column;gap:14px;text-align:left}
+.step-row{display:flex;align-items:center;gap:12px}
+.step-icon{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;flex-shrink:0;transition:.4s}
+.step-icon.waiting{background:rgba(255,255,255,.06);border:1px solid var(--line);color:var(--soft)}
+.step-icon.active{background:rgba(91,211,255,.15);border:1px solid rgba(91,211,255,.4);color:var(--cyan)}
+.step-icon.done{background:rgba(46,204,138,.15);border:1px solid rgba(46,204,138,.35);color:var(--green)}
+.step-text{font-size:.88rem;color:var(--muted);transition:.3s}
+.step-text.active{color:var(--text);font-weight:600}
+.step-text.done{color:var(--green)}
+.progress-bar-wrap{height:4px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden;margin-top:22px}
+.progress-bar{height:100%;background:linear-gradient(90deg,var(--cyan),var(--green));border-radius:4px;width:0%;transition:width .6s cubic-bezier(.4,0,.2,1)}
+
+/* Dashboard area */
+.dash-area{display:none;padding:24px 5vw 60px}
+.dash-inner{max-width:1140px;margin:0 auto}
+
+/* Entity banner */
+.entity-banner{background:var(--surface);border:1px solid var(--line2);border-radius:16px;padding:20px 26px;margin-bottom:20px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px}
+.entity-left{display:flex;align-items:center;gap:16px}
+.entity-mark{width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,var(--cyan),#4A7FFF);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px;color:#0A1A3A;flex-shrink:0}
+.entity-name{font-size:1.2rem;font-weight:900;letter-spacing:-.01em}
+.entity-meta{font-size:.76rem;color:var(--muted);margin-top:3px}
+.entity-badges{display:flex;flex-wrap:wrap;gap:7px}
+.e-badge{padding:4px 11px;border-radius:20px;font-size:.68rem;font-weight:700;background:rgba(91,211,255,.1);border:1px solid rgba(91,211,255,.25);color:var(--cyan)}
+.e-badge.sam{background:rgba(46,204,138,.1);border-color:rgba(46,204,138,.3);color:var(--green)}
+.e-badge.demo{background:rgba(217,164,91,.1);border-color:rgba(217,164,91,.3);color:var(--gold)}
+
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.stat-val{font-size:1.8rem;font-weight:900;line-height:1;color:var(--text)}
+.stat-val.c{color:var(--cyan)}.stat-val.r{color:var(--red)}.stat-val.a{color:var(--amber)}.stat-val.g{color:var(--green)}
+.stat-lbl{font-size:.62rem;color:var(--soft);text-transform:uppercase;letter-spacing:.08em;margin-top:5px}
+
+/* Win-btns */
+.win-btns{display:flex;gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:14px;width:fit-content}
+.win-btn{background:rgba(255,255,255,.04);border:none;border-right:1px solid var(--line);color:var(--muted);padding:8px 16px;font-size:.82rem;font-weight:700;cursor:pointer;transition:.18s;white-space:nowrap}
+.win-btn:last-child{border-right:none}
+.win-btn.active{background:rgba(91,211,255,.18);color:var(--cyan)}
+
+/* Search */
+.search-bar{display:flex;gap:10px;margin-bottom:16px}
+.search-input{flex:1;background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:8px;color:var(--text);padding:9px 14px;font-size:.84rem;outline:none}
+.search-input:focus{border-color:var(--cyan)}
+
+/* Table */
+.opp-table-wrap{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--surface)}
+table{width:100%;border-collapse:collapse}
+th{font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--soft);padding:11px 14px;text-align:left;border-bottom:1px solid var(--line);background:rgba(255,255,255,.03)}
+td{padding:12px 14px;font-size:.85rem;border-bottom:1px solid rgba(91,175,255,.07);color:var(--muted);vertical-align:top}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(91,211,255,.04)}
+.opp-title a{color:var(--text);text-decoration:none;font-weight:600;font-size:.87rem;display:block;line-height:1.35}
+.opp-title a:hover{color:var(--cyan)}
+.opp-agency{font-size:.72rem;color:var(--soft);margin-top:2px}
+.chip{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.66rem;font-weight:700}
+.chip-naics{background:rgba(91,211,255,.1);border:1px solid rgba(91,211,255,.25);color:var(--cyan)}
+.days-hot{background:rgba(224,85,85,.2);color:#ff9999;border:1px solid rgba(224,85,85,.35);padding:4px 9px;border-radius:6px;font-size:.7rem;font-weight:700;white-space:nowrap}
+.days-warm{background:rgba(240,165,0,.15);color:#ffc96b;border:1px solid rgba(240,165,0,.3);padding:4px 9px;border-radius:6px;font-size:.7rem;font-weight:700;white-space:nowrap}
+.days-ok{background:rgba(46,204,138,.12);color:#7eedc0;border:1px solid rgba(46,204,138,.28);padding:4px 9px;border-radius:6px;font-size:.7rem;font-weight:700;white-space:nowrap}
+.empty{text-align:center;padding:48px;color:var(--soft);font-size:.9rem}
+
+/* Sticky CTA bar */
+.cta-bar{position:fixed;bottom:0;left:0;right:0;background:rgba(10,26,58,.97);border-top:1px solid var(--line2);padding:14px 5vw;display:none;align-items:center;justify-content:space-between;gap:16px;backdrop-filter:blur(16px);z-index:40}
+.cta-bar-text{font-size:.88rem;color:var(--muted);line-height:1.5}
+.cta-bar-text strong{color:var(--text)}
+.cta-bar-btn{background:var(--cyan);color:#0A1A3A;font-weight:700;font-size:.9rem;text-decoration:none;padding:12px 24px;border-radius:10px;white-space:nowrap;transition:.18s;flex-shrink:0}
+.cta-bar-btn:hover{opacity:.88}
+
+@media(max-width:700px){.stats{grid-template-columns:repeat(2,1fr)}.entity-banner{flex-direction:column}.cta-bar{flex-direction:column;gap:10px}.cta-bar-btn{width:100%;text-align:center}table th:nth-child(3),table td:nth-child(3),table th:nth-child(4),table td:nth-child(4){display:none}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand"><div class="nav-mark">CG</div><div class="nav-name">CapGen Pro</div></div>
+  <div class="nav-actions">
+    <a href="/onboarding" class="btn-nav-ghost">Sign In</a>
+    <a href="/offer" class="btn-nav-cta">Subscribe Today →</a>
+  </div>
+</nav>
+
+<!-- Build Modal -->
+<div class="modal" id="buildModal">
+  <div class="modal-card">
+    <div class="modal-logo"><div class="modal-mark">CG</div><strong>CapGen Pro</strong></div>
+
+    <!-- Step 1: Enter business name -->
+    <div id="step-input">
+      <div class="modal-title">See your live pipeline</div>
+      <p class="modal-sub">Enter your business name. We'll search SAM.gov and build your personalized federal contract dashboard — live, in seconds.</p>
+      <input class="modal-input" type="text" id="bizInput" placeholder="e.g. Custom IT Services LLC" autocomplete="organization"/>
+      <button class="modal-btn" id="buildBtn">Build My Dashboard →</button>
+      <div class="modal-err" id="buildErr"></div>
+    </div>
+
+    <!-- Step 2: Progress -->
+    <div class="progress-screen" id="step-progress">
+      <div class="progress-biz" id="progressBiz"></div>
+      <div class="progress-label">Building your personalized pipeline…</div>
+      <div class="steps">
+        <div class="step-row"><div class="step-icon waiting" id="si1">1</div><div class="step-text" id="st1">Searching SAM.gov…</div></div>
+        <div class="step-row"><div class="step-icon waiting" id="si2">2</div><div class="step-text" id="st2">Pulling your NAICS codes…</div></div>
+        <div class="step-row"><div class="step-icon waiting" id="si3">3</div><div class="step-text" id="st3">Loading active contracts…</div></div>
+        <div class="step-row"><div class="step-icon waiting" id="si4">4</div><div class="step-text" id="st4">Building your dashboard…</div></div>
+      </div>
+      <div class="progress-bar-wrap" style="margin-top:24px">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Dashboard -->
+<div class="dash-area" id="dashArea">
+  <div class="dash-inner">
+    <div class="entity-banner" id="entityBanner"></div>
+    <div class="stats" id="statsBar"></div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;align-items:center">
+      <div class="win-btns" id="winBtns">
+        <button class="win-btn active" data-days="30">30 Days</button>
+        <button class="win-btn" data-days="60">60 Days</button>
+        <button class="win-btn" data-days="7">7 Days</button>
+      </div>
+      <input class="search-input" type="search" id="searchInput" placeholder="Search title or agency…" style="max-width:280px"/>
+    </div>
+    <div class="opp-table-wrap">
+      <table>
+        <thead><tr><th>Opportunity</th><th>Agency</th><th>NAICS</th><th>Set-Aside</th><th style="text-align:center">Deadline</th></tr></thead>
+        <tbody id="oppBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Sticky CTA bar -->
+<div class="cta-bar" id="ctaBar">
+  <div class="cta-bar-text"><strong>This is your live pipeline.</strong> Subscribe to keep permanent access to your contracts, filters, and CapGen statements.</div>
+  <a href="/offer" class="cta-bar-btn">Subscribe Today →</a>
+</div>
+
+<script>
+'use strict';
+let allOpps = [];
+let demoEntity = null;
+
+// Show modal when page loads (it's the demo page)
+document.getElementById('buildModal').classList.add('open');
+document.getElementById('bizInput').focus();
+
+function stepDone(n, text) {
+  const icon = document.getElementById('si'+n);
+  const txt  = document.getElementById('st'+n);
+  icon.className = 'step-icon done'; icon.textContent = '✓';
+  txt.className  = 'step-text done'; txt.textContent = text || txt.textContent;
+}
+function stepActive(n) {
+  const icon = document.getElementById('si'+n);
+  const txt  = document.getElementById('st'+n);
+  icon.className = 'step-icon active'; icon.textContent = '…';
+  txt.className  = 'step-text active';
+}
+function setProgress(pct) { document.getElementById('progressBar').style.width = pct + '%'; }
+
+document.getElementById('buildBtn').addEventListener('click', startDemo);
+document.getElementById('bizInput').addEventListener('keydown', e => { if (e.key === 'Enter') startDemo(); });
+
+async function startDemo() {
+  const name = document.getElementById('bizInput').value.trim();
+  const err  = document.getElementById('buildErr');
+  if (!name) { err.textContent = 'Please enter your business name.'; err.style.display = 'block'; return; }
+  err.style.display = 'none';
+
+  // Show progress screen
+  document.getElementById('step-input').style.display = 'none';
+  document.getElementById('step-progress').style.display = 'block';
+  document.getElementById('progressBiz').textContent = name;
+
+  // Animate steps while waiting for API
+  stepActive(1); setProgress(8);
+  await new Promise(r => setTimeout(r, 600));
+  stepActive(2); setProgress(25);
+  await new Promise(r => setTimeout(r, 400));
+  stepActive(3); setProgress(45);
+
+  // Call demo-lookup
+  let result;
+  try {
+    const res = await fetch('/.netlify/functions/demo-lookup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ business_name: name }),
+    });
+    result = await res.json();
+  } catch(e) {
+    result = { entity: { found: false, legal_name: name, sam_status: 'Demo Mode', naics: ['541519','541511','541512'], certs: [] }, opportunities: [], total: 0 };
+  }
+
+  stepDone(1, result.entity.found ? `Found in SAM.gov — ${result.entity.uei}` : 'SAM.gov searched — demo mode');
+  stepDone(2, `${(result.entity.naics||[]).length || 3} NAICS codes identified`);
+  setProgress(70);
+  await new Promise(r => setTimeout(r, 500));
+
+  stepDone(3, `${result.total} active contract${result.total !== 1 ? 's' : ''} loaded`);
+  stepActive(4); setProgress(88);
+  await new Promise(r => setTimeout(r, 600));
+  stepDone(4, 'Dashboard ready');
+  setProgress(100);
+  await new Promise(r => setTimeout(r, 700));
+
+  // Close modal, show dashboard
+  document.getElementById('buildModal').classList.remove('open');
+  renderDashboard(result.entity, result.opportunities);
+}
+
+function renderDashboard(entity, opps) {
+  demoEntity = entity;
+  allOpps = opps;
+  document.getElementById('dashArea').style.display = 'block';
+  document.getElementById('ctaBar').style.display = 'flex';
+
+  // Entity banner
+  const initials = entity.legal_name.split(/\s+/).filter(w => /[A-Z]/i.test(w)).slice(0,2).map(w=>w[0].toUpperCase()).join('') || 'CO';
+  const samBadge = entity.found ? `<span class="e-badge sam">● SAM Active</span>` : `<span class="e-badge demo">Demo Mode</span>`;
+  const certBadges = (entity.certs || []).slice(0,3).map(c => `<span class="e-badge">${c}</span>`).join('');
+  document.getElementById('entityBanner').innerHTML = `
+    <div class="entity-left">
+      <div class="entity-mark">${initials}</div>
+      <div>
+        <div class="entity-name">${entity.legal_name}</div>
+        <div class="entity-meta">${entity.uei ? `UEI: ${entity.uei}` : 'SAM.gov Demo'} ${entity.cage ? `· CAGE: ${entity.cage}` : ''}</div>
+      </div>
+    </div>
+    <div class="entity-badges">${samBadge}${certBadges}</div>`;
+
+  renderTable(allOpps);
+}
+
+function renderTable(opps) {
+  const hot  = opps.filter(o => o.days_left !== null && o.days_left <= 7).length;
+  const warm = opps.filter(o => o.days_left !== null && o.days_left > 7 && o.days_left <= 30).length;
+  const ok   = opps.filter(o => o.days_left === null || o.days_left > 30).length;
+  document.getElementById('statsBar').innerHTML = `
+    <div class="stat"><div class="stat-val c">${opps.length}</div><div class="stat-lbl">Open Contracts</div></div>
+    <div class="stat"><div class="stat-val r">${hot}</div><div class="stat-lbl">Due &lt; 7 Days</div></div>
+    <div class="stat"><div class="stat-val a">${warm}</div><div class="stat-lbl">Due 7–30 Days</div></div>
+    <div class="stat"><div class="stat-val g">${ok}</div><div class="stat-lbl">Due 30+ Days</div></div>`;
+
+  const body = document.getElementById('oppBody');
+  if (!opps.length) { body.innerHTML = '<tr><td colspan="5" class="empty">No active contracts found in this window. Try a wider date range.</td></tr>'; return; }
+  body.innerHTML = opps.map(o => {
+    const dl = o.days_left;
+    const badge = dl !== null ? (dl <= 7 ? `<span class="days-hot">${dl}d left</span>` : dl <= 30 ? `<span class="days-warm">${dl}d left</span>` : `<span class="days-ok">${dl}d left</span>`) : '<span style="color:var(--soft);font-size:.76rem">No deadline</span>';
+    return `<tr>
+      <td class="opp-title"><a href="${o.url}" target="_blank" rel="noopener">${o.title || 'Untitled'}</a><div class="opp-agency">${o.agency || '—'}</div></td>
+      <td style="font-size:.76rem">${o.type || '—'}</td>
+      <td><span class="chip chip-naics">${o.naics || '—'}</span></td>
+      <td style="font-size:.76rem;color:var(--soft)">${o.set_aside || 'Unrestricted'}</td>
+      <td style="text-align:center">${badge}</td>
+    </tr>`;
+  }).join('');
+}
+
+// Search filter
+document.getElementById('searchInput').addEventListener('input', function() {
+  const q = this.value.toLowerCase();
+  const filtered = q ? allOpps.filter(o => (o.title||'').toLowerCase().includes(q) || (o.agency||'').toLowerCase().includes(q)) : allOpps;
+  renderTable(filtered);
+});
+
+// Window buttons (re-fetch with different day range)
+document.querySelectorAll('.win-btn').forEach(btn => {
+  btn.addEventListener('click', async function() {
+    document.querySelectorAll('.win-btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+    if (!demoEntity) return;
+    document.getElementById('oppBody').innerHTML = '<tr><td colspan="5" class="empty" style="padding:32px">Loading…</td></tr>';
+    try {
+      const res = await fetch('/.netlify/functions/demo-lookup', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ business_name: demoEntity.legal_name }),
+      });
+      const data = await res.json();
+      allOpps = data.opportunities || [];
+      renderTable(allOpps);
+    } catch(e) { console.warn(e); }
+  });
+});
+</script>
+</body>
+</html>
