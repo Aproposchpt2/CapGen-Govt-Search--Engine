@@ -59,8 +59,9 @@ exports.handler = async (event) => {
     'Access-Control-Allow-Origin': '*',
   };
 
-  const uei  = (event.queryStringParameters || {}).uei || 'C13JZV6AY6L4';
-  const days = parseInt((event.queryStringParameters || {}).days || '90', 10);
+  const uei           = (event.queryStringParameters || {}).uei || 'C13JZV6AY6L4';
+  const days          = parseInt((event.queryStringParameters || {}).days || '30', 10);
+  const includeClosed = (event.queryStringParameters || {}).include_closed === '1';
 
   const client = CLIENT_NAICS[uei];
   if (!client) return { statusCode: 404, headers, body: JSON.stringify({ error: 'Client not found' }) };
@@ -85,7 +86,7 @@ exports.handler = async (event) => {
     }
   }
 
-  const results = [...seen.values()].map(o => {
+  const mapped = [...seen.values()].map(o => {
     const days_left = daysUntil(o.responseDeadLine);
     return {
       notice_id:    o.noticeId,
@@ -100,13 +101,18 @@ exports.handler = async (event) => {
       urgency:      urgencyClass(days_left),
       url:          o.uiLink || `https://sam.gov/opp/${o.noticeId}/view`,
     };
-  }).sort((a, b) => {
-    // Active deadlines first, sorted ascending; nulls last
-    if (!a.deadline && !b.deadline) return 0;
-    if (!a.deadline) return 1;
-    if (!b.deadline) return -1;
-    return new Date(a.deadline) - new Date(b.deadline);
   });
+
+  // By default show only active (deadline in future or no deadline set).
+  // Pass ?include_closed=1 to see everything.
+  const results = mapped
+    .filter(o => includeClosed || o.days_left === null || o.days_left >= 0)
+    .sort((a, b) => {
+      if (!a.deadline && !b.deadline) return 0;
+      if (!a.deadline) return 1;
+      if (!b.deadline) return -1;
+      return new Date(a.deadline) - new Date(b.deadline);
+    });
 
   return {
     statusCode: 200,
