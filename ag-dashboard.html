@@ -235,23 +235,10 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:14p
   </div>
 
   <div class="controls">
-    <select id="typeFilter">
-      <option value="">All types</option>
-      <option value="Solicitation">Solicitation</option>
-      <option value="Sources Sought">Sources Sought</option>
-      <option value="RFQ">RFQ</option>
-      <option value="RFI">RFI</option>
-    </select>
     <select id="windowFilter">
       <option value="60" selected>Past 60 days</option>
       <option value="30">Past 30 days</option>
       <option value="7">Past 7 days</option>
-    </select>
-    <select id="urgencyFilter">
-      <option value="active" selected>Any open deadline</option>
-      <option value="hot">Due &lt; 7 days</option>
-      <option value="warm">Due 7–30 days</option>
-      <option value="ok">Due 30+ days</option>
     </select>
     <input type="search" id="searchInput" placeholder="Search title or agency…" style="min-width:220px"/>
     <span class="count-badge" id="countBadge"></span>
@@ -367,15 +354,10 @@ function activeNaics() {
 
 function applyFilters() {
   const selectedNaics = activeNaics();
-  const type    = document.getElementById('typeFilter').value;
-  const urgency = document.getElementById('urgencyFilter').value;
   const search  = document.getElementById('searchInput').value.toLowerCase();
 
   let filtered = allOpps;
   if (selectedNaics.length < 6) filtered = filtered.filter(o => selectedNaics.includes(o.naics));
-  if (type)    filtered = filtered.filter(o => (o.type||'').includes(type));
-  if (urgency === 'active') filtered = filtered.filter(o => o.days_left !== null && o.days_left >= 1);
-  else if (urgency) filtered = filtered.filter(o => o.urgency === urgency);
   if (search)  filtered = filtered.filter(o =>
     (o.title||'').toLowerCase().includes(search) ||
     (o.agency||'').toLowerCase().includes(search)
@@ -420,9 +402,6 @@ document.querySelectorAll('.naics-bubble').forEach(b => {
     applyFilters();
   });
 });
-
-['typeFilter','urgencyFilter'].forEach(id =>
-  document.getElementById(id).addEventListener('change', applyFilters));
 document.querySelectorAll('.win-btn').forEach(btn => { btn.addEventListener('click', function() { document.querySelectorAll('.win-btn').forEach(b => b.classList.remove('active')); this.classList.add('active'); currentPage = 0; load(); }); });
 document.getElementById('searchInput').addEventListener('input', applyFilters);
 
