@@ -72,9 +72,48 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:14p
 .stat-label{font-size:.64rem;text-transform:uppercase;letter-spacing:.08em;color:var(--soft);margin-top:4px}
 
 @media(max-width:800px){.opp-table th:nth-child(3),.opp-table td:nth-child(3),.opp-table th:nth-child(5),.opp-table td:nth-child(5){display:none}}
+
+/* Auth gate */
+#auth-gate{display:none;min-height:100vh;align-items:center;justify-content:center;background:var(--bg)}
+.auth-card{background:var(--surface);border:1px solid var(--line2);border-radius:20px;padding:40px;max-width:420px;width:100%;text-align:center}
+.auth-logo{width:52px;height:52px;border-radius:14px;background:var(--bg);border:1px solid var(--line2);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px;color:var(--cyan);margin:0 auto 20px}
+.auth-card h2{font-size:1.3rem;margin-bottom:6px}
+.auth-card p{color:var(--muted);font-size:.88rem;margin-bottom:24px}
+.auth-input{width:100%;background:rgba(255,255,255,.07);border:1px solid var(--line2);border-radius:10px;color:var(--text);padding:12px 14px;font-size:.95rem;outline:none;margin-bottom:12px}
+.auth-input:focus{border-color:var(--cyan)}
+.auth-btn{width:100%;background:var(--cyan);color:#0A1A3A;border:none;border-radius:10px;padding:13px;font-weight:700;font-size:.95rem;cursor:pointer}
+.auth-btn:disabled{opacity:.55;cursor:wait}
+.auth-notice{margin-top:14px;font-size:.82rem;color:var(--muted)}
+.auth-sent{display:none;text-align:center;padding:10px 0}
+.auth-sent-icon{font-size:2.5rem;margin-bottom:12px}
+#auth-app{display:none}
+#signout-btn{background:transparent;border:1px solid var(--line);border-radius:7px;color:var(--soft);padding:5px 12px;cursor:pointer;font-size:.74rem}
+#signout-btn:hover{border-color:var(--red);color:var(--red)}
 </style>
 </head>
 <body>
+
+<!-- Auth gate (shown when not logged in) -->
+<div id="auth-gate">
+  <div class="auth-card">
+    <div class="auth-logo">CI</div>
+    <h2>Custom IT Services LLC</h2>
+    <p>Enter your email to receive a secure login link for your opportunity pipeline.</p>
+    <div id="auth-form-wrap">
+      <input class="auth-input" type="email" id="auth-email" placeholder="lori@customitservices-llc.com" autocomplete="email"/>
+      <button class="auth-btn" id="auth-btn">Send Login Link →</button>
+      <div class="auth-notice" id="auth-err"></div>
+    </div>
+    <div class="auth-sent" id="auth-sent">
+      <div class="auth-sent-icon">📬</div>
+      <strong style="color:var(--text)">Check your inbox</strong>
+      <p style="margin-top:8px;color:var(--muted);font-size:.84rem">A secure login link was sent. It expires in 60 minutes.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Main app (shown when logged in) -->
+<div id="auth-app">
 
 <header>
   <div class="brand">
@@ -147,7 +186,8 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:14p
     <tbody id="tbody"><tr><td colspan="7" class="loading">Loading pipeline…</td></tr></tbody>
   </table>
 
-</div>
+</div><!-- end .page -->
+</div><!-- end #auth-app -->
 
 <script>
 const UEI = 'C13JZV6AY6L4';
@@ -248,7 +288,82 @@ async function load() {
   document.getElementById(id).addEventListener('change', applyFilters));
 document.getElementById('searchInput').addEventListener('input', applyFilters);
 
-load();
+// Auth starts the pipeline on success
+authReady().then(authed => { if (authed) load(); });
+</script>
+
+<!-- Supabase auth -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+const SUPA_URL = "https://judislfknmhofcgzyozc.supabase.co";
+const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1ZGlzbGZrbm1ob2ZjZ3p5b3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMDI3ODAsImV4cCI6MjA5Mjc3ODc4MH0.Kxpe0kJt0k7ZchYu70BOwm4KdT0C5aSsyeR1ov6NlQ0";
+const sb2 = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+async function authReady() {
+  // Handle magic link token in URL hash
+  const hash = window.location.hash;
+  if (hash.includes('access_token')) {
+    await sb2.auth.getSession(); // supabase picks up the token automatically
+    window.location.hash = '';
+  }
+
+  const { data: { session } } = await sb2.auth.getSession();
+
+  if (session) {
+    showApp(session.user.email);
+    return true;
+  } else {
+    document.getElementById('auth-gate').style.display = 'flex';
+    wireAuthForm();
+    return false;
+  }
+}
+
+function showApp(email) {
+  document.getElementById('auth-gate').style.display = 'none';
+  document.getElementById('auth-app').style.display  = 'block';
+  // Add sign-out button to header
+  const hdr = document.querySelector('.header-right');
+  if (hdr) {
+    const btn = document.createElement('button');
+    btn.id = 'signout-btn';
+    btn.textContent = 'Sign out';
+    btn.addEventListener('click', async () => {
+      await sb2.auth.signOut();
+      window.location.reload();
+    });
+    hdr.appendChild(btn);
+  }
+}
+
+function wireAuthForm() {
+  const btn = document.getElementById('auth-btn');
+  btn.addEventListener('click', async () => {
+    const email = document.getElementById('auth-email').value.trim();
+    if (!email) return;
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+    const { error } = await sb2.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: window.location.href }
+    });
+    if (error) {
+      document.getElementById('auth-err').textContent = error.message;
+      btn.disabled = false;
+      btn.textContent = 'Send Login Link →';
+    } else {
+      document.getElementById('auth-form-wrap').style.display = 'none';
+      document.getElementById('auth-sent').style.display = 'block';
+    }
+  });
+}
+
+sb2.auth.onAuthStateChange((event, session) => {
+  if (event === 'SIGNED_IN' && session) {
+    showApp(session.user.email);
+    load();
+  }
+});
 </script>
 </body>
 </html>
