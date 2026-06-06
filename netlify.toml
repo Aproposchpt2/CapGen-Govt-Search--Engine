@@ -39,6 +39,16 @@
   to = "/ag-dashboard.html"
   status = 200
 
+[[redirects]]
+  from = "/pro"
+  to = "/capgen-pro.html"
+  status = 200
+
+[[redirects]]
+  from = "/pro/thankyou"
+  to = "/capgen-pro-thankyou.html"
+  status = 200
+
 [[headers]]
   for = "/*"
   [headers.values]
