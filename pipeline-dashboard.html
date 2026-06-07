@@ -232,6 +232,12 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:14p
     <div class="naics-bubble active" data-naics="541370">
       <span class="nb-code">541370</span><span class="nb-label">Surveying & Mapping</span>
     </div>
+    <div class="naics-bubble active" data-naics="541330">
+      <span class="nb-code">541330</span><span class="nb-label">Engineering Svcs</span>
+    </div>
+    <div class="naics-bubble active" data-naics="517919">
+      <span class="nb-code">517919</span><span class="nb-label">Telecommunications</span>
+    </div>
   </div>
 
   <div class="controls">
@@ -361,7 +367,7 @@ function applyFilters() {
   const search  = document.getElementById('searchInput').value.toLowerCase();
 
   let filtered = allOpps;
-  if (selectedNaics.length < 7) filtered = filtered.filter(o => selectedNaics.includes(o.naics));
+  if (selectedNaics.length < 9) filtered = filtered.filter(o => selectedNaics.includes(o.naics));
   if (search)  filtered = filtered.filter(o =>
     (o.title||'').toLowerCase().includes(search) ||
     (o.agency||'').toLowerCase().includes(search)
