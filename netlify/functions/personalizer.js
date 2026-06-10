@@ -47,6 +47,7 @@ exports.handler = async function (event, context) {
     let processed = 0;
     let drafted = 0;
     let errors = 0;
+    let lastError = "";
 
     for (const contact of contacts) {
       processed++;
@@ -112,6 +113,7 @@ Return ONLY valid JSON with this exact structure:
 
         if (!subject || !body) throw new Error('Missing subject or body in Claude response');
       } catch (claudeErr) {
+        lastError = claudeErr.message;
         console.error(`Claude error for contact ${contact.id}:`, claudeErr.message);
         errors++;
         continue;
@@ -161,7 +163,7 @@ Return ONLY valid JSON with this exact structure:
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ success: true, processed, drafted, errors, note: errors > 0 ? "Check Netlify logs for Claude errors" : "ok" })
+      body: JSON.stringify({ success: true, processed, drafted, errors, lastError, model: "claude-haiku-4-5-20251001" })
     };
   } catch (err) {
     console.error('personalizer error:', err);
