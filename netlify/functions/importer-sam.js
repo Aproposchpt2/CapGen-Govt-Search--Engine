@@ -1,15 +1,20 @@
 'use strict';
+// importer-sam.js — CapGen Marketing Engine
+// Fetches active small business federal contractors for target NAICS codes.
+// Uses NAICS-based search (date range not supported in SAM v3 API).
+// Deduplication against existing DB ensures only NEW contractors are imported each run.
 
 const TARGET_NAICS = ['541519', '541512', '541511', '541611', '561210'];
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SAM_API_KEY  = process.env.SAM_API_KEY;
+const SAM_BASE     = 'https://api.sam.gov/entity-information/v3/entities';
 
-const HEADERS = {
+const CORS_HEADERS = {
   'Content-Type': 'application/json',
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS'
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS'
 };
 
 function sbH() {
@@ -20,197 +25,159 @@ function sbH() {
   };
 }
 
-function fmtMDY(d) {
-  // SAM.gov expects MM/DD/YYYY
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  const y = d.getFullYear();
-  return m + '/' + day + '/' + y;
+async function fetchNaicsPage(naicsCode, page) {
+  const params = new URLSearchParams({
+    api_key:           SAM_API_KEY,
+    naicsCode:         naicsCode,
+    registrationStatus:'A',
+    includeSections:   'entityRegistration,coreData,assertions',
+    page:              String(page),
+    size:              '100'
+  });
+  const res = await fetch(SAM_BASE + '?' + params.toString());
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error('SAM ' + res.status + ': ' + t.slice(0, 200));
+  }
+  return res.json();
 }
 
-exports.handler = async function (event, context) {
-  if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: HEADERS, body: '' };
+function isSmallBusiness(entity) {
+  const core        = entity.coreData || {};
+  const bt          = core.businessTypes || {};
+  const sbaList     = bt.sbaBusinessTypeList || [];
+  const assertions  = entity.assertions || {};
+  const gs          = assertions.goodsAndServices || {};
+  const naicsList   = gs.naicsList || [];
+  // Check SBA type list OR small business flag on any NAICS
+  return sbaList.length > 0 ||
+    naicsList.some(function(n) { return n.sbaSmallBusiness === 'Y'; });
+}
 
-  // Guard: check required env vars
-  if (!SAM_API_KEY) {
-    return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ success: false, error: 'SAM_API_KEY not set in Netlify environment' }) };
-  }
-  if (!SUPABASE_URL || !SUPABASE_KEY) {
-    return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ success: false, error: 'SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not set' }) };
-  }
+function mapEntity(entity, naicsCode) {
+  const reg  = entity.entityRegistration || {};
+  const core = entity.coreData || {};
+  const addr = core.physicalAddress || {};
+  const gs   = (entity.assertions && entity.assertions.goodsAndServices) || {};
+  const naicsList = gs.naicsList || [];
+  return {
+    id:                reg.ueiSAM,
+    legal_name:        reg.legalBusinessName || '',
+    doing_business_as: reg.dbaName || null,
+    address_street:    addr.addressLine1 || null,
+    address_city:      addr.city || null,
+    address_state:     addr.stateOrProvinceCode || null,
+    address_zip:       addr.zipCode || null,
+    naics_codes:       naicsList.map(function(n) { return n.naicsCode; }),
+    primary_naics:     gs.primaryNaics || naicsCode,
+    business_type:     'Small Business',
+    sam_status:        reg.registrationStatus === 'A' ? 'Active' : (reg.registrationStatus || ''),
+    registration_date: reg.registrationDate || null,
+    website_url:       (core.entityURL) || null,
+    imported_at:       new Date().toISOString(),
+    enrichment_status: 'pending',
+    outreach_status:   'pending'
+  };
+}
+
+exports.handler = async function (event) {
+  if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: CORS_HEADERS, body: '' };
+
+  if (!SAM_API_KEY)  return { statusCode: 500, headers: CORS_HEADERS, body: JSON.stringify({ success: false, error: 'SAM_API_KEY not set' }) };
+  if (!SUPABASE_URL) return { statusCode: 500, headers: CORS_HEADERS, body: JSON.stringify({ success: false, error: 'SUPABASE_URL not set' }) };
 
   try {
-    // 1. Get all existing UEIs from Supabase to deduplicate
+    // 1. Load existing UEIs from Supabase for dedup
     const existingRes = await fetch(
-      SUPABASE_URL + '/rest/v1/contractors?select=id&limit=10000',
+      SUPABASE_URL + '/rest/v1/contractors?select=id&limit=50000',
       { headers: sbH() }
     );
-    if (!existingRes.ok) {
-      const err = await existingRes.text();
-      throw new Error('Failed to fetch existing contractors: ' + err);
-    }
+    if (!existingRes.ok) throw new Error('Supabase read failed: ' + await existingRes.text());
     const existingRows = await existingRes.json();
     const existingUEIs = new Set(existingRows.map(function(r) { return r.id; }));
-    console.log('[importer-sam] Existing contractors in DB:', existingUEIs.size);
+    console.log('[importer] Existing in DB:', existingUEIs.size);
 
-    // 2. Build date range — last 30 days in MM/DD/YYYY format
-    const now   = new Date();
-    const start = new Date(now);
-    start.setDate(start.getDate() - 30);
-    const fromDate = fmtMDY(start);
-    const toDate   = fmtMDY(now);
-    console.log('[importer-sam] Date range:', fromDate, '->', toDate);
+    // 2. Fetch from SAM.gov per NAICS code (max 3 pages each = 300 per NAICS)
+    const newEntities = [];
+    const seenUEIs    = new Set();
+    let   samTotal    = 0;
 
-    // 3. Fetch SAM.gov with pagination
-    let page = 0;
-    let samTotalFetched = 0;
-    const matchedEntities = [];
-    const seenInBatch = new Set();
+    for (var ni = 0; ni < TARGET_NAICS.length; ni++) {
+      var naicsCode = TARGET_NAICS[ni];
+      console.log('[importer] Fetching NAICS:', naicsCode);
 
-    while (page < 20) {  // cap at 20 pages (2000 records) to stay under timeout
-      // v2 API with exact params from SAM.gov docs (note typo 'registerationDateRange' is correct)
-      const fmtYMD = function(d){ return d.toISOString().slice(0,10); };
-      const now2 = new Date();
-      const start2 = new Date(now2); start2.setDate(start2.getDate()-30);
-      const params = new URLSearchParams({
-        api_key: SAM_API_KEY,
-        'registrationDateRange.from': fmtYMD(start2),
-        'registrationDateRange.to':   fmtYMD(now2),
-        entityStatus: 'Active',
-        includeSections: 'entityRegistration,coreData,assertions',
-        page: String(page),
-        size: '100'
-      });
+      for (var page = 0; page < 3; page++) {
+        var data;
+        try {
+          data = await fetchNaicsPage(naicsCode, page);
+        } catch(e) {
+          console.error('[importer] SAM error NAICS', naicsCode, 'page', page, ':', e.message);
+          break;
+        }
 
-      const samUrl = 'https://api.sam.gov/entity-information/v3/entities?' + params.toString();
-      console.log('[importer-sam] Fetching page', page);
+        var entities = data.entityData || [];
+        samTotal += entities.length;
+        console.log('[importer] NAICS', naicsCode, 'page', page, ': got', entities.length);
 
-      let samRes;
-      try {
-        samRes = await fetch(samUrl, { signal: AbortSignal.timeout ? AbortSignal.timeout(8000) : undefined });
-      } catch (fetchErr) {
-        console.error('[importer-sam] SAM.gov fetch error on page', page, ':', fetchErr.message);
-        break;
+        for (var i = 0; i < entities.length; i++) {
+          var entity = entities[i];
+          var reg    = entity.entityRegistration || {};
+          var uei    = reg.ueiSAM;
+          if (!uei || existingUEIs.has(uei) || seenUEIs.has(uei)) continue;
+          if (!isSmallBusiness(entity)) continue;
+          seenUEIs.add(uei);
+          newEntities.push(mapEntity(entity, naicsCode));
+        }
+
+        if (entities.length < 100) break; // no more pages
       }
-
-      if (!samRes.ok) {
-        const errText = await samRes.text();
-        console.error('[importer-sam] SAM API HTTP error', samRes.status, ':', errText.slice(0, 200));
-        // Don't throw — just stop paginating and return what we have
-        break;
-      }
-
-      let samData;
-      try {
-        samData = await samRes.json();
-      } catch(e) {
-        console.error('[importer-sam] Failed to parse SAM response:', e.message);
-        break;
-      }
-
-      const entities = samData.entityData || [];
-      samTotalFetched += entities.length;
-      console.log('[importer-sam] Page', page, ': fetched', entities.length, 'entities');
-
-      if (entities.length === 0) break;
-
-      for (const entity of entities) {
-        const reg  = (entity.entityRegistration || {});
-        const core = (entity.coreData || {});
-        const assertions = (entity.assertions || {});
-        const uei  = reg.ueiSAM;
-        if (!uei) continue;
-
-        // Dedup against DB and within batch
-        if (existingUEIs.has(uei) || seenInBatch.has(uei)) continue;
-
-        // Filter: small business
-        const sbaTypes = (core.businessTypes && core.businessTypes.sbaBusinessTypeList) || [];
-        const isSmall  = sbaTypes.length > 0 ||
-          (assertions.goodsAndServices && assertions.goodsAndServices.naicsList || []).some(function(n) { return n.sbaSmallBusiness === 'Y'; });
-
-        // Filter: NAICS
-        const naicsList = (assertions.goodsAndServices && assertions.goodsAndServices.naicsList) || [];
-        const primaryNaics = (assertions.goodsAndServices && assertions.goodsAndServices.primaryNaics) || '';
-        const allNaics = naicsList.map(function(n) { return n.naicsCode; });
-        const hasTargetNaics = allNaics.some(function(c) { return TARGET_NAICS.includes(c); }) ||
-                                TARGET_NAICS.includes(primaryNaics);
-
-        if (!hasTargetNaics) continue;
-
-        seenInBatch.add(uei);
-        const addr = (core.physicalAddress || {});
-        matchedEntities.push({
-          id:                uei,
-          legal_name:        reg.legalBusinessName || '',
-          doing_business_as: reg.dbaName || null,
-          address_street:    addr.addressLine1 || null,
-          address_city:      addr.city || null,
-          address_state:     addr.stateOrProvinceCode || null,
-          address_zip:       addr.zipCode || null,
-          naics_codes:       allNaics,
-          primary_naics:     primaryNaics || null,
-          business_type:     isSmall ? 'Small Business' : 'Business',
-          sam_status:        reg.registrationStatus === 'A' ? 'Active' : (reg.registrationStatus || 'Unknown'),
-          registration_date: reg.registrationDate || null,
-          website_url:       core.entityURL || null,
-          imported_at:       new Date().toISOString(),
-          enrichment_status: 'pending',
-          outreach_status:   'pending'
-        });
-      }
-
-      // Check if there are more pages
-      const totalRecords = samData.totalRecords || 0;
-      if (samTotalFetched >= totalRecords || entities.length < 100) break;
-      page++;
     }
 
-    console.log('[importer-sam] Total SAM fetched:', samTotalFetched, '| Matched:', matchedEntities.length);
+    console.log('[importer] SAM total fetched:', samTotal, '| New unique:', newEntities.length);
 
-    // 4. Upsert matched contractors to Supabase in chunks of 50
-    let inserted = 0;
-    let errors   = 0;
-    const CHUNK  = 50;
+    // 3. Upsert new contractors to Supabase in chunks of 50
+    var inserted = 0;
+    var errors   = 0;
+    var CHUNK    = 50;
 
-    for (let i = 0; i < matchedEntities.length; i += CHUNK) {
-      const chunk = matchedEntities.slice(i, i + CHUNK);
-      const upsertRes = await fetch(SUPABASE_URL + '/rest/v1/contractors', {
-        method: 'POST',
+    for (var ci = 0; ci < newEntities.length; ci += CHUNK) {
+      var chunk = newEntities.slice(ci, ci + CHUNK);
+      var upsertRes = await fetch(SUPABASE_URL + '/rest/v1/contractors', {
+        method:  'POST',
         headers: Object.assign({}, sbH(), { Prefer: 'resolution=merge-duplicates,return=minimal' }),
-        body: JSON.stringify(chunk)
+        body:    JSON.stringify(chunk)
       });
       if (upsertRes.ok) {
         inserted += chunk.length;
       } else {
-        const errText = await upsertRes.text();
-        console.error('[importer-sam] Upsert error for chunk', i, ':', errText.slice(0, 200));
+        var errT = await upsertRes.text();
+        console.error('[importer] Upsert error:', errT.slice(0, 200));
         errors += chunk.length;
       }
     }
 
-    console.log('[importer-sam] Done. Inserted:', inserted, '| Errors:', errors);
+    console.log('[importer] Done. Inserted:', inserted, 'Errors:', errors);
 
     return {
       statusCode: 200,
-      headers: HEADERS,
+      headers: CORS_HEADERS,
       body: JSON.stringify({
-        success: true,
-        samTotalFetched,
-        matchedFilters:       matchedEntities.length,
-        dedupedUnique:        matchedEntities.length,
-        contractorsImported:  inserted,
-        contractorsSkipped:   errors,
-        alreadyInDatabase:    samTotalFetched - matchedEntities.length,
-        dateRange: { from: fromDate, to: toDate }
+        success:             true,
+        samTotalFetched:     samTotal,
+        matchedFilters:      newEntities.length,
+        dedupedUnique:       newEntities.length,
+        contractorsImported: inserted,
+        contractorsSkipped:  errors,
+        alreadyInDatabase:   samTotal - newEntities.length,
+        naicsSearched:       TARGET_NAICS
       })
     };
 
   } catch (err) {
-    console.error('[importer-sam] Fatal error:', err.message);
+    console.error('[importer] Fatal:', err.message);
     return {
       statusCode: 500,
-      headers: HEADERS,
+      headers: CORS_HEADERS,
       body: JSON.stringify({ success: false, error: err.message })
     };
   }
