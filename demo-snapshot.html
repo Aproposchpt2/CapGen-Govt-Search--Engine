@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Capability Snapshot — CapGen</title>
+<meta name="robots" content="noindex"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,700;1,400&family=Cormorant+Garamond:ital@1&family=Jost:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--sap:#0F2A6A;--sap2:#163472;--sap3:#1C3878;--white:#fff;--off:#e8edf8;
+  --green:#6EE7A8;--amber:#F59E0B;--red:#F87171;--muted:rgba(255,255,255,.55);
+  font-family:'Jost',sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--sap);color:var(--white);min-height:100vh}
+
+/* ── Header ── */
+.topbar{background:rgba(0,0,0,.25);border-bottom:1px solid rgba(255,255,255,.1);
+  padding:14px 5vw;display:flex;align-items:center;justify-content:space-between}
+.brand{font-family:'Bodoni Moda',serif;font-size:1.35rem;color:var(--white)}
+.brand span{font-family:'Jost',sans-serif;font-size:.72rem;color:var(--muted);margin-left:8px;letter-spacing:.05em}
+
+/* ── Frozen banner ── */
+.banner{background:rgba(255,255,255,.06);border-bottom:1px solid rgba(255,255,255,.08);
+  padding:12px 5vw;font-size:.82rem;color:rgba(255,255,255,.7);text-align:center;line-height:1.5}
+.banner em{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:.9rem;color:rgba(255,255,255,.55)}
+
+/* ── Layout ── */
+.page{max-width:900px;margin:0 auto;padding:32px 5vw 120px}
+
+/* ── Loading skeleton ── */
+.skel{background:rgba(255,255,255,.07);border-radius:10px;margin-bottom:16px;animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.6}50%{opacity:1}}
+.skel-lg{height:100px}.skel-md{height:60px}.skel-sm{height:32px}
+
+/* ── Profile card ── */
+.profile-card{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);
+  border-radius:16px;padding:22px 26px;margin-bottom:24px}
+.company-name{font-family:'Bodoni Moda',serif;font-size:1.55rem;color:var(--white);margin-bottom:4px}
+.company-meta{font-size:.82rem;color:var(--muted);margin-bottom:14px;display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;margin-right:4px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{display:inline-block;padding:3px 10px;border-radius:4px;font-size:.7rem;font-weight:700;letter-spacing:.04em}
+.chip-naics{background:rgba(110,231,168,.14);color:var(--green);border:1px solid rgba(110,231,168,.25)}
+.chip-cert{background:rgba(255,255,255,.1);color:var(--white)}
+.chip-primary{background:var(--green);color:var(--sap)}
+.chip-label{font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:10px;margin-bottom:4px}
+
+/* ── Opportunities ── */
+.section-heading{font-family:'Bodoni Moda',serif;font-size:1.1rem;color:var(--white);
+  margin-bottom:4px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.1)}
+.section-rule{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:.82rem;
+  color:var(--muted);margin-bottom:18px;display:block}
+.opp-card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+  border-radius:12px;padding:18px 22px;margin-bottom:14px}
+.opp-card.top{border-color:rgba(110,231,168,.3);background:rgba(110,231,168,.04)}
+.opp-title{font-weight:700;font-size:.95rem;color:var(--white);margin-bottom:4px;line-height:1.35}
+.opp-agency{font-size:.75rem;color:var(--muted);margin-bottom:12px}
+.opp-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.opp-naics{background:rgba(255,255,255,.1);color:var(--off);padding:2px 8px;border-radius:4px;font-size:.68rem;font-weight:700}
+.opp-deadline{background:rgba(245,158,11,.12);color:var(--amber);padding:2px 8px;border-radius:4px;font-size:.68rem;font-weight:700;border:1px solid rgba(245,158,11,.2)}
+
+/* ── Stage 1 analysis ── */
+.rec-hero{display:flex;align-items:center;gap:16px;background:rgba(0,0,0,.2);
+  border-radius:12px;padding:14px 18px;margin-bottom:18px}
+.rec-badge{font-family:'Jost',sans-serif;font-size:.68rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.1em;padding:4px 12px;border-radius:5px;display:inline-block;margin-top:5px}
+.rec-badge.bid{background:var(--green);color:var(--sap)}
+.rec-badge.conditional{background:var(--amber);color:var(--sap)}
+.rec-badge.no_bid{background:rgba(248,113,113,.2);color:var(--red);border:1px solid rgba(248,113,113,.3)}
+.rec-score{font-family:'Jost',sans-serif;font-size:2.6rem;font-weight:900;line-height:1;color:var(--green)}
+.rec-score.conditional{color:var(--amber)}.rec-score.no_bid{color:var(--red)}
+.rec-note{font-size:.82rem;color:rgba(255,255,255,.7);line-height:1.55;flex:1}
+.match-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
+.match-item{background:rgba(255,255,255,.06);border-radius:10px;padding:10px 12px;text-align:center}
+.match-icon{font-size:1.1rem;margin-bottom:3px}
+.match-lbl{font-size:.58rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:2px}
+.match-val{font-size:.76rem;font-weight:600;color:var(--white)}
+.rationale{font-size:.84rem;color:rgba(255,255,255,.8);line-height:1.6;margin-bottom:18px}
+
+/* ── Locked Stage 2 ── */
+.locked-section{margin-bottom:24px}
+.accordion{border:1px solid rgba(255,255,255,.1);border-radius:12px;overflow:hidden}
+.acc-row{border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;
+  justify-content:space-between;padding:12px 16px;cursor:pointer;
+  background:rgba(255,255,255,.03)}
+.acc-row:last-child{border-bottom:none}
+.acc-row:hover{background:rgba(255,255,255,.06)}
+.acc-label{font-family:'Jost',sans-serif;font-size:.86rem;font-weight:600;color:rgba(255,255,255,.8)}
+.acc-blur{display:flex;align-items:center;gap:8px}
+.blur-line{width:120px;height:10px;border-radius:4px;background:rgba(255,255,255,.15);filter:blur(4px)}
+.lock-icon{font-size:.9rem;opacity:.5}
+
+/* ── More matches card ── */
+.more-card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+  border-radius:12px;padding:18px 22px;display:flex;align-items:center;
+  justify-content:space-between;cursor:pointer;margin-bottom:24px}
+.more-card:hover{background:rgba(255,255,255,.08)}
+.more-count{font-family:'Bodoni Moda',serif;font-size:1.2rem;color:var(--white)}
+.more-label{font-size:.8rem;color:var(--muted);margin-top:2px}
+.more-lock{font-size:.85rem;color:var(--muted);display:flex;align-items:center;gap:6px}
+
+/* ── No-opps message ── */
+.no-opps{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
+  border-radius:12px;padding:22px 26px;margin-bottom:24px}
+.no-opps p{font-size:.88rem;color:var(--muted);line-height:1.6}
+.no-opps em{font-family:'Cormorant Garamond',serif;font-style:italic;color:rgba(255,255,255,.45)}
+
+/* ── Subscribe footer bar ── */
+.sub-bar{position:fixed;bottom:0;left:0;right:0;background:var(--sap2);
+  border-top:1px solid rgba(255,255,255,.12);padding:14px 5vw;
+  display:flex;align-items:center;justify-content:space-between;gap:16px;z-index:100;flex-wrap:wrap}
+.sub-bar-text{font-size:.85rem;color:rgba(255,255,255,.75);line-height:1.4}
+.sub-bar-text strong{color:var(--white)}
+.sub-btn{background:var(--white);color:var(--sap);font-family:'Jost',sans-serif;
+  font-weight:700;font-size:.88rem;padding:10px 24px;border-radius:8px;
+  border:none;cursor:pointer;white-space:nowrap;transition:.15s;text-decoration:none;display:inline-block}
+.sub-btn:hover{background:var(--off)}
+
+/* ── Subscribe modal ── */
+#sub-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;align-items:center;justify-content:center;padding:20px}
+#sub-overlay.open{display:flex}
+.sub-modal{background:var(--sap2);border:1px solid rgba(255,255,255,.15);border-radius:20px;
+  max-width:460px;width:100%;padding:32px 36px;position:relative;text-align:center}
+.sub-modal-close{position:absolute;top:14px;right:16px;background:none;border:none;
+  color:var(--muted);font-size:1.3rem;cursor:pointer;padding:0 6px}
+.sub-modal h2{font-family:'Bodoni Moda',serif;font-size:1.5rem;margin-bottom:8px}
+.sub-modal p{font-size:.88rem;color:var(--muted);margin-bottom:24px;line-height:1.55}
+.sub-modal-rule{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:.82rem;color:rgba(255,255,255,.4);margin-bottom:20px;display:block}
+.sub-modal a{display:block;background:var(--white);color:var(--sap);font-family:'Jost',sans-serif;
+  font-weight:700;padding:14px;border-radius:10px;text-decoration:none;font-size:1rem;transition:.15s}
+.sub-modal a:hover{background:var(--off)}
+.sub-modal .fine{font-size:.74rem;color:rgba(255,255,255,.3);margin-top:12px}
+
+/* ── Not-registered / error ── */
+.nr-card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+  border-radius:16px;padding:32px;text-align:center;margin:24px 0}
+.nr-card h2{font-family:'Bodoni Moda',serif;font-size:1.35rem;margin-bottom:12px}
+.nr-card p{font-size:.88rem;color:var(--muted);line-height:1.6;margin-bottom:6px}
+.nr-card em{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:.9rem;color:rgba(255,255,255,.4)}
+.nr-email{display:flex;gap:8px;max-width:360px;margin:20px auto 0;flex-wrap:wrap}
+.nr-email input{flex:1;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);
+  border-radius:8px;color:var(--white);padding:10px 14px;font-size:.88rem;outline:none;font-family:'Jost',sans-serif;min-width:180px}
+.nr-email input::placeholder{color:var(--muted)}
+.nr-email button{background:var(--white);color:var(--sap);border:none;border-radius:8px;
+  padding:10px 20px;font-weight:700;cursor:pointer;font-family:'Jost',sans-serif;font-size:.88rem}
+
+/* ── Sample watermark ── */
+.watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-30deg);
+  font-family:'Bodoni Moda',serif;font-size:5rem;color:rgba(255,255,255,.04);
+  pointer-events:none;white-space:nowrap;z-index:0}
+
+@media(max-width:600px){
+  .rec-hero{flex-wrap:wrap}.match-grid{grid-template-columns:1fr 1fr}
+  .sub-bar{flex-direction:column;align-items:stretch;text-align:center}
+  .company-meta{flex-direction:column;gap:4px}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">CapGen <span>by Apropos Group</span></div>
+  <button class="sub-btn" onclick="openSub()">Subscribe →</button>
+</div>
+
+<div class="banner" id="bannerEl" style="display:none"></div>
+
+<div class="page" id="pageEl">
+  <!-- Loading state -->
+  <div id="loadingEl">
+    <div class="skel skel-lg" style="margin-bottom:24px"></div>
+    <div class="skel skel-md" style="margin-bottom:12px"></div>
+    <div class="skel skel-sm" style="margin-bottom:24px;width:60%"></div>
+    <div class="skel skel-md" style="margin-bottom:12px"></div>
+    <div class="skel skel-md" style="margin-bottom:12px"></div>
+    <p style="text-align:center;color:var(--muted);font-size:.85rem;margin-top:28px;font-family:'Cormorant Garamond',serif;font-style:italic">Generating your capability snapshot…</p>
+  </div>
+  <div id="contentEl" style="display:none"></div>
+</div>
+
+<div class="sub-bar">
+  <div class="sub-bar-text"><strong>Subscribers see this updated daily.</strong> Unlock the full pursuit package — staffing, pricing, proposal checklist — for every opportunity.</div>
+  <button class="sub-btn" onclick="openSub()">Start Free Trial →</button>
+</div>
+
+<!-- Subscribe modal -->
+<div id="sub-overlay" onclick="if(event.target===this)closeSub()">
+  <div class="sub-modal">
+    <button class="sub-modal-close" onclick="closeSub()">&#xD7;</button>
+    <h2>Unlock Full Access</h2>
+    <p>Get the complete Stage 2 package — required work, staffing requirements, proposal checklist, draft technical approach, pricing strategy, and questions for the contracting officer — for every opportunity matched to your profile.</p>
+    <span class="sub-modal-rule">Updated daily. Sourced from official public records.</span>
+    <a id="stripeBtn" href="#" target="_blank" rel="noopener">Start My 14-Day Free Trial →</a>
+    <p class="fine">Cancel anytime. No contracts.</p>
+  </div>
+</div>
+
+<script>
+const STRIPE_BASE = 'https://buy.stripe.com/bJebJ0dA65Gv9BheDm7EQ0Y';
+const DEMO_GET    = '/.netlify/functions/demo-get';
+const DEMO_SUB_URL = '/.netlify/functions/demo-subscribe';
+
+const token = new URLSearchParams(location.search).get('t');
+let snapshotData = null;
+let pollTimer    = null;
+
+// ── Subscribe modal ─────────────────────────────────────────────────────────
+function openSub() {
+  document.getElementById('sub-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeSub() {
+  document.getElementById('sub-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSub(); });
+
+// ── Render helpers ───────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function fmtDate(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+}
+function fmtDeadline(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  const days = Math.ceil((d - Date.now()) / 86400000);
+  return fmtDate(iso) + (days >= 0 ? ' (' + days + 'd)' : ' (Closed)');
+}
+
+// ── Main render ──────────────────────────────────────────────────────────────
+function render(data) {
+  const p    = data.profile || {};
+  const opps = data.opportunities || [];
+  const a    = data.analysis || null;
+  const extra = data.additional_match_count || 0;
+  const genDate = fmtDate(data.generated_at);
+
+  // Banner
+  const banner = document.getElementById('bannerEl');
+  banner.innerHTML = '<strong>Capability Snapshot for ' + esc(p.legal_name || data.business_name) + '</strong> — generated ' + genDate
+    + '. <em>Sourced from official public records.</em> Subscribers see this updated daily.';
+  banner.style.display = 'block';
+
+  // Stripe attribution
+  document.getElementById('stripeBtn').href = STRIPE_BASE + '?client_reference_id=' + encodeURIComponent(token || '');
+
+  let html = '';
+
+  // Profile card
+  const naicsChips = (p.naics || []).map(n =>
+    '<span class="chip ' + (n.primary ? 'chip-primary' : 'chip-naics') + '">' + esc(n.code) + (n.title ? ' ' + esc(n.title.split('/')[0].trim().slice(0,30)) : '') + '</span>'
+  ).join('');
+  const certChips = (p.set_asides || []).map(c => '<span class="chip chip-cert">' + esc(c) + '</span>').join('');
+
+  html += '<div class="profile-card">'
+    + '<div class="company-name">' + esc(p.legal_name || data.business_name) + '</div>'
+    + '<div class="company-meta">'
+    + '<span><span class="status-dot"></span>' + esc(p.sam_status || 'Active') + ' Registration</span>'
+    + (p.city ? '<span>' + esc([p.city, p.state].filter(Boolean).join(', ')) + '</span>' : '')
+    + (p.uei  ? '<span>UEI: ' + esc(p.uei) + '</span>' : '')
+    + (p.cage ? '<span>CAGE: ' + esc(p.cage) + '</span>' : '')
+    + '</div>'
+    + (naicsChips ? '<div class="chip-label">NAICS Codes</div><div class="chips">' + naicsChips + '</div>' : '')
+    + (certChips  ? '<div class="chip-label" style="margin-top:10px">Certifications & Set-Asides</div><div class="chips">' + certChips + '</div>' : '')
+    + '</div>';
+
+  // Opportunities section
+  html += '<div class="section-heading" style="margin-bottom:4px">Matched Opportunities</div>'
+    + '<span class="section-rule">Active contracts aligned with your registered capabilities</span>';
+
+  if (!opps.length) {
+    html += '<div class="no-opps">'
+      + '<p>No active matches this week.</p>'
+      + '<p><em>Subscribers are alerted the moment one posts.</em></p>'
+      + '</div>';
+  } else {
+    opps.forEach((opp, i) => {
+      const isTop = i === 0;
+      html += '<div class="opp-card' + (isTop ? ' top' : '') + '">'
+        + '<div class="opp-title">' + esc(opp.title) + '</div>'
+        + '<div class="opp-agency">' + esc(opp.agency || '') + '</div>'
+        + '<div class="opp-chips">'
+        + (opp.naics ? '<span class="opp-naics">' + esc(opp.naics) + '</span>' : '')
+        + (opp.response_deadline ? '<span class="opp-deadline">Due ' + fmtDeadline(opp.response_deadline) + '</span>' : '')
+        + (opp.set_aside && opp.set_aside !== 'None' && opp.set_aside !== 'Unrestricted' ? '<span class="chip chip-cert" style="font-size:.66rem">' + esc(opp.set_aside.slice(0,40)) + '</span>' : '')
+        + '</div>';
+
+      // Stage 1 analysis on top opportunity
+      if (isTop && a) {
+        const rec  = (a.recommendation || 'NO_BID').toLowerCase();
+        const recC = rec === 'bid' ? 'bid' : rec === 'conditional' ? 'conditional' : 'no_bid';
+        const m    = a.match || {};
+        html += '<div class="rec-hero">'
+          + '<div><div class="rec-score ' + recC + '">' + (a.fit_score || 0) + '</div>'
+          + '<div class="rec-badge ' + recC + '">' + (a.recommendation || 'NO_BID') + '</div></div>'
+          + '<div class="rec-note">' + esc(a.opportunity_summary || '') + '</div>'
+          + '</div>'
+          + '<div class="match-grid">'
+          + '<div class="match-item"><div class="match-icon">' + (m.naics_match ? '✅' : '❌') + '</div>'
+          + '<div class="match-lbl">NAICS</div><div class="match-val">' + esc(m.naics_detail ? m.naics_detail.slice(0,40) : (m.naics_match ? 'Match' : 'No match')) + '</div></div>'
+          + '<div class="match-item"><div class="match-icon">' + (m.set_aside_eligible ? '✅' : '❌') + '</div>'
+          + '<div class="match-lbl">Set-Aside</div><div class="match-val">' + esc(m.set_aside_detail ? m.set_aside_detail.slice(0,40) : (m.set_aside_eligible ? 'Eligible' : 'Not eligible')) + '</div></div>'
+          + '<div class="match-item"><div class="match-icon">' + (m.capability_alignment === 'HIGH' ? '✅' : m.capability_alignment === 'MEDIUM' ? '⚡' : '⚠️') + '</div>'
+          + '<div class="match-lbl">Capability</div><div class="match-val">' + esc(m.capability_alignment || 'LOW') + '</div></div>'
+          + '</div>'
+          + '<p class="rationale">' + esc(a.rationale || '') + '</p>';
+
+        // Locked Stage 2 accordion
+        const s2sections = [
+          'Required Work Scope', 'Staffing & Delivery', 'Documents Needed',
+          'Proposal Checklist', 'Draft Technical Approach',
+          'Pricing Considerations', 'Questions for the CO'
+        ];
+        html += '<div class="locked-section">'
+          + '<p style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:10px;font-weight:700">Full Pursuit Package <span style="font-weight:400;text-transform:none;letter-spacing:0">— subscribers only</span></p>'
+          + '<div class="accordion">'
+          + s2sections.map(s =>
+            '<div class="acc-row" onclick="openSub()">'
+            + '<span class="acc-label">' + esc(s) + '</span>'
+            + '<div class="acc-blur"><div class="blur-line"></div><div class="blur-line" style="width:70px"></div><span class="lock-icon">🔒</span></div>'
+            + '</div>'
+          ).join('')
+          + '</div></div>';
+      }
+      html += '</div>';
+    });
+
+    // More matches card
+    if (extra > 0) {
+      html += '<div class="more-card" onclick="openSub()">'
+        + '<div><div class="more-count">' + extra + ' more matched</div>'
+        + '<div class="more-label">additional opportunities aligned with your profile</div></div>'
+        + '<div class="more-lock">🔒 Subscribe to see all →</div>'
+        + '</div>';
+    }
+  }
+
+  document.getElementById('loadingEl').style.display = 'none';
+  document.getElementById('contentEl').innerHTML = html;
+  document.getElementById('contentEl').style.display = 'block';
+}
+
+// ── Not-registered render ────────────────────────────────────────────────────
+function renderNotRegistered(businessName) {
+  document.getElementById('bannerEl').style.display = 'none';
+  document.getElementById('loadingEl').style.display = 'none';
+  const html = '<div class="watermark">SAMPLE</div>'
+    + '<div class="nr-card">'
+    + '<h2>Registration Not Found</h2>'
+    + '<p>We couldn\'t find an active federal registration for <strong>' + esc(businessName || 'that business') + '</strong>.</p>'
+    + '<p>When your registration is active, come back — your real snapshot will be waiting.</p>'
+    + '<p><em>Sourced from official public records.</em></p>'
+    + '<div class="nr-email" id="nrForm">'
+    + '<input type="email" id="nrEmail" placeholder="your@email.com"/>'
+    + '<button onclick="submitNrEmail()">Get registration tips</button>'
+    + '</div>'
+    + '<p id="nrMsg" style="color:var(--green);font-size:.82rem;margin-top:10px;display:none">Check your inbox!</p>'
+    + '</div>';
+  document.getElementById('contentEl').innerHTML = html;
+  document.getElementById('contentEl').style.display = 'block';
+}
+
+async function submitNrEmail() {
+  const email = (document.getElementById('nrEmail') || {}).value || '';
+  if (!email) return;
+  try {
+    await fetch('/.netlify/functions/demo-subscribe', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, source: 'not_registered' }),
+    });
+  } catch(e) { /* ignore */ }
+  document.getElementById('nrForm').style.display = 'none';
+  document.getElementById('nrMsg').style.display = 'block';
+}
+
+// ── Poll ─────────────────────────────────────────────────────────────────────
+async function poll() {
+  if (!token) {
+    document.getElementById('loadingEl').innerHTML = '<p style="text-align:center;color:var(--red);padding:40px">Invalid snapshot link.</p>';
+    return;
+  }
+  try {
+    const res  = await fetch(DEMO_GET + '?t=' + encodeURIComponent(token));
+    if (res.status === 404) {
+      document.getElementById('loadingEl').innerHTML = '<p style="text-align:center;color:var(--red);padding:40px">Snapshot not found.</p>';
+      clearInterval(pollTimer);
+      return;
+    }
+    if (!res.ok) return; // keep polling
+    const data = await res.json();
+    snapshotData = data;
+
+    if (data.status === 'complete') {
+      clearInterval(pollTimer);
+      render(data);
+    } else if (data.status === 'not_registered') {
+      clearInterval(pollTimer);
+      renderNotRegistered(data.business_name);
+    } else if (data.status === 'failed') {
+      clearInterval(pollTimer);
+      document.getElementById('loadingEl').innerHTML = '<p style="text-align:center;color:var(--red);padding:40px">Snapshot generation failed. Please try again.</p>';
+    }
+    // else 'pending' — keep polling
+  } catch(e) { /* keep polling */ }
+}
+
+pollTimer = setInterval(poll, 3000);
+poll();
+</script>
+</body>
+</html>
