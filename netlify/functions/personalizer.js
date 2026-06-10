@@ -27,12 +27,8 @@ exports.handler = async function (event, context) {
   }
   try {
     // 1. Get contacts ready for outreach
-    const query = [
-      'contractor_contacts?select=id,email,first_name,last_name,title,contractor_id,contractors(id,legal_name,primary_naics,naics_codes,address_city,address_state)',
-      'contractors.enrichment_status=eq.enriched',
-      'contractors.outreach_status=eq.pending',
-      'limit=3'
-    ].join('&');
+    // Use !inner to guarantee contractors is populated; filter on contractor side
+    const query = 'contractor_contacts?select=id,email,first_name,last_name,title,contractor_id,contractors!inner(id,legal_name,primary_naics,naics_codes,address_city,address_state,enrichment_status,outreach_status)&contractors.enrichment_status=eq.enriched&contractors.outreach_status=eq.pending&limit=3';
 
     const contactsRes = await fetch(
       `${SUPABASE_URL}/rest/v1/${query}`,
@@ -52,7 +48,7 @@ exports.handler = async function (event, context) {
     for (const contact of contacts) {
       processed++;
       const contractor = contact.contractors;
-      if (!contractor) { errors++; continue; }
+      if (!contractor) { lastError = 'contractor embed null for contact ' + contact.id + ' contractor_id=' + contact.contractor_id; errors++; continue; }
 
       const naicsCode = contractor.primary_naics || (contractor.naics_codes && contractor.naics_codes[0]) || 'N/A';
       const naicsDesc = NAICS_DESCRIPTIONS[naicsCode] || 'Government Contracting';
