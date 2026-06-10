@@ -82,6 +82,7 @@ Requirements:
 - Be specific to their industry (${naicsDesc})
 - Mention CapGen helps federal contractors create SAM.gov-verified capability statements quickly
 - CTA: try CapGen free at capgen.aproposgroupllc.com/demo
+- Sign off with: Jeff Mitchell, Apropos Group LLC
 - Professional, warm tone — not spammy
 
 Return ONLY valid JSON with this exact structure:
