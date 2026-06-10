@@ -2,8 +2,9 @@
 // importer-sam.js — CapGen Marketing Engine
 // NAICS-based search (SAM v3 does not support date-range filtering).
 // Three-layer deduplication: DB UEI check, within-batch Set, upsert merge.
+// TARGET_NAICS derived dynamically from active capgen_subscriptions at run time.
 
-const TARGET_NAICS = ['541519', '541512', '541511', '541611', '561210'];
+const FALLBACK_NAICS = ['541519', '541512', '541511', '541611', '561210', '238210'];
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -22,6 +23,31 @@ function sbH() {
     Authorization: 'Bearer ' + SUPABASE_KEY,
     'Content-Type': 'application/json'
   };
+}
+
+async function fetchTargetNaics() {
+  try {
+    var res = await fetch(
+      SUPABASE_URL + '/rest/v1/capgen_subscriptions?select=naics&status=eq.active&limit=500',
+      { headers: sbH() }
+    );
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    var rows = await res.json();
+    var naicsSet = new Set();
+    rows.forEach(function(r) {
+      (r.naics || []).forEach(function(n) { if (n) naicsSet.add(n); });
+    });
+    if (naicsSet.size === 0) {
+      console.log('[importer] No subscriber NAICS found, using fallback');
+      return FALLBACK_NAICS;
+    }
+    var list = [...naicsSet];
+    console.log('[importer] Dynamic NAICS from', rows.length, 'subscriber(s):', list.join(', '));
+    return list;
+  } catch(e) {
+    console.error('[importer] fetchTargetNaics failed, using fallback:', e.message);
+    return FALLBACK_NAICS;
+  }
 }
 
 async function fetchNaicsPage(naicsCode, page) {
@@ -84,6 +110,9 @@ exports.handler = async function(event) {
   if (!SUPABASE_URL) return { statusCode: 500, headers: CORS_HEADERS, body: JSON.stringify({ success: false, error: 'SUPABASE_URL not set' }) };
 
   try {
+    // Derive TARGET_NAICS dynamically from active subscriber profiles
+    var TARGET_NAICS = await fetchTargetNaics();
+
     // Layer 1: load existing UEIs from DB for deduplication
     var existingRes = await fetch(
       SUPABASE_URL + '/rest/v1/contractors?select=id&limit=50000',
