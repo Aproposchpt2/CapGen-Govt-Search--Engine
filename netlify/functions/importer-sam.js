@@ -68,10 +68,15 @@ exports.handler = async function (event, context) {
     const seenInBatch = new Set();
 
     while (page < 20) {  // cap at 20 pages (2000 records) to stay under timeout
+      // v2 API with exact params from SAM.gov docs (note typo 'registerationDateRange' is correct)
+      const fmtYMD = function(d){ return d.toISOString().slice(0,10); };
+      const now2 = new Date();
+      const start2 = new Date(now2); start2.setDate(start2.getDate()-30);
       const params = new URLSearchParams({
         api_key: SAM_API_KEY,
-        'registrationDate': fromDate + ',' + toDate,
-        registrationStatus: 'A',
+        'registrationDateRange.from': fmtYMD(start2),
+        'registrationDateRange.to':   fmtYMD(now2),
+        entityStatus: 'Active',
         includeSections: 'entityRegistration,coreData,assertions',
         page: String(page),
         size: '100'
