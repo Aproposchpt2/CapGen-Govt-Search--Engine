@@ -235,11 +235,11 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:14p
   </div>
 
   <div class="controls">
-    <select id="windowFilter">
-      <option value="60" selected>Past 60 days</option>
-      <option value="30">Past 30 days</option>
-      <option value="7">Past 7 days</option>
-    </select>
+    <div class="win-btns" id="dayBtns">
+      <button class="win-btn active" data-days="60">60 Days</button>
+      <button class="win-btn" data-days="30">30 Days</button>
+      <button class="win-btn" data-days="7">7 Days</button>
+    </div>
     <input type="search" id="searchInput" placeholder="Search title or agency…" style="min-width:220px"/>
     <span class="count-badge" id="countBadge"></span>
   </div>
@@ -389,6 +389,15 @@ async function load() {
     document.getElementById('tbody').innerHTML = `<tr><td colspan="7" class="empty" style="color:var(--red)">${e.message}</td></tr>`;
   }
 }
+
+// Day filter buttons
+document.querySelectorAll('#dayBtns .win-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#dayBtns .win-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    load();
+  });
+});
 
 // NAICS bubble toggle
 document.querySelectorAll('.naics-bubble').forEach(b => {
