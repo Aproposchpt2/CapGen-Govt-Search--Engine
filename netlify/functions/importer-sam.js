@@ -70,11 +70,11 @@ exports.handler = async function (event, context) {
     while (page < 20) {  // cap at 20 pages (2000 records) to stay under timeout
       const params = new URLSearchParams({
         api_key: SAM_API_KEY,
-        registrationDateRange: fromDate + ',' + toDate,
+        'registrationDate': fromDate + ',' + toDate,
         registrationStatus: 'A',
         includeSections: 'entityRegistration,coreData,assertions',
         page: String(page),
-        pageSize: '100'
+        size: '100'
       });
 
       const samUrl = 'https://api.sam.gov/entity-information/v3/entities?' + params.toString();
