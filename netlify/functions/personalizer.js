@@ -27,7 +27,7 @@ exports.handler = async function (event, context) {
       'contractor_contacts?select=id,email,first_name,last_name,title,contractor_id,contractors(id,legal_name,primary_naics,naics_codes,address_city,address_state)',
       'contractors.enrichment_status=eq.enriched',
       'contractors.outreach_status=eq.pending',
-      'limit=20'
+      'limit=3'
     ].join('&');
 
     const contactsRes = await fetch(
@@ -67,7 +67,7 @@ exports.handler = async function (event, context) {
           },
           body: JSON.stringify({
             model: 'claude-haiku-4-5-20251001',
-            max_tokens: 512,
+            max_tokens: 300,
             messages: [
               {
                 role: 'user',
