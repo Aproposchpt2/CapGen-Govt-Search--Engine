@@ -1,0 +1,29 @@
+name: CapGen Marketing Engine
+on:
+  schedule:
+    - cron: '0 6 * * 1-5'   # Mon-Fri 6 AM UTC
+  workflow_dispatch:          # Manual trigger
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Import SAM.gov contractors
+        run: |
+          curl -X POST https://capgen.aproposgroupllc.com/.netlify/functions/importer-sam \
+            -H "Content-Type: application/json" -s
+
+      - name: Enrich with Hunter.io
+        run: |
+          curl -X POST https://capgen.aproposgroupllc.com/.netlify/functions/enricher-hunter \
+            -H "Content-Type: application/json" -s
+
+      - name: Personalize emails with Claude
+        run: |
+          curl -X POST https://capgen.aproposgroupllc.com/.netlify/functions/personalizer \
+            -H "Content-Type: application/json" -s
+
+      - name: Send emails via Resend
+        run: |
+          curl -X POST https://capgen.aproposgroupllc.com/.netlify/functions/sender \
+            -H "Content-Type: application/json" -s
