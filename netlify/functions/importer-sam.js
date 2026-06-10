@@ -115,7 +115,7 @@ exports.handler = async function (event) {
       var naicsCode = TARGET_NAICS[ni];
       console.log('[importer] Fetching NAICS:', naicsCode);
 
-      for (var page = 0; page < 30; page++) {
+      for (var page = 0; page < 2; page++) {  // 2 pages x 10 records = 20 per NAICS, ~50 new/day total
         var data;
         try {
           data = await fetchNaicsPage(naicsCode, page);
