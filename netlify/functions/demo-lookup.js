@@ -48,10 +48,8 @@ exports.handler = async function(event) {
       legalBusinessName: businessName,
       registrationStatus:'A',
       includeSections:   'entityRegistration,coreData',
-      size:              '10',
-      page:              '0',
     });
-    if (state) params.set('stateProvince', state);
+    if (state) params.set('stateOrProvinceCode', state);
 
     var samRes = await fetch(SAM_ENTITY + '?' + params.toString(), { headers: { Accept: 'application/json' } });
     if (!samRes.ok) throw new Error('Registry ' + samRes.status);
