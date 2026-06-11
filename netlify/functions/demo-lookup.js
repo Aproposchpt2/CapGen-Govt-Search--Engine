@@ -49,13 +49,13 @@ exports.handler = async function(event) {
       registrationStatus:'A',
       includeSections:   'entityRegistration,coreData',
     });
-    if (state) params.set('stateOrProvinceCode', state);
+    // state used for client-side filtering only — not a SAM entity-search param
 
     var samRes = await fetch(SAM_ENTITY + '?' + params.toString(), { headers: { Accept: 'application/json' } });
     if (!samRes.ok) throw new Error('Registry ' + samRes.status);
     var data = await samRes.json();
 
-    var candidates = (data.entityData || []).slice(0, 5).map(function(e) {
+    var all = (data.entityData || []).map(function(e) {
       var reg  = e.entityRegistration || {};
       var core = e.coreData || {};
       var addr = core.physicalAddress || {};
@@ -68,6 +68,14 @@ exports.handler = async function(event) {
         cage:                reg.cageCode || null,
       };
     }).filter(function(c) { return !!c.uei; });
+
+    // Apply optional state filter client-side
+    var candidates = state
+      ? all.filter(function(c) { return !c.state || c.state.toUpperCase() === state; }).concat(
+          all.filter(function(c) { return c.state && c.state.toUpperCase() !== state; })
+        )
+      : all;
+    candidates = candidates.slice(0, 5);
 
     return { statusCode: 200, headers: CORS, body: JSON.stringify({ total: candidates.length, candidates: candidates }) };
   } catch(err) {
