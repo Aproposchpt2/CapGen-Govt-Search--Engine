@@ -172,9 +172,31 @@ body::before{
   letter-spacing:.18em;text-transform:uppercase;
   text-decoration:none;
   padding:.85rem 1.8rem;border-radius:var(--r);
-  transition:background .25s,transform .2s;
+  transition:background .25s,transform .22s cubic-bezier(.34,1.56,.64,1),box-shadow .22s;
+  box-shadow:0 2px 8px rgba(0,0,0,.12);
 }
-.btn-primary:hover{background:var(--gold-2);transform:translateY(-2px)}
+.btn-primary:hover{
+  background:var(--gold-2);
+  transform:translateY(-4px) scale(1.04);
+  box-shadow:0 12px 28px rgba(0,0,0,.22);
+}
+.btn-member{
+  display:inline-flex;align-items:center;gap:.6rem;
+  background:rgba(255,255,255,.12);color:var(--white);
+  font-family:var(--body);font-size:.78rem;font-weight:600;
+  letter-spacing:.18em;text-transform:uppercase;
+  text-decoration:none;
+  padding:.85rem 1.8rem;border-radius:var(--r);
+  border:1px solid rgba(255,255,255,.3);
+  transition:background .25s,transform .22s cubic-bezier(.34,1.56,.64,1),box-shadow .22s,border-color .25s;
+  box-shadow:0 2px 8px rgba(0,0,0,.1);
+}
+.btn-member:hover{
+  background:rgba(255,255,255,.22);
+  border-color:rgba(255,255,255,.7);
+  transform:translateY(-4px) scale(1.04);
+  box-shadow:0 12px 28px rgba(0,0,0,.2);
+}
 .btn-ghost{
   font-family:var(--body);font-size:.75rem;font-weight:500;
   letter-spacing:.15em;text-transform:uppercase;
@@ -609,7 +631,7 @@ footer span{color:rgba(255,255,255,.55)}
 
     <div class="hero-actions">
      <a href="/demo" class="btn-primary">See A Live Demo →</a>
-     <a href="/onboarding" style="background:#fff;color:#0A1A3A;padding:10px 22px;border-radius:8px;font-weight:700;font-size:.82rem;text-decoration:none;white-space:nowrap;letter-spacing:.02em;display:inline-block;transition:.15s">Member Login →</a>
+     <a href="/onboarding" class="btn-member">Member Login →</a>
     </div>
    </div>
 
