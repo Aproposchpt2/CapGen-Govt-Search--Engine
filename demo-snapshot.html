@@ -3,413 +3,363 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Capability Snapshot — CapGen</title>
-<meta name="robots" content="noindex"/>
+<title>Contract Dashboard — CapGen</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,700;1,400&family=Cormorant+Garamond:ital@1&family=Jost:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital@1&family=Jost:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--sap:#0F2A6A;--sap2:#163472;--sap3:#1C3878;--white:#fff;--off:#e8edf8;
-  --green:#6EE7A8;--amber:#F59E0B;--red:#F87171;--muted:rgba(255,255,255,.55);
-  font-family:'Jost',sans-serif}
+:root{
+  --bg:#0A1A3A;--surface:#0f2244;--panel:#132954;--line:rgba(91,175,255,.15);
+  --line2:rgba(91,175,255,.28);--text:#f0f6ff;--muted:#8facd0;--soft:#5a7899;
+  --gold:#d9a45b;--green:#2ecc8a;--amber:#f0a500;--red:#e05555;--cyan:#5BD3FF;
+  font-family:'Jost',Arial,sans-serif;
+}
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--sap);color:var(--white);min-height:100vh}
+body{background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6}
 
-/* ── Header ── */
-.topbar{background:rgba(0,0,0,.25);border-bottom:1px solid rgba(255,255,255,.1);
-  padding:14px 5vw;display:flex;align-items:center;justify-content:space-between}
-.brand{font-family:'Bodoni Moda',serif;font-size:1.35rem;color:var(--white)}
-.brand span{font-family:'Jost',sans-serif;font-size:.72rem;color:var(--muted);margin-left:8px;letter-spacing:.05em}
+/* Top banner */
+.demo-banner{background:var(--surface);border-bottom:1px solid var(--line2);padding:11px 28px;
+  display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.demo-biz{font-size:.9rem;font-weight:700;color:var(--text)}
+.demo-rule{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:.8rem;color:rgba(255,255,255,.38)}
+.demo-nav{display:flex;align-items:center;gap:10px}
+.btn-opp{background:var(--cyan);color:#0A1A3A;font-family:'Jost',sans-serif;font-weight:700;
+  font-size:.78rem;padding:7px 16px;border-radius:8px;text-decoration:none;white-space:nowrap;
+  border:none;cursor:pointer;transition:.15s}
+.btn-opp:hover{opacity:.88}
 
-/* ── Frozen banner ── */
-.banner{background:rgba(255,255,255,.06);border-bottom:1px solid rgba(255,255,255,.08);
-  padding:12px 5vw;font-size:.82rem;color:rgba(255,255,255,.7);text-align:center;line-height:1.5}
-.banner em{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:.9rem;color:rgba(255,255,255,.55)}
+/* Header */
+header{background:var(--surface);border-bottom:1px solid var(--line);padding:14px 28px;
+  display:flex;align-items:center;justify-content:space-between;gap:16px}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-mark{width:40px;height:40px;border-radius:10px;background:var(--bg);border:1px solid var(--line2);
+  display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;color:var(--cyan)}
+.brand-name{font-size:1rem;font-weight:700}
+.brand-sub{font-size:.72rem;color:var(--muted);letter-spacing:.04em}
+.badge-demo{background:rgba(217,164,91,.12);border:1px solid rgba(217,164,91,.3);color:var(--gold);
+  padding:4px 10px;border-radius:20px;font-size:.68rem;font-weight:700;letter-spacing:.04em}
 
-/* ── Layout ── */
-.page{max-width:900px;margin:0 auto;padding:32px 5vw 120px}
+.page{max-width:1240px;margin:0 auto;padding:24px 20px 100px}
 
-/* ── Loading skeleton ── */
-.skel{background:rgba(255,255,255,.07);border-radius:10px;margin-bottom:16px;animation:pulse 1.4s ease-in-out infinite}
-@keyframes pulse{0%,100%{opacity:.6}50%{opacity:1}}
-.skel-lg{height:100px}.skel-md{height:60px}.skel-sm{height:32px}
+/* Entity card */
+.entity-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  padding:16px 22px;margin-bottom:20px;display:flex;flex-wrap:wrap;gap:16px;align-items:center}
+.entity-field{min-width:100px}
+.ef-label{font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--soft);margin-bottom:2px}
+.ef-value{font-size:.9rem;font-weight:700;color:var(--text)}
+.ef-value.active{color:var(--green)}
+.naics-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
+.naics-chip{background:rgba(91,211,255,.1);border:1px solid rgba(91,211,255,.22);color:var(--cyan);
+  padding:2px 8px;border-radius:4px;font-size:.68rem;font-weight:700}
+.naics-chip.primary{background:var(--cyan);color:#0A1A3A}
 
-/* ── Profile card ── */
-.profile-card{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);
-  border-radius:16px;padding:22px 26px;margin-bottom:24px}
-.company-name{font-family:'Bodoni Moda',serif;font-size:1.55rem;color:var(--white);margin-bottom:4px}
-.company-meta{font-size:.82rem;color:var(--muted);margin-bottom:14px;display:flex;gap:14px;flex-wrap:wrap;align-items:center}
-.status-dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;margin-right:4px}
-.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
-.chip{display:inline-block;padding:3px 10px;border-radius:4px;font-size:.7rem;font-weight:700;letter-spacing:.04em}
-.chip-naics{background:rgba(110,231,168,.14);color:var(--green);border:1px solid rgba(110,231,168,.25)}
-.chip-cert{background:rgba(255,255,255,.1);color:var(--white)}
-.chip-primary{background:var(--green);color:var(--sap)}
-.chip-label{font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:10px;margin-bottom:4px}
+/* Stats */
+.stat-bar{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 16px;min-width:100px}
+.stat-val{font-size:1.5rem;font-weight:900;line-height:1}
+.stat-val.red{color:var(--red)}.stat-val.amber{color:var(--amber)}.stat-val.green{color:var(--green)}
+.stat-label{font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--soft);margin-top:4px}
 
-/* ── Opportunities ── */
-.section-heading{font-family:'Bodoni Moda',serif;font-size:1.1rem;color:var(--white);
-  margin-bottom:4px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.1)}
-.section-rule{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:.82rem;
-  color:var(--muted);margin-bottom:18px;display:block}
-.opp-card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
-  border-radius:12px;padding:18px 22px;margin-bottom:14px}
-.opp-card.top{border-color:rgba(110,231,168,.3);background:rgba(110,231,168,.04)}
-.opp-title{font-weight:700;font-size:.95rem;color:var(--white);margin-bottom:4px;line-height:1.35}
-.opp-agency{font-size:.75rem;color:var(--muted);margin-bottom:12px}
-.opp-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
-.opp-naics{background:rgba(255,255,255,.1);color:var(--off);padding:2px 8px;border-radius:4px;font-size:.68rem;font-weight:700}
-.opp-deadline{background:rgba(245,158,11,.12);color:var(--amber);padding:2px 8px;border-radius:4px;font-size:.68rem;font-weight:700;border:1px solid rgba(245,158,11,.2)}
+/* Controls */
+.controls{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;align-items:center}
+.win-btns{display:flex;gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.win-btn{background:rgba(255,255,255,.04);border:none;border-right:1px solid var(--line);
+  color:var(--muted);padding:8px 16px;font-size:.82rem;font-weight:700;cursor:pointer;transition:.18s;white-space:nowrap;font-family:'Jost',sans-serif}
+.win-btn:last-child{border-right:none}
+.win-btn.active{background:rgba(91,211,255,.18);color:var(--cyan)}
+.search-input{background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:8px;
+  color:var(--text);padding:8px 12px;font-size:.84rem;outline:none;min-width:220px;font-family:'Jost',sans-serif}
+.search-input:focus{border-color:var(--cyan)}
+.count-badge{font-size:.8rem;color:var(--muted);margin-left:auto}
 
-/* ── Stage 1 analysis ── */
-.rec-hero{display:flex;align-items:center;gap:16px;background:rgba(0,0,0,.2);
-  border-radius:12px;padding:14px 18px;margin-bottom:18px}
-.rec-badge{font-family:'Jost',sans-serif;font-size:.68rem;font-weight:700;text-transform:uppercase;
-  letter-spacing:.1em;padding:4px 12px;border-radius:5px;display:inline-block;margin-top:5px}
-.rec-badge.bid{background:var(--green);color:var(--sap)}
-.rec-badge.conditional{background:var(--amber);color:var(--sap)}
-.rec-badge.no_bid{background:rgba(248,113,113,.2);color:var(--red);border:1px solid rgba(248,113,113,.3)}
-.rec-score{font-family:'Jost',sans-serif;font-size:2.6rem;font-weight:900;line-height:1;color:var(--green)}
-.rec-score.conditional{color:var(--amber)}.rec-score.no_bid{color:var(--red)}
-.rec-note{font-size:.82rem;color:rgba(255,255,255,.7);line-height:1.55;flex:1}
-.match-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
-.match-item{background:rgba(255,255,255,.06);border-radius:10px;padding:10px 12px;text-align:center}
-.match-icon{font-size:1.1rem;margin-bottom:3px}
-.match-lbl{font-size:.58rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:2px}
-.match-val{font-size:.76rem;font-weight:600;color:var(--white)}
-.rationale{font-size:.84rem;color:rgba(255,255,255,.8);line-height:1.6;margin-bottom:18px}
+/* NAICS ribbon */
+.naics-ribbon{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;align-items:center}
+.naics-ribbon-label{font-size:.64rem;text-transform:uppercase;letter-spacing:.1em;color:var(--soft);white-space:nowrap}
+.naics-bubble{display:inline-flex;flex-direction:column;align-items:center;gap:2px;padding:6px 12px;
+  border-radius:20px;cursor:pointer;border:1px solid var(--line);background:rgba(255,255,255,.04);
+  transition:.18s;user-select:none}
+.naics-bubble:hover{border-color:var(--cyan)}
+.naics-bubble.active{background:rgba(91,211,255,.15);border-color:var(--cyan)}
+.naics-bubble.active .nb-code{color:var(--cyan)}
+.naics-bubble.inactive{opacity:.38;border-color:transparent}
+.nb-code{font-size:.73rem;font-weight:900;color:var(--muted);letter-spacing:.04em;line-height:1}
 
-/* ── Locked Stage 2 ── */
-.locked-section{margin-bottom:24px}
-.accordion{border:1px solid rgba(255,255,255,.1);border-radius:12px;overflow:hidden}
-.acc-row{border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;
-  justify-content:space-between;padding:12px 16px;cursor:pointer;
-  background:rgba(255,255,255,.03)}
-.acc-row:last-child{border-bottom:none}
-.acc-row:hover{background:rgba(255,255,255,.06)}
-.acc-label{font-family:'Jost',sans-serif;font-size:.86rem;font-weight:600;color:rgba(255,255,255,.8)}
-.acc-blur{display:flex;align-items:center;gap:8px}
-.blur-line{width:120px;height:10px;border-radius:4px;background:rgba(255,255,255,.15);filter:blur(4px)}
-.lock-icon{font-size:.9rem;opacity:.5}
+/* Table */
+.opp-table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.opp-table th{font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--soft);
+  padding:11px 14px;text-align:left;border-bottom:1px solid var(--line);background:rgba(255,255,255,.03)}
+.opp-table td{padding:12px 14px;border-bottom:1px solid rgba(91,175,255,.07);vertical-align:top}
+.opp-table tr:last-child td{border-bottom:none}
+.opp-table tr:hover td{background:rgba(91,175,255,.04)}
+.title-cell a{color:var(--text);text-decoration:none;font-weight:600;font-size:.88rem;line-height:1.35;display:block}
+.title-cell a:hover{color:var(--cyan)}
+.agency-cell{font-size:.75rem;color:var(--muted)}
+.chip{display:inline-block;padding:2px 7px;border-radius:4px;font-size:.66rem;font-weight:700}
+.chip-naics{background:rgba(91,211,255,.1);border:1px solid rgba(91,211,255,.22);color:var(--cyan)}
+.deadline-cell{text-align:center;white-space:nowrap}
+.days-hot{background:rgba(224,85,85,.2);color:#ff9999;border:1px solid rgba(224,85,85,.35);padding:3px 8px;border-radius:6px;font-size:.7rem;font-weight:700}
+.days-warm{background:rgba(240,165,0,.15);color:#ffc96b;border:1px solid rgba(240,165,0,.3);padding:3px 8px;border-radius:6px;font-size:.7rem;font-weight:700}
+.days-ok{background:rgba(46,204,138,.12);color:#7eedc0;border:1px solid rgba(46,204,138,.28);padding:3px 8px;border-radius:6px;font-size:.7rem;font-weight:700}
+.capgen-btn{background:rgba(91,211,255,.12);border:1px solid rgba(91,211,255,.3);color:var(--cyan);
+  padding:4px 10px;border-radius:7px;font-size:.7rem;font-weight:700;cursor:pointer;
+  text-decoration:none;display:inline-block;transition:.18s;font-family:'Jost',sans-serif}
+.capgen-btn:hover{background:rgba(91,211,255,.22)}
+.empty{text-align:center;padding:52px;color:var(--soft)}
+.loading-state{text-align:center;padding:52px;color:var(--muted)}
 
-/* ── More matches card ── */
-.more-card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
-  border-radius:12px;padding:18px 22px;display:flex;align-items:center;
-  justify-content:space-between;cursor:pointer;margin-bottom:24px}
-.more-card:hover{background:rgba(255,255,255,.08)}
-.more-count{font-family:'Bodoni Moda',serif;font-size:1.2rem;color:var(--white)}
-.more-label{font-size:.8rem;color:var(--muted);margin-top:2px}
-.more-lock{font-size:.85rem;color:var(--muted);display:flex;align-items:center;gap:6px}
+/* Subscribe bar */
+.sub-bar{position:fixed;bottom:0;left:0;right:0;background:var(--panel);border-top:1px solid var(--line2);
+  padding:13px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px;
+  z-index:100;flex-wrap:wrap}
+.sub-bar-text{font-size:.84rem;color:var(--muted);line-height:1.4}
+.sub-bar-text strong{color:var(--text)}
+.sub-cta{background:#fff;color:#0A1A3A;font-family:'Jost',sans-serif;font-weight:700;
+  font-size:.88rem;padding:10px 22px;border-radius:8px;text-decoration:none;white-space:nowrap;
+  transition:.15s;display:inline-block}
+.sub-cta:hover{background:#e8edf8}
 
-/* ── No-opps message ── */
-.no-opps{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
-  border-radius:12px;padding:22px 26px;margin-bottom:24px}
-.no-opps p{font-size:.88rem;color:var(--muted);line-height:1.6}
-.no-opps em{font-family:'Cormorant Garamond',serif;font-style:italic;color:rgba(255,255,255,.45)}
-
-/* ── Subscribe footer bar ── */
-.sub-bar{position:fixed;bottom:0;left:0;right:0;background:var(--sap2);
-  border-top:1px solid rgba(255,255,255,.12);padding:14px 5vw;
-  display:flex;align-items:center;justify-content:space-between;gap:16px;z-index:100;flex-wrap:wrap}
-.sub-bar-text{font-size:.85rem;color:rgba(255,255,255,.75);line-height:1.4}
-.sub-bar-text strong{color:var(--white)}
-.sub-btn{background:var(--white);color:var(--sap);font-family:'Jost',sans-serif;
-  font-weight:700;font-size:.88rem;padding:10px 24px;border-radius:8px;
-  border:none;cursor:pointer;white-space:nowrap;transition:.15s;text-decoration:none;display:inline-block}
-.sub-btn:hover{background:var(--off)}
-
-/* ── Subscribe modal ── */
-#sub-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;align-items:center;justify-content:center;padding:20px}
-#sub-overlay.open{display:flex}
-.sub-modal{background:var(--sap2);border:1px solid rgba(255,255,255,.15);border-radius:20px;
-  max-width:460px;width:100%;padding:32px 36px;position:relative;text-align:center}
-.sub-modal-close{position:absolute;top:14px;right:16px;background:none;border:none;
-  color:var(--muted);font-size:1.3rem;cursor:pointer;padding:0 6px}
-.sub-modal h2{font-family:'Bodoni Moda',serif;font-size:1.5rem;margin-bottom:8px}
-.sub-modal p{font-size:.88rem;color:var(--muted);margin-bottom:24px;line-height:1.55}
-.sub-modal-rule{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:.82rem;color:rgba(255,255,255,.4);margin-bottom:20px;display:block}
-.sub-modal a{display:block;background:var(--white);color:var(--sap);font-family:'Jost',sans-serif;
-  font-weight:700;padding:14px;border-radius:10px;text-decoration:none;font-size:1rem;transition:.15s}
-.sub-modal a:hover{background:var(--off)}
-.sub-modal .fine{font-size:.74rem;color:rgba(255,255,255,.3);margin-top:12px}
-
-/* ── Not-registered / error ── */
-.nr-card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
-  border-radius:16px;padding:32px;text-align:center;margin:24px 0}
-.nr-card h2{font-family:'Bodoni Moda',serif;font-size:1.35rem;margin-bottom:12px}
-.nr-card p{font-size:.88rem;color:var(--muted);line-height:1.6;margin-bottom:6px}
-.nr-card em{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:.9rem;color:rgba(255,255,255,.4)}
-.nr-email{display:flex;gap:8px;max-width:360px;margin:20px auto 0;flex-wrap:wrap}
-.nr-email input{flex:1;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);
-  border-radius:8px;color:var(--white);padding:10px 14px;font-size:.88rem;outline:none;font-family:'Jost',sans-serif;min-width:180px}
-.nr-email input::placeholder{color:var(--muted)}
-.nr-email button{background:var(--white);color:var(--sap);border:none;border-radius:8px;
-  padding:10px 20px;font-weight:700;cursor:pointer;font-family:'Jost',sans-serif;font-size:.88rem}
-
-/* ── Sample watermark ── */
-.watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-30deg);
-  font-family:'Bodoni Moda',serif;font-size:5rem;color:rgba(255,255,255,.04);
-  pointer-events:none;white-space:nowrap;z-index:0}
-
-@media(max-width:600px){
-  .rec-hero{flex-wrap:wrap}.match-grid{grid-template-columns:1fr 1fr}
+@media(max-width:700px){
+  .demo-banner{flex-direction:column;align-items:flex-start;padding:10px 14px}
+  .page{padding:14px 12px 100px}
+  .stat-bar{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .opp-table th:nth-child(3),.opp-table td:nth-child(3),
+  .opp-table th:nth-child(4),.opp-table td:nth-child(4){display:none}
   .sub-bar{flex-direction:column;align-items:stretch;text-align:center}
-  .company-meta{flex-direction:column;gap:4px}
 }
 </style>
 </head>
 <body>
 
-<div class="topbar">
-  <div class="brand">CapGen <span>by Apropos Group</span></div>
-  <button class="sub-btn" onclick="openSub()">Subscribe →</button>
-</div>
-
-<div class="banner" id="bannerEl" style="display:none"></div>
-
-<div class="page" id="pageEl">
-  <!-- Loading state -->
-  <div id="loadingEl">
-    <div class="skel skel-lg" style="margin-bottom:24px"></div>
-    <div class="skel skel-md" style="margin-bottom:12px"></div>
-    <div class="skel skel-sm" style="margin-bottom:24px;width:60%"></div>
-    <div class="skel skel-md" style="margin-bottom:12px"></div>
-    <div class="skel skel-md" style="margin-bottom:12px"></div>
-    <p style="text-align:center;color:var(--muted);font-size:.85rem;margin-top:28px;font-family:'Cormorant Garamond',serif;font-style:italic">Generating your capability snapshot…</p>
+<!-- Business banner -->
+<div class="demo-banner">
+  <div>
+    <div class="demo-biz" id="bizBanner">Loading your dashboard…</div>
+    <div class="demo-rule" id="bizRule"></div>
   </div>
-  <div id="contentEl" style="display:none"></div>
+  <div class="demo-nav">
+    <a href="#" class="btn-opp" id="oppBtn" style="display:none">See Opportunity Dashboard →</a>
+  </div>
 </div>
 
+<header>
+  <div class="brand">
+    <div class="brand-mark">CG</div>
+    <div>
+      <div class="brand-name">CapGen</div>
+      <div class="brand-sub">Contract Dashboard</div>
+    </div>
+  </div>
+  <span class="badge-demo">Preview</span>
+</header>
+
+<div class="page">
+  <!-- Entity card -->
+  <div class="entity-card" id="entityCard" style="display:none"></div>
+
+  <!-- Stats -->
+  <div class="stat-bar" id="statBar">
+    <div class="stat"><div class="stat-val" id="s-total">—</div><div class="stat-label">Total Contracts</div></div>
+    <div class="stat"><div class="stat-val red" id="s-hot">—</div><div class="stat-label">Due &lt;7 Days</div></div>
+    <div class="stat"><div class="stat-val amber" id="s-warm">—</div><div class="stat-label">Due 7–30 Days</div></div>
+    <div class="stat"><div class="stat-val green" id="s-ok">—</div><div class="stat-label">Due 30+ Days</div></div>
+  </div>
+
+  <!-- NAICS ribbon -->
+  <div class="naics-ribbon" id="naicsRibbon" style="display:none">
+    <span class="naics-ribbon-label">NAICS</span>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <div class="win-btns" id="dayBtns">
+      <button class="win-btn active" data-days="60">60 Days</button>
+      <button class="win-btn" data-days="30">30 Days</button>
+      <button class="win-btn" data-days="7">7 Days</button>
+    </div>
+    <input type="search" class="search-input" id="searchInput" placeholder="Search title or agency…"/>
+    <span class="count-badge" id="countBadge"></span>
+  </div>
+
+  <!-- Table -->
+  <div style="border:1px solid var(--line);border-radius:12px;overflow:hidden">
+    <table class="opp-table">
+      <thead>
+        <tr>
+          <th>Opportunity</th>
+          <th>Agency</th>
+          <th>NAICS</th>
+          <th>Set-Aside</th>
+          <th style="text-align:center">Deadline</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="oppBody"><tr><td colspan="6" class="loading-state">Loading your opportunities…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Subscribe bar -->
 <div class="sub-bar">
-  <div class="sub-bar-text"><strong>Subscribers see this updated daily.</strong> Unlock the full pursuit package — staffing, pricing, proposal checklist — for every opportunity.</div>
-  <button class="sub-btn" onclick="openSub()">Start Free Trial →</button>
-</div>
-
-<!-- Subscribe modal -->
-<div id="sub-overlay" onclick="if(event.target===this)closeSub()">
-  <div class="sub-modal">
-    <button class="sub-modal-close" onclick="closeSub()">&#xD7;</button>
-    <h2>Unlock Full Access</h2>
-    <p>Get the complete Stage 2 package — required work, staffing requirements, proposal checklist, draft technical approach, pricing strategy, and questions for the contracting officer — for every opportunity matched to your profile.</p>
-    <span class="sub-modal-rule">Updated daily. Sourced from official public records.</span>
-    <a id="stripeBtn" href="#" target="_blank" rel="noopener">Start My 14-Day Free Trial →</a>
-    <p class="fine">Cancel anytime. No contracts.</p>
-  </div>
+  <div class="sub-bar-text"><strong>Subscribe for permanent access.</strong> Live pipeline, daily updates, Analyze Fit for every opportunity.</div>
+  <a href="#" id="subCta" class="sub-cta">Start My 14-Day Free Trial →</a>
 </div>
 
 <script>
+'use strict';
 const STRIPE_BASE = 'https://buy.stripe.com/bJebJ0dA65Gv9BheDm7EQ0Y';
-const DEMO_GET    = '/.netlify/functions/demo-get';
-const DEMO_SUB_URL = '/.netlify/functions/demo-subscribe';
+const token = new URLSearchParams(location.search).get('t') || '';
+let allOpps = [], clientData = null;
 
-const token = new URLSearchParams(location.search).get('t');
-let snapshotData = null;
-let pollTimer    = null;
+// Set up subscribe CTA with view_token attribution
+if (token) {
+  document.getElementById('subCta').href = STRIPE_BASE + '?client_reference_id=' + encodeURIComponent(token);
+  document.getElementById('oppBtn').style.display = 'inline-block';
+  // Store in sessionStorage for pipeline page return link
+  sessionStorage.setItem('demo_view_token', token);
+}
 
-// ── Subscribe modal ─────────────────────────────────────────────────────────
-function openSub() {
-  document.getElementById('sub-overlay').classList.add('open');
-  document.body.style.overflow = 'hidden';
-}
-function closeSub() {
-  document.getElementById('sub-overlay').classList.remove('open');
-  document.body.style.overflow = '';
-}
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSub(); });
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-// ── Render helpers ───────────────────────────────────────────────────────────
-function esc(s) {
-  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-function fmtDate(iso) {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-}
 function fmtDeadline(iso) {
   if (!iso) return '—';
-  const d = new Date(iso);
-  const days = Math.ceil((d - Date.now()) / 86400000);
-  return fmtDate(iso) + (days >= 0 ? ' (' + days + 'd)' : ' (Closed)');
+  return new Date(iso).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
 }
 
-// ── Main render ──────────────────────────────────────────────────────────────
-function render(data) {
-  const p    = data.profile || {};
-  const opps = data.opportunities || [];
-  const a    = data.analysis || null;
-  const extra = data.additional_match_count || 0;
-  const genDate = fmtDate(data.generated_at);
+function urgencyBadge(o) {
+  if (o.days_left === null) return '<span style="font-size:.72rem;color:var(--soft)">No deadline</span>';
+  if (o.days_left < 1)  return '<span class="days-hot">Closed</span>';
+  if (o.urgency === 'hot')  return '<span class="days-hot">' + o.days_left + 'd left</span>';
+  if (o.urgency === 'warm') return '<span class="days-warm">' + o.days_left + 'd left</span>';
+  return '<span class="days-ok">' + o.days_left + 'd left</span>';
+}
 
-  // Banner
-  const banner = document.getElementById('bannerEl');
-  banner.innerHTML = '<strong>Capability Snapshot for ' + esc(p.legal_name || data.business_name) + '</strong> — generated ' + genDate
-    + '. <em>Sourced from official public records.</em> Subscribers see this updated daily.';
-  banner.style.display = 'block';
+function render(opps) {
+  document.getElementById('countBadge').textContent = opps.length + ' opportunities';
+  document.getElementById('s-total').textContent = opps.length;
+  document.getElementById('s-hot').textContent   = opps.filter(o => o.urgency === 'hot').length;
+  document.getElementById('s-warm').textContent  = opps.filter(o => o.urgency === 'warm').length;
+  document.getElementById('s-ok').textContent    = opps.filter(o => o.urgency === 'ok').length;
 
-  // Stripe attribution
-  document.getElementById('stripeBtn').href = STRIPE_BASE + '?client_reference_id=' + encodeURIComponent(token || '');
-
-  let html = '';
-
-  // Profile card
-  const naicsChips = (p.naics || []).map(n =>
-    '<span class="chip ' + (n.primary ? 'chip-primary' : 'chip-naics') + '">' + esc(n.code) + (n.title ? ' ' + esc(n.title.split('/')[0].trim().slice(0,30)) : '') + '</span>'
-  ).join('');
-  const certChips = (p.set_asides || []).map(c => '<span class="chip chip-cert">' + esc(c) + '</span>').join('');
-
-  html += '<div class="profile-card">'
-    + '<div class="company-name">' + esc(p.legal_name || data.business_name) + '</div>'
-    + '<div class="company-meta">'
-    + '<span><span class="status-dot"></span>' + esc(p.sam_status || 'Active') + ' Registration</span>'
-    + (p.city ? '<span>' + esc([p.city, p.state].filter(Boolean).join(', ')) + '</span>' : '')
-    + (p.uei  ? '<span>UEI: ' + esc(p.uei) + '</span>' : '')
-    + (p.cage ? '<span>CAGE: ' + esc(p.cage) + '</span>' : '')
-    + '</div>'
-    + (naicsChips ? '<div class="chip-label">NAICS Codes</div><div class="chips">' + naicsChips + '</div>' : '')
-    + (certChips  ? '<div class="chip-label" style="margin-top:10px">Certifications & Set-Asides</div><div class="chips">' + certChips + '</div>' : '')
-    + '</div>';
-
-  // Opportunities section
-  html += '<div class="section-heading" style="margin-bottom:4px">Matched Opportunities</div>'
-    + '<span class="section-rule">Active contracts aligned with your registered capabilities</span>';
+  const capgenUrl = '/capability-generator.html?uei=' + encodeURIComponent((clientData && clientData.uei) || '');
+  const tbody = document.getElementById('oppBody');
 
   if (!opps.length) {
-    html += '<div class="no-opps">'
-      + '<p>No active matches this week.</p>'
-      + '<p><em>Subscribers are alerted the moment one posts.</em></p>'
-      + '</div>';
-  } else {
-    opps.forEach((opp, i) => {
-      const isTop = i === 0;
-      html += '<div class="opp-card' + (isTop ? ' top' : '') + '">'
-        + '<div class="opp-title">' + esc(opp.title) + '</div>'
-        + '<div class="opp-agency">' + esc(opp.agency || '') + '</div>'
-        + '<div class="opp-chips">'
-        + (opp.naics ? '<span class="opp-naics">' + esc(opp.naics) + '</span>' : '')
-        + (opp.response_deadline ? '<span class="opp-deadline">Due ' + fmtDeadline(opp.response_deadline) + '</span>' : '')
-        + (opp.set_aside && opp.set_aside !== 'None' && opp.set_aside !== 'Unrestricted' ? '<span class="chip chip-cert" style="font-size:.66rem">' + esc(opp.set_aside.slice(0,40)) + '</span>' : '')
-        + '</div>';
-
-      // Stage 1 analysis on top opportunity
-      if (isTop && a) {
-        const rec  = (a.recommendation || 'NO_BID').toLowerCase();
-        const recC = rec === 'bid' ? 'bid' : rec === 'conditional' ? 'conditional' : 'no_bid';
-        const m    = a.match || {};
-        html += '<div class="rec-hero">'
-          + '<div><div class="rec-score ' + recC + '">' + (a.fit_score || 0) + '</div>'
-          + '<div class="rec-badge ' + recC + '">' + (a.recommendation || 'NO_BID') + '</div></div>'
-          + '<div class="rec-note">' + esc(a.opportunity_summary || '') + '</div>'
-          + '</div>'
-          + '<div class="match-grid">'
-          + '<div class="match-item"><div class="match-icon">' + (m.naics_match ? '✅' : '❌') + '</div>'
-          + '<div class="match-lbl">NAICS</div><div class="match-val">' + esc(m.naics_detail ? m.naics_detail.slice(0,40) : (m.naics_match ? 'Match' : 'No match')) + '</div></div>'
-          + '<div class="match-item"><div class="match-icon">' + (m.set_aside_eligible ? '✅' : '❌') + '</div>'
-          + '<div class="match-lbl">Set-Aside</div><div class="match-val">' + esc(m.set_aside_detail ? m.set_aside_detail.slice(0,40) : (m.set_aside_eligible ? 'Eligible' : 'Not eligible')) + '</div></div>'
-          + '<div class="match-item"><div class="match-icon">' + (m.capability_alignment === 'HIGH' ? '✅' : m.capability_alignment === 'MEDIUM' ? '⚡' : '⚠️') + '</div>'
-          + '<div class="match-lbl">Capability</div><div class="match-val">' + esc(m.capability_alignment || 'LOW') + '</div></div>'
-          + '</div>'
-          + '<p class="rationale">' + esc(a.rationale || '') + '</p>';
-
-        // Locked Stage 2 accordion
-        const s2sections = [
-          'Required Work Scope', 'Staffing & Delivery', 'Documents Needed',
-          'Proposal Checklist', 'Draft Technical Approach',
-          'Pricing Considerations', 'Questions for the CO'
-        ];
-        html += '<div class="locked-section">'
-          + '<p style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:10px;font-weight:700">Full Pursuit Package <span style="font-weight:400;text-transform:none;letter-spacing:0">— subscribers only</span></p>'
-          + '<div class="accordion">'
-          + s2sections.map(s =>
-            '<div class="acc-row" onclick="openSub()">'
-            + '<span class="acc-label">' + esc(s) + '</span>'
-            + '<div class="acc-blur"><div class="blur-line"></div><div class="blur-line" style="width:70px"></div><span class="lock-icon">🔒</span></div>'
-            + '</div>'
-          ).join('')
-          + '</div></div>';
-      }
-      html += '</div>';
-    });
-
-    // More matches card
-    if (extra > 0) {
-      html += '<div class="more-card" onclick="openSub()">'
-        + '<div><div class="more-count">' + extra + ' more matched</div>'
-        + '<div class="more-label">additional opportunities aligned with your profile</div></div>'
-        + '<div class="more-lock">🔒 Subscribe to see all →</div>'
-        + '</div>';
-    }
-  }
-
-  document.getElementById('loadingEl').style.display = 'none';
-  document.getElementById('contentEl').innerHTML = html;
-  document.getElementById('contentEl').style.display = 'block';
-}
-
-// ── Not-registered render ────────────────────────────────────────────────────
-function renderNotRegistered(businessName) {
-  document.getElementById('bannerEl').style.display = 'none';
-  document.getElementById('loadingEl').style.display = 'none';
-  const html = '<div class="watermark">SAMPLE</div>'
-    + '<div class="nr-card">'
-    + '<h2>Registration Not Found</h2>'
-    + '<p>We couldn\'t find an active federal registration for <strong>' + esc(businessName || 'that business') + '</strong>.</p>'
-    + '<p>When your registration is active, come back — your real snapshot will be waiting.</p>'
-    + '<p><em>Sourced from official public records.</em></p>'
-    + '<div class="nr-email" id="nrForm">'
-    + '<input type="email" id="nrEmail" placeholder="your@email.com"/>'
-    + '<button onclick="submitNrEmail()">Get registration tips</button>'
-    + '</div>'
-    + '<p id="nrMsg" style="color:var(--green);font-size:.82rem;margin-top:10px;display:none">Check your inbox!</p>'
-    + '</div>';
-  document.getElementById('contentEl').innerHTML = html;
-  document.getElementById('contentEl').style.display = 'block';
-}
-
-async function submitNrEmail() {
-  const email = (document.getElementById('nrEmail') || {}).value || '';
-  if (!email) return;
-  try {
-    await fetch('/.netlify/functions/demo-subscribe', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, source: 'not_registered' }),
-    });
-  } catch(e) { /* ignore */ }
-  document.getElementById('nrForm').style.display = 'none';
-  document.getElementById('nrMsg').style.display = 'block';
-}
-
-// ── Poll ─────────────────────────────────────────────────────────────────────
-async function poll() {
-  if (!token) {
-    document.getElementById('loadingEl').innerHTML = '<p style="text-align:center;color:var(--red);padding:40px">Invalid snapshot link.</p>';
+    tbody.innerHTML = '<tr><td colspan="6" class="empty">No open opportunities in this window. Try a wider date range.</td></tr>';
     return;
   }
-  try {
-    const res  = await fetch(DEMO_GET + '?t=' + encodeURIComponent(token));
-    if (res.status === 404) {
-      document.getElementById('loadingEl').innerHTML = '<p style="text-align:center;color:var(--red);padding:40px">Snapshot not found.</p>';
-      clearInterval(pollTimer);
-      return;
-    }
-    if (!res.ok) return; // keep polling
-    const data = await res.json();
-    snapshotData = data;
 
-    if (data.status === 'complete') {
-      clearInterval(pollTimer);
-      render(data);
-    } else if (data.status === 'not_registered') {
-      clearInterval(pollTimer);
-      renderNotRegistered(data.business_name);
-    } else if (data.status === 'failed') {
-      clearInterval(pollTimer);
-      document.getElementById('loadingEl').innerHTML = '<p style="text-align:center;color:var(--red);padding:40px">Snapshot generation failed. Please try again.</p>';
-    }
-    // else 'pending' — keep polling
-  } catch(e) { /* keep polling */ }
+  tbody.innerHTML = opps.map(function(o) {
+    return '<tr>'
+      + '<td class="title-cell"><a href="' + esc(o.url) + '" target="_blank" rel="noopener">' + esc(o.title || 'Untitled') + '</a>'
+      + '<div class="agency-cell">' + esc(o.agency || '—') + '</div></td>'
+      + '<td><span style="font-size:.76rem;color:var(--muted)">' + esc(o.type || '—') + '</span></td>'
+      + '<td><span class="chip chip-naics">' + esc(o.naics || '—') + '</span></td>'
+      + '<td style="font-size:.74rem;color:var(--soft)">' + esc((o.set_aside && o.set_aside !== 'None' ? o.set_aside : 'Unrestricted').slice(0,30)) + '</td>'
+      + '<td class="deadline-cell">' + urgencyBadge(o)
+      + '<div style="font-size:.66rem;color:var(--soft);margin-top:2px">' + fmtDeadline(o.deadline) + '</div></td>'
+      + '<td><a class="capgen-btn" href="' + esc(capgenUrl) + '">CapGen ↗</a></td>'
+      + '</tr>';
+  }).join('');
 }
 
-pollTimer = setInterval(poll, 3000);
-poll();
+function activeNaics() {
+  return [...document.querySelectorAll('.naics-bubble.active')].map(b => b.dataset.naics);
+}
+
+function applyFilters() {
+  const selNaics = activeNaics();
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  let filtered = allOpps;
+  if (selNaics.length && selNaics.length < allOpps.length) {
+    filtered = filtered.filter(o => selNaics.includes(o.naics));
+  }
+  if (q) filtered = filtered.filter(o =>
+    (o.title||'').toLowerCase().includes(q) || (o.agency||'').toLowerCase().includes(q)
+  );
+  render(filtered);
+}
+
+async function load() {
+  if (!token) {
+    document.getElementById('oppBody').innerHTML = '<tr><td colspan="6" class="empty">No snapshot token found. <a href="/demo" style="color:var(--cyan)">Start a new demo →</a></td></tr>';
+    return;
+  }
+  const days = document.querySelector('.win-btn.active')?.dataset.days || '60';
+  try {
+    const res  = await fetch('/.netlify/functions/demo-pipeline?t=' + encodeURIComponent(token) + '&days=' + days);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Load failed');
+    clientData = data.client;
+    allOpps    = data.opportunities || [];
+
+    // Banner
+    const banner = document.getElementById('bizBanner');
+    const rule   = document.getElementById('bizRule');
+    banner.textContent = (clientData.name || 'Your Business') + ' — Contract Dashboard';
+    rule.textContent   = 'Sourced from official public records.';
+    sessionStorage.setItem('demo_uei', clientData.uei || '');
+
+    // Opportunity Dashboard link
+    const oppBtn = document.getElementById('oppBtn');
+    const oppUrl = '/opportunity?t=' + encodeURIComponent(token) + (clientData.uei ? '&uei=' + encodeURIComponent(clientData.uei) : '');
+    oppBtn.href = oppUrl;
+    oppBtn.style.display = 'inline-block';
+
+    // Entity card
+    const card = document.getElementById('entityCard');
+    const certHtml = (clientData.certifications || []).map(c =>
+      '<span class="naics-chip">' + esc(c) + '</span>'
+    ).join('');
+    const naicsChips = (clientData.naics || []).map(function(code) {
+      return '<span class="naics-chip' + (code === clientData.primary_naics ? ' primary' : '') + '">' + esc(code) + '</span>';
+    }).join('');
+    card.innerHTML = '<div class="entity-field"><div class="ef-label">Business</div><div class="ef-value">' + esc(clientData.name) + '</div></div>'
+      + (clientData.uei ? '<div class="entity-field"><div class="ef-label">UEI</div><div class="ef-value">' + esc(clientData.uei) + '</div></div>' : '')
+      + '<div class="entity-field"><div class="ef-label">Location</div><div class="ef-value">' + esc([clientData.city, clientData.state].filter(Boolean).join(', ') || '—') + '</div></div>'
+      + '<div class="entity-field"><div class="ef-label">Registration</div><div class="ef-value active">● Active</div></div>'
+      + (naicsChips ? '<div class="entity-field" style="min-width:200px"><div class="ef-label">NAICS</div><div class="naics-chips">' + naicsChips + '</div></div>' : '')
+      + (certHtml ? '<div class="entity-field"><div class="ef-label">Certifications</div><div class="naics-chips">' + certHtml + '</div></div>' : '');
+    card.style.display = 'flex';
+
+    // NAICS ribbon
+    const ribbon = document.getElementById('naicsRibbon');
+    const naicsCodes = clientData.naics || [];
+    if (naicsCodes.length > 1) {
+      ribbon.innerHTML = '<span class="naics-ribbon-label">NAICS</span>'
+        + naicsCodes.map(function(code) {
+          return '<div class="naics-bubble active" data-naics="' + esc(code) + '">'
+            + '<span class="nb-code">' + esc(code) + (code === clientData.primary_naics ? ' ⭐' : '') + '</span>'
+            + '</div>';
+        }).join('');
+      ribbon.style.display = 'flex';
+      // Attach toggle listeners
+      ribbon.querySelectorAll('.naics-bubble').forEach(function(b) {
+        b.addEventListener('click', function() {
+          const active = ribbon.querySelectorAll('.naics-bubble.active').length;
+          if (b.classList.contains('active') && active === 1) return;
+          b.classList.toggle('active');
+          b.classList.toggle('inactive');
+          applyFilters();
+        });
+      });
+    }
+
+    applyFilters();
+  } catch(e) {
+    document.getElementById('oppBody').innerHTML = '<tr><td colspan="6" class="empty" style="color:var(--red)">' + esc(e.message) + '</td></tr>';
+  }
+}
+
+// Controls
+document.querySelectorAll('.win-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.win-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    load();
+  });
+});
+document.getElementById('searchInput').addEventListener('input', applyFilters);
+
+load();
 </script>
 </body>
 </html>
