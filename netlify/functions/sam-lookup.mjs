@@ -13,8 +13,11 @@
 
 const SAM_ENTITY_URL = "https://api.sam.gov/entity-information/v3/entities";
 
-const json = (status, obj) =>
-  new Response(JSON.stringify(obj), { status, headers: { "Content-Type": "application/json" } });
+const json = (status, obj) => ({
+  statusCode: status,
+  headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+  body: JSON.stringify(obj),
+});
 
 // SBA certifications we surface as prominent ("key") badges when active.
 const KEY_CERT = [
@@ -125,18 +128,19 @@ async function getEntity(uei) {
   return mapEntityToRecord(e);
 }
 
-export default async (req) => {
+export const handler = async (event) => {
+  if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers: { "Access-Control-Allow-Origin": "*" }, body: "" };
   if (!process.env.SAM_API_KEY) return json(500, { error: "SAM_API_KEY not set" });
-  const { searchParams } = new URL(req.url);
-  const mode = searchParams.get("mode") || "search";
+  const q = event.queryStringParameters || {};
+  const mode = q.mode || "search";
   try {
     if (mode === "search") {
-      const name = searchParams.get("name");
+      const name = q.name;
       if (!name) return json(400, { error: "name required" });
-      return json(200, await searchByName(name, searchParams.get("state")));
+      return json(200, await searchByName(name, q.state));
     }
     if (mode === "entity") {
-      const uei = searchParams.get("uei");
+      const uei = q.uei;
       if (!uei) return json(400, { error: "uei required" });
       const rec = await getEntity(uei);
       return rec ? json(200, { record: rec }) : json(404, { error: "entity not found" });
