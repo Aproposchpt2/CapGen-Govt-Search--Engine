@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Best Match — CapGen</title>
+<title>Top 5 Best Matches — CapGen</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital@1&family=Jost:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
@@ -16,114 +16,72 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6}
 
-/* Back bar — matches demo-snapshot banner style */
-.back-bar{background:var(--surface);border-bottom:1px solid var(--line2);
+/* Banner */
+.top-banner{background:var(--surface);border-bottom:1px solid var(--line2);
   padding:11px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
-.back-bar-left{font-size:.82rem;color:var(--muted)}
-.back-link{background:var(--cyan);color:#0A1A3A;font-family:'Jost',sans-serif;font-weight:700;
-  font-size:.78rem;padding:7px 16px;border-radius:8px;text-decoration:none;white-space:nowrap;
-  border:none;cursor:pointer;transition:.15s;display:inline-block}
-.back-link:hover{opacity:.88}
+.banner-biz{font-size:.88rem;font-weight:700;color:var(--text)}
+.back-btn{background:var(--cyan);color:#0A1A3A;font-family:'Jost',sans-serif;font-weight:700;
+  font-size:.78rem;padding:7px 16px;border-radius:8px;text-decoration:none;white-space:nowrap;transition:.15s}
+.back-btn:hover{opacity:.88}
 
 header{background:var(--surface);border-bottom:1px solid var(--line);padding:14px 28px;
-  display:flex;align-items:center;justify-content:space-between;gap:16px}
+  display:flex;align-items:center;justify-content:space-between}
 .brand{display:flex;align-items:center;gap:12px}
 .brand-mark{width:40px;height:40px;border-radius:10px;background:var(--bg);border:1px solid var(--line2);
   display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;color:var(--cyan)}
 .brand-name{font-size:1rem;font-weight:700}
 .brand-sub{font-size:.72rem;color:var(--muted)}
+.badge-top5{background:rgba(217,164,91,.12);border:1px solid rgba(217,164,91,.3);color:var(--gold);
+  padding:4px 10px;border-radius:20px;font-size:.68rem;font-weight:700;letter-spacing:.04em}
 
-.page{max-width:1000px;margin:0 auto;padding:28px 20px 100px}
+.page{max-width:900px;margin:0 auto;padding:24px 20px 100px}
 
-/* ── Best Match Card ── */
-.best-match-card{background:var(--surface);border:2px solid var(--cyan);border-radius:16px;
-  padding:28px 32px;margin-bottom:32px;position:relative}
-.best-match-label{position:absolute;top:-13px;left:24px;background:var(--cyan);color:#0A1A3A;
-  font-family:'Jost',sans-serif;font-weight:700;font-size:.72rem;letter-spacing:.08em;
-  text-transform:uppercase;padding:3px 14px;border-radius:20px}
-.opp-title-main{font-size:1.15rem;font-weight:700;color:var(--text);line-height:1.35;margin-bottom:6px}
-.opp-agency-main{font-size:.82rem;color:var(--muted);margin-bottom:18px}
-.opp-meta-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;align-items:center}
-.meta-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:6px;
-  font-size:.72rem;font-weight:700}
-.chip-naics{background:rgba(91,211,255,.12);border:1px solid rgba(91,211,255,.25);color:var(--cyan)}
-.chip-deadline{background:rgba(46,204,138,.12);border:1px solid rgba(46,204,138,.25);color:var(--green)}
-.chip-setaside{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:var(--muted)}
+/* Rank cards */
+.rank-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  padding:22px 26px;margin-bottom:14px;position:relative}
+.rank-card.rank-1{border-color:var(--cyan);border-width:2px}
+.rank-badge{position:absolute;top:-12px;left:20px;font-family:'Jost',sans-serif;font-weight:700;
+  font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;padding:3px 12px;border-radius:20px}
+.rank-badge.r1{background:var(--cyan);color:#0A1A3A}
+.rank-badge.r2{background:rgba(46,204,138,.9);color:#0A1A3A}
+.rank-badge.r3{background:var(--surface);border:1px solid var(--gold);color:var(--gold)}
+.rank-badge.r4,.rank-badge.r5{background:var(--surface);border:1px solid var(--line2);color:var(--muted)}
 
-/* Score + recommendation */
-.analysis-row{display:flex;align-items:flex-start;gap:20px;background:var(--panel);
-  border-radius:12px;padding:18px 20px;margin-bottom:18px}
-.score-block{text-align:center;flex-shrink:0;min-width:80px}
-.score-num{font-size:2.8rem;font-weight:900;line-height:1;color:var(--green)}
-.score-num.conditional{color:var(--amber)}.score-num.no_bid{color:var(--red)}
-.score-label{font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--soft);margin-top:3px}
-.rec-badge{display:inline-block;padding:4px 12px;border-radius:6px;font-size:.68rem;font-weight:700;
-  text-transform:uppercase;letter-spacing:.08em;margin-top:6px}
+.opp-title{font-size:1rem;font-weight:700;line-height:1.35;margin-bottom:4px}
+.opp-agency{font-size:.78rem;color:var(--muted);margin-bottom:14px}
+.opp-chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px;align-items:center}
+.chip{display:inline-flex;align-items:center;padding:4px 10px;border-radius:6px;font-size:.7rem;font-weight:700}
+.chip-naics{background:rgba(91,211,255,.1);border:1px solid rgba(91,211,255,.22);color:var(--cyan)}
+.chip-deadline-hot{background:rgba(224,85,85,.18);border:1px solid rgba(224,85,85,.3);color:#ff9999}
+.chip-deadline-warm{background:rgba(240,165,0,.14);border:1px solid rgba(240,165,0,.28);color:#ffc96b}
+.chip-deadline-ok{background:rgba(46,204,138,.12);border:1px solid rgba(46,204,138,.25);color:#7eedc0}
+.chip-setaside{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);color:var(--muted)}
+
+/* Analysis section (rank 1 only) */
+.analysis-box{background:var(--panel);border-radius:10px;padding:16px 18px;margin-bottom:14px}
+.analysis-header{display:flex;align-items:center;gap:16px;margin-bottom:10px}
+.score-num{font-size:2.4rem;font-weight:900;line-height:1}
+.score-num.bid{color:var(--green)}.score-num.conditional{color:var(--amber)}.score-num.no_bid{color:var(--red)}
+.rec-badge{display:inline-block;padding:3px 10px;border-radius:5px;font-size:.66rem;font-weight:700;
+  text-transform:uppercase;letter-spacing:.08em;margin-top:4px}
 .rec-badge.bid{background:rgba(46,204,138,.18);color:var(--green);border:1px solid rgba(46,204,138,.3)}
 .rec-badge.conditional{background:rgba(240,165,0,.15);color:var(--amber);border:1px solid rgba(240,165,0,.28)}
-.rec-badge.no_bid{background:rgba(224,85,85,.15);color:var(--red);border:1px solid rgba(224,85,85,.28)}
-.analysis-text{flex:1}
-.analysis-rationale{font-size:.86rem;color:var(--text);line-height:1.6;margin-bottom:10px}
-.match-chips{display:flex;flex-wrap:wrap;gap:6px}
-.match-chip{font-size:.7rem;padding:3px 9px;border-radius:4px;font-weight:600}
-.match-yes{background:rgba(46,204,138,.12);color:var(--green)}
-.match-no{background:rgba(224,85,85,.12);color:var(--red)}
-.match-med{background:rgba(240,165,0,.12);color:var(--amber)}
+.rec-badge.no_bid{background:rgba(224,85,85,.14);color:var(--red);border:1px solid rgba(224,85,85,.27)}
+.rationale{font-size:.84rem;color:var(--text);line-height:1.6}
+.match-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.m-chip{font-size:.68rem;padding:3px 8px;border-radius:4px;font-weight:600}
+.m-yes{background:rgba(46,204,138,.12);color:var(--green)}
+.m-no{background:rgba(224,85,85,.12);color:var(--red)}
+.m-med{background:rgba(240,165,0,.12);color:var(--amber)}
 
-.view-btn{display:inline-block;background:var(--cyan);color:#0A1A3A;font-family:'Jost',sans-serif;
-  font-weight:700;font-size:.86rem;padding:10px 22px;border-radius:9px;text-decoration:none;
-  transition:.15s;margin-right:10px}
-.view-btn:hover{opacity:.88}
-.capgen-btn-main{display:inline-block;background:rgba(91,211,255,.12);border:1px solid rgba(91,211,255,.3);
-  color:var(--cyan);font-family:'Jost',sans-serif;font-weight:700;font-size:.86rem;
-  padding:10px 18px;border-radius:9px;text-decoration:none;transition:.18s}
-.capgen-btn-main:hover{background:rgba(91,211,255,.22)}
-
-/* Section divider */
-.section-divider{display:flex;align-items:center;gap:14px;margin-bottom:18px}
-.section-divider-line{flex:1;height:1px;background:var(--line)}
-.section-divider-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--soft);white-space:nowrap;font-weight:700}
-
-/* Controls */
-.controls{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;align-items:center}
-.win-btns{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
-.win-btn{background:rgba(255,255,255,.04);border:none;border-right:1px solid var(--line);
-  color:var(--muted);padding:7px 14px;font-size:.8rem;font-weight:700;cursor:pointer;
-  transition:.18s;font-family:'Jost',sans-serif}
-.win-btn:last-child{border-right:none}
-.win-btn.active{background:rgba(91,211,255,.18);color:var(--cyan)}
-.search-input{background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:8px;
-  color:var(--text);padding:7px 12px;font-size:.84rem;outline:none;min-width:200px;font-family:'Jost',sans-serif}
-.search-input:focus{border-color:var(--cyan)}
-.count-badge{font-size:.78rem;color:var(--muted);margin-left:auto}
-
-/* NAICS ribbon */
-.naics-ribbon{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px;align-items:center}
-.naics-ribbon-label{font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--soft);white-space:nowrap}
-.naics-bubble{display:inline-block;padding:5px 11px;border-radius:18px;cursor:pointer;
-  border:1px solid var(--line);background:rgba(255,255,255,.04);transition:.18s;
-  font-size:.72rem;font-weight:700;color:var(--muted);user-select:none}
-.naics-bubble:hover{border-color:var(--cyan)}
-.naics-bubble.active{background:rgba(91,211,255,.15);border-color:var(--cyan);color:var(--cyan)}
-.naics-bubble.inactive{opacity:.35;border-color:transparent}
-
-/* Table */
-.opp-table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
-.opp-table th{font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--soft);
-  padding:10px 14px;text-align:left;border-bottom:1px solid var(--line);background:rgba(255,255,255,.03)}
-.opp-table td{padding:11px 14px;border-bottom:1px solid rgba(91,175,255,.07);vertical-align:top;font-size:.84rem}
-.opp-table tr:last-child td{border-bottom:none}
-.opp-table tr:hover td{background:rgba(91,175,255,.04)}
-.title-link{color:var(--text);text-decoration:none;font-weight:600;font-size:.86rem;line-height:1.35;display:block}
-.title-link:hover{color:var(--cyan)}
-.agency-small{font-size:.73rem;color:var(--muted);margin-top:2px}
-.chip-sm{display:inline-block;padding:2px 7px;border-radius:4px;font-size:.66rem;font-weight:700;
-  background:rgba(91,211,255,.1);border:1px solid rgba(91,211,255,.22);color:var(--cyan)}
-.days-hot{background:rgba(224,85,85,.2);color:#ff9999;border:1px solid rgba(224,85,85,.35);padding:3px 8px;border-radius:6px;font-size:.7rem;font-weight:700}
-.days-warm{background:rgba(240,165,0,.15);color:#ffc96b;border:1px solid rgba(240,165,0,.3);padding:3px 8px;border-radius:6px;font-size:.7rem;font-weight:700}
-.days-ok{background:rgba(46,204,138,.12);color:#7eedc0;border:1px solid rgba(46,204,138,.28);padding:3px 8px;border-radius:6px;font-size:.7rem;font-weight:700}
-.loading-state{text-align:center;padding:40px;color:var(--muted)}
-.empty{text-align:center;padding:40px;color:var(--soft)}
+.card-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
+.btn-view{display:inline-block;background:var(--cyan);color:#0A1A3A;font-family:'Jost',sans-serif;
+  font-weight:700;font-size:.8rem;padding:8px 18px;border-radius:8px;text-decoration:none;transition:.15s}
+.btn-view:hover{opacity:.88}
+.btn-capgen{display:inline-block;background:rgba(91,211,255,.1);border:1px solid rgba(91,211,255,.28);
+  color:var(--cyan);font-family:'Jost',sans-serif;font-weight:700;font-size:.8rem;
+  padding:8px 16px;border-radius:8px;text-decoration:none;transition:.18s}
+.btn-capgen:hover{background:rgba(91,211,255,.2)}
 
 /* Subscribe bar */
 .sub-bar{position:fixed;bottom:0;left:0;right:0;background:var(--panel);border-top:1px solid var(--line2);
@@ -135,20 +93,21 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:14p
   font-size:.88rem;padding:10px 22px;border-radius:8px;text-decoration:none;white-space:nowrap}
 .sub-cta:hover{background:#e8edf8}
 
-@media(max-width:700px){
-  .analysis-row{flex-direction:column;gap:14px}
-  .best-match-card{padding:20px 16px}
+.loading-state{text-align:center;padding:60px;color:var(--muted);font-size:.9rem}
+
+@media(max-width:600px){
+  .top-banner{padding:10px 14px}
+  .page{padding:14px 12px 100px}
+  .rank-card{padding:18px 16px}
   .sub-bar{flex-direction:column;align-items:stretch;text-align:center}
-  .opp-table th:nth-child(3),.opp-table td:nth-child(3),
-  .opp-table th:nth-child(4),.opp-table td:nth-child(4){display:none}
 }
 </style>
 </head>
 <body>
 
-<div class="back-bar">
-  <span class="back-bar-left" id="backBarBiz">Best Match Contract</span>
-  <a href="#" class="back-link" id="backLink">← Return to All Contracts</a>
+<div class="top-banner">
+  <span class="banner-biz" id="bannerBiz">Top 5 Best Matches</span>
+  <a href="#" class="back-btn" id="backBtn">← Return to All Contracts</a>
 </div>
 
 <header>
@@ -156,60 +115,19 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:14p
     <div class="brand-mark">CG</div>
     <div>
       <div class="brand-name">CapGen</div>
-      <div class="brand-sub">Your Best Match</div>
+      <div class="brand-sub">Best Match Contracts</div>
     </div>
   </div>
+  <span class="badge-top5">Top 5</span>
 </header>
 
-<div class="page">
-
-  <!-- Best Match featured card -->
-  <div id="bestMatchCard" class="loading-state">Finding your best match…</div>
-
-  <!-- All opportunities divider -->
-  <div class="section-divider" id="allOppsSection" style="display:none">
-    <div class="section-divider-line"></div>
-    <span class="section-divider-label">All Matching Contracts</span>
-    <div class="section-divider-line"></div>
-  </div>
-
-  <!-- NAICS ribbon -->
-  <div class="naics-ribbon" id="naicsRibbon" style="display:none">
-    <span class="naics-ribbon-label">NAICS</span>
-  </div>
-
-  <!-- Controls -->
-  <div class="controls" id="controls" style="display:none">
-    <div class="win-btns" id="dayBtns">
-      <button class="win-btn active" data-days="60">60 Days</button>
-      <button class="win-btn" data-days="30">30 Days</button>
-      <button class="win-btn" data-days="7">7 Days</button>
-    </div>
-    <input type="search" class="search-input" id="searchInput" placeholder="Search title or agency…"/>
-    <span class="count-badge" id="countBadge"></span>
-  </div>
-
-  <!-- Opportunities table -->
-  <div style="border:1px solid var(--line);border-radius:12px;overflow:hidden" id="tableWrap" style="display:none">
-    <table class="opp-table">
-      <thead>
-        <tr>
-          <th>Opportunity</th>
-          <th>NAICS</th>
-          <th>Set-Aside</th>
-          <th style="text-align:center">Deadline</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody id="oppBody"></tbody>
-    </table>
-  </div>
-
+<div class="page" id="pageEl">
+  <div class="loading-state" id="loadingEl">Finding your best matches…</div>
 </div>
 
 <!-- Subscribe bar -->
 <div class="sub-bar">
-  <div class="sub-bar-text"><strong>Subscribe for permanent access.</strong> Daily pipeline, every matched opportunity, Analyze Fit for every contract.</div>
+  <div class="sub-bar-text"><strong>Subscribe for permanent access.</strong> Daily updates, every matched opportunity, Analyze Fit on every contract.</div>
   <a href="#" id="subCta" class="sub-cta">Start My 14-Day Free Trial →</a>
 </div>
 
@@ -219,186 +137,119 @@ const STRIPE_BASE = 'https://buy.stripe.com/bJebJ0dA65Gv9BheDm7EQ0Y';
 const q = new URLSearchParams(location.search);
 const token = q.get('t') || sessionStorage.getItem('demo_view_token') || '';
 
-// Set up back link and subscribe CTA
-document.getElementById('backLink').href = token ? '/demo/snapshot?t=' + encodeURIComponent(token) : '/demo';
-document.getElementById('subCta').href   = token ? STRIPE_BASE + '?client_reference_id=' + encodeURIComponent(token) : STRIPE_BASE;
+document.getElementById('backBtn').href = token ? '/demo/snapshot?t=' + encodeURIComponent(token) : '/demo';
+document.getElementById('subCta').href  = token ? STRIPE_BASE + '?client_reference_id=' + encodeURIComponent(token) : STRIPE_BASE;
 if (token) sessionStorage.setItem('demo_view_token', token);
-
-// Fill banner business name once snapshot loads
-function setBannerName(name) {
-  if (name) document.getElementById('backBarBiz').textContent = name + ' — Best Match';
-}
 
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function fmtDate(iso){ if(!iso)return'—'; return new Date(iso).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
-function daysLeft(o){ return o.days_left; }
-function urgencyBadge(o){
-  if (o.days_left===null||o.days_left===undefined) return '<span style="font-size:.7rem;color:var(--soft)">No deadline</span>';
-  if (o.days_left<1) return '<span class="days-hot">Closed</span>';
-  if (o.urgency==='hot')  return '<span class="days-hot">'+o.days_left+'d</span>';
-  if (o.urgency==='warm') return '<span class="days-warm">'+o.days_left+'d</span>';
-  return '<span class="days-ok">'+o.days_left+'d</span>';
+
+function daysLeftChip(opp) {
+  const dl = opp.days_left;
+  if (dl === null || dl === undefined) return '<span class="chip chip-setaside">No deadline</span>';
+  if (dl < 1)  return '<span class="chip chip-deadline-hot">Closed</span>';
+  if (dl <= 7)  return '<span class="chip chip-deadline-hot">' + dl + 'd left</span>';
+  if (dl <= 30) return '<span class="chip chip-deadline-warm">' + dl + 'd left</span>';
+  return '<span class="chip chip-deadline-ok">' + dl + 'd left</span>';
 }
 
-let allOpps=[], clientData=null, bestOppId=null;
+const RANK_LABELS = ['Best Match', 'Strong Match', '3rd Match', '4th Match', '5th Match'];
+const RANK_CSS    = ['r1', 'r2', 'r3', 'r4', 'r5'];
 
-// ── Render featured best-match card ──────────────────────────────────────────
-function renderBestMatch(opp, analysis) {
-  const card = document.getElementById('bestMatchCard');
-  card.className = 'best-match-card';
-
-  const rec   = (analysis && analysis.recommendation || '').toLowerCase().replace(' ','_');
-  const recCls = rec === 'bid' ? 'bid' : rec === 'conditional' ? 'conditional' : 'no_bid';
-  const score  = analysis && analysis.fit_score != null ? analysis.fit_score : null;
-  const m      = (analysis && analysis.match) || {};
-
-  // Deadline chip
-  const dl = opp.days_left;
-  const deadlineText = dl != null ? (dl < 1 ? 'Deadline passed' : dl + ' days remaining') : (opp.deadline ? fmtDate(opp.deadline) : 'No deadline');
-
-  let matchChips = '';
-  if (analysis) {
-    matchChips = '<div class="match-chips">'
-      + '<span class="match-chip ' + (m.naics_match?'match-yes':'match-no') + '">' + (m.naics_match?'✓':'✗') + ' NAICS</span>'
-      + '<span class="match-chip ' + (m.set_aside_eligible?'match-yes':'match-no') + '">' + (m.set_aside_eligible?'✓':'✗') + ' Set-Aside Eligible</span>'
-      + '<span class="match-chip ' + (m.capability_alignment==='HIGH'?'match-yes':m.capability_alignment==='MEDIUM'?'match-med':'match-no') + '">'
-      + (m.capability_alignment||'—') + ' Capability</span>'
-      + '</div>';
-  }
+function renderCard(opp, rank, analysis, capgenUrl) {
+  const isTop = rank === 0;
+  const dl    = typeof opp.days_left !== 'undefined' ? opp.days_left : null;
+  const daysFromNow = opp.response_deadline
+    ? Math.floor((new Date(opp.response_deadline) - new Date()) / 86400000) : null;
+  if (opp.days_left === undefined) opp.days_left = daysFromNow;
 
   let analysisHtml = '';
-  if (analysis) {
-    analysisHtml = '<div class="analysis-row">'
-      + '<div class="score-block">'
-      + (score!=null ? '<div class="score-num '+recCls+'">' + score + '</div>' : '')
-      + '<div class="score-label">Fit Score</div>'
-      + '<div class="rec-badge '+recCls+'">' + (analysis.recommendation||'—') + '</div>'
+  if (isTop && analysis) {
+    const rec   = (analysis.recommendation || '').toLowerCase().replace(' ', '_');
+    const score = analysis.fit_score != null ? analysis.fit_score : '—';
+    const m     = analysis.match || {};
+    analysisHtml = '<div class="analysis-box">'
+      + '<div class="analysis-header">'
+      + '<div><div class="score-num ' + rec + '">' + score + '</div>'
+      + '<div class="rec-badge ' + rec + '">' + (analysis.recommendation || '—') + '</div></div>'
+      + '<div style="flex:1"><p class="rationale">' + esc(analysis.rationale || '') + '</p></div>'
       + '</div>'
-      + '<div class="analysis-text">'
-      + (analysis.rationale ? '<p class="analysis-rationale">' + esc(analysis.rationale) + '</p>' : '')
-      + matchChips
+      + '<div class="match-row">'
+      + '<span class="m-chip ' + (m.naics_match?'m-yes':'m-no') + '">' + (m.naics_match?'✓':'✗') + ' NAICS</span>'
+      + '<span class="m-chip ' + (m.set_aside_eligible?'m-yes':'m-no') + '">' + (m.set_aside_eligible?'✓':'✗') + ' Set-Aside</span>'
+      + '<span class="m-chip ' + (m.capability_alignment==='HIGH'?'m-yes':m.capability_alignment==='MEDIUM'?'m-med':'m-no') + '">' + (m.capability_alignment||'—') + ' Capability</span>'
       + '</div>'
       + '</div>';
   }
 
-  card.innerHTML = '<div class="best-match-label">Best Match</div>'
-    + '<h2 class="opp-title-main">' + esc(opp.title||'Opportunity') + '</h2>'
-    + '<div class="opp-agency-main">' + esc(opp.agency||'—') + '</div>'
-    + '<div class="opp-meta-row">'
-    + (opp.naics ? '<span class="meta-chip chip-naics">NAICS ' + esc(opp.naics) + '</span>' : '')
-    + '<span class="meta-chip chip-deadline">' + esc(deadlineText) + '</span>'
-    + (opp.set_aside && opp.set_aside !== 'None' && opp.set_aside !== 'Unrestricted' ? '<span class="meta-chip chip-setaside">' + esc(opp.set_aside.slice(0,40)) + '</span>' : '')
+  return '<div class="rank-card' + (isTop ? ' rank-1' : '') + '">'
+    + '<div class="rank-badge ' + RANK_CSS[rank] + '">' + RANK_LABELS[rank] + '</div>'
+    + '<h3 class="opp-title" style="margin-top:' + (rank===0?'4px':'2px') + '">' + esc(opp.title || 'Untitled') + '</h3>'
+    + '<div class="opp-agency">' + esc(opp.agency || '—') + '</div>'
+    + '<div class="opp-chips">'
+    + (opp.naics ? '<span class="chip chip-naics">NAICS ' + esc(opp.naics) + '</span>' : '')
+    + daysLeftChip(opp)
+    + (opp.set_aside && opp.set_aside !== 'None' && opp.set_aside !== 'Unrestricted'
+        ? '<span class="chip chip-setaside">' + esc(opp.set_aside.slice(0,40)) + '</span>' : '')
+    + '<span style="font-size:.7rem;color:var(--soft);margin-left:2px">' + fmtDate(opp.response_deadline) + '</span>'
     + '</div>'
     + analysisHtml
-    + '<div style="margin-top:16px">'
-    + (opp.url ? '<a href="' + esc(opp.url) + '" target="_blank" rel="noopener" class="view-btn">View Opportunity →</a>' : '')
-    + '<a href="/capability-generator.html?uei=' + encodeURIComponent((clientData&&clientData.uei)||'') + '" class="capgen-btn-main">Generate CapGen Statement</a>'
+    + '<div class="card-actions">'
+    + (opp.url ? '<a href="' + esc(opp.url) + '" target="_blank" rel="noopener" class="btn-view">View Opportunity →</a>' : '')
+    + '<a href="' + esc(capgenUrl) + '" class="btn-capgen">Generate CapGen Statement</a>'
+    + '</div>'
     + '</div>';
 }
 
-// ── Render all-contracts table ───────────────────────────────────────────────
-function renderTable(opps) {
-  document.getElementById('countBadge').textContent = opps.length + ' contracts';
-  const tbody = document.getElementById('oppBody');
-  if (!opps.length) {
-    tbody.innerHTML = '<tr><td colspan="5" class="empty">No contracts match the current filters.</td></tr>';
-    return;
-  }
-  const capgenUrl = '/capability-generator.html?uei=' + encodeURIComponent((clientData&&clientData.uei)||'');
-  tbody.innerHTML = opps.map(function(o) {
-    const isBest = o.notice_id === bestOppId;
-    return '<tr' + (isBest?' style="background:rgba(91,211,255,.04)"':'') + '>'
-      + '<td><a class="title-link" href="' + esc(o.url||'#') + '" target="_blank" rel="noopener">' + esc(o.title||'Untitled') + (isBest?' <span style="color:var(--cyan);font-size:.66rem;font-weight:700;margin-left:4px">★ Best Match</span>':'') + '</a>'
-      + '<div class="agency-small">' + esc(o.agency||'—') + '</div></td>'
-      + '<td><span class="chip-sm">' + esc(o.naics||'—') + '</span></td>'
-      + '<td style="font-size:.74rem;color:var(--soft)">' + esc(((o.set_aside&&o.set_aside!=='None')?o.set_aside:'Unrestricted').slice(0,28)) + '</td>'
-      + '<td style="text-align:center">' + urgencyBadge(o)
-      + '<div style="font-size:.64rem;color:var(--soft);margin-top:2px">' + fmtDate(o.deadline) + '</div></td>'
-      + '<td><a class="capgen-btn-main" style="font-size:.7rem;padding:4px 10px" href="' + esc(capgenUrl) + '">CapGen</a></td>'
-      + '</tr>';
-  }).join('');
-}
-
-function activeNaics(){
-  return [...document.querySelectorAll('.naics-bubble.active')].map(b=>b.dataset.naics);
-}
-function applyFilters(){
-  const sel=activeNaics(), s=document.getElementById('searchInput').value.toLowerCase();
-  let f=allOpps;
-  if(sel.length&&sel.length<(clientData&&clientData.naics?clientData.naics.length:99)) f=f.filter(o=>sel.includes(o.naics));
-  if(s) f=f.filter(o=>(o.title||'').toLowerCase().includes(s)||(o.agency||'').toLowerCase().includes(s));
-  renderTable(f);
-}
-
-// ── Main load ────────────────────────────────────────────────────────────────
 async function load() {
+  const page = document.getElementById('pageEl');
+  const loading = document.getElementById('loadingEl');
+
   if (!token) {
-    document.getElementById('bestMatchCard').innerHTML = '<div style="text-align:center;padding:40px;color:var(--soft)">No session token. <a href="/demo" style="color:var(--cyan)">Start a new demo →</a></div>';
+    loading.innerHTML = 'No session token. <a href="/demo" style="color:var(--cyan)">Start a new demo →</a>';
     return;
   }
 
-  const days = document.querySelector('.win-btn.active')?.dataset.days || '60';
-
-  // Load snapshot (best match + analysis) and live opportunities in parallel
-  const [snapRes, oppsRes] = await Promise.all([
-    fetch('/.netlify/functions/demo-get?t=' + encodeURIComponent(token)),
-    fetch('/.netlify/functions/demo-pipeline?t=' + encodeURIComponent(token) + '&days=' + days),
-  ]);
-
-  // Best match from snapshot
-  if (snapRes.ok) {
+  try {
+    const snapRes = await fetch('/.netlify/functions/demo-get?t=' + encodeURIComponent(token));
+    if (!snapRes.ok) throw new Error('Snapshot not found');
     const snap = await snapRes.json();
-    clientData = snap.profile ? { uei: snap.profile.uei, name: snap.profile.legal_name, naics: (snap.profile.naics||[]).map(n=>n.code||n) } : null;
-    if (clientData && clientData.name) setBannerName(clientData.name);
-    const bestOpp = snap.opportunities && snap.opportunities[0];
-    if (bestOpp) {
-      bestOppId = bestOpp.notice_id;
-      renderBestMatch(bestOpp, snap.analysis);
-    } else {
-      document.getElementById('bestMatchCard').innerHTML = '<div style="text-align:center;padding:30px;color:var(--soft)">No opportunities found for your NAICS codes this week.</div>';
-    }
-  }
 
-  // All contracts
-  if (oppsRes.ok) {
-    const data = await oppsRes.json();
-    if (!clientData) clientData = data.client;
-    allOpps = data.opportunities || [];
+    const profile   = snap.profile || {};
+    const opps      = snap.opportunities || [];
+    const analysis  = snap.analysis;
+    const bizName   = profile.legal_name || snap.business_name || '';
+    const uei       = profile.uei || '';
+    const capgenUrl = '/capability-generator.html?uei=' + encodeURIComponent(uei);
 
-    // Show controls + table
-    document.getElementById('allOppsSection').style.display = 'flex';
-    document.getElementById('controls').style.display       = 'flex';
-    document.getElementById('tableWrap').style.display      = 'block';
+    if (bizName) document.getElementById('bannerBiz').textContent = bizName + ' — Top 5 Best Matches';
 
-    // NAICS ribbon
-    const naicsCodes = (clientData && clientData.naics) || [];
-    if (naicsCodes.length > 1) {
-      const ribbon = document.getElementById('naicsRibbon');
-      ribbon.innerHTML = '<span class="naics-ribbon-label">NAICS</span>'
-        + naicsCodes.map(function(c){
-          return '<div class="naics-bubble active" data-naics="'+esc(c)+'">'+esc(c)+'</div>';
-        }).join('');
-      ribbon.style.display = 'flex';
-      ribbon.querySelectorAll('.naics-bubble').forEach(function(b){
-        b.addEventListener('click',function(){
-          const n=ribbon.querySelectorAll('.naics-bubble.active').length;
-          if(b.classList.contains('active')&&n===1)return;
-          b.classList.toggle('active');b.classList.toggle('inactive');applyFilters();
-        });
-      });
+    loading.style.display = 'none';
+
+    if (!opps.length) {
+      page.innerHTML += '<div style="text-align:center;padding:40px;color:var(--soft)">No matched opportunities found for your NAICS codes this week.</div>';
+      return;
     }
 
-    applyFilters();
+    let html = '';
+    opps.forEach(function(opp, i) {
+      // Calculate days_left if not present
+      if (opp.days_left === undefined || opp.days_left === null) {
+        opp.days_left = opp.response_deadline
+          ? Math.floor((new Date(opp.response_deadline) - new Date()) / 86400000)
+          : null;
+        opp.urgency = opp.days_left === null ? 'none'
+          : opp.days_left <= 7 ? 'hot' : opp.days_left <= 30 ? 'warm' : 'ok';
+      }
+      html += renderCard(opp, i, i === 0 ? analysis : null, capgenUrl);
+    });
+
+    page.innerHTML = html;
+
+  } catch(e) {
+    loading.textContent = 'Error loading matches: ' + e.message;
   }
 }
-
-document.querySelectorAll('.win-btn').forEach(function(btn){
-  btn.addEventListener('click',function(){
-    document.querySelectorAll('.win-btn').forEach(function(b){b.classList.remove('active');});
-    btn.classList.add('active'); load();
-  });
-});
-document.getElementById('searchInput').addEventListener('input', applyFilters);
 
 load();
 </script>
