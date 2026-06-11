@@ -87,6 +87,7 @@ function mapEntity(entity, naicsCode) {
     id:                reg.ueiSAM,
     legal_name:        reg.legalBusinessName || '',
     doing_business_as: reg.dbaName || null,
+    cage:              reg.cageCode || null,
     address_street:    addr.addressLine1 || null,
     address_city:      addr.city || null,
     address_state:     addr.stateOrProvinceCode || null,
