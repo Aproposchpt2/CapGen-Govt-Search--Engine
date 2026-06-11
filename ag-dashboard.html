@@ -272,7 +272,7 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:14p
     <div class="entity-field"><div class="ef-label">SAM Status</div><div class="ef-value active">● Active</div></div>
     <div class="entity-field"><div class="ef-label">Business Type</div><div class="ef-value">Small Business</div></div>
     <div class="entity-field"><div class="ef-label">Location</div><div class="ef-value">North Las Vegas, NV</div></div>
-    <div class="entity-field"><div class="ef-label">Primary NAICS</div><div class="ef-value">541512</div></div>
+    <div class="entity-field"><div class="ef-label">Primary NAICS</div><div class="ef-value" id="primaryNaicsEl">—</div></div>
     <div class="entity-field"><div class="ef-label">NAICS Monitored</div><div class="ef-value" id="naicsCount">—</div></div>
     <div class="entity-field"><div class="ef-label">Last Refreshed</div><div class="ef-value" id="lastRefresh">—</div></div>
     <div style="margin-left:auto"><button onclick="load()" style="background:var(--cyan);color:#0A1A3A;border:none;border-radius:8px;padding:9px 18px;font-weight:700;cursor:pointer;font-size:.82rem">Refresh Pipeline</button></div>
@@ -291,29 +291,9 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:14p
   <p style="font-family:'Cormorant Garamond',serif;font-style:italic;font-size:.82rem;color:rgba(255,255,255,.3);margin-bottom:14px">Opportunities sourced from official public records.</p>
 
   <!-- NAICS ribbon -->
+  <!-- NAICS ribbon — built dynamically from subscription profile on load -->
   <div class="naics-ribbon" id="naicsRibbon">
     <span class="naics-ribbon-label">NAICS</span>
-    <div class="naics-bubble active" data-naics="541519">
-      <span class="nb-code">541519 ⭐</span><span class="nb-label">Other IT Services</span>
-    </div>
-    <div class="naics-bubble active" data-naics="541511">
-      <span class="nb-code">541511</span><span class="nb-label">Custom Programming</span>
-    </div>
-    <div class="naics-bubble active" data-naics="541512">
-      <span class="nb-code">541512</span><span class="nb-label">Systems Design</span>
-    </div>
-    <div class="naics-bubble active" data-naics="541513">
-      <span class="nb-code">541513</span><span class="nb-label">IT Facilities Mgmt</span>
-    </div>
-    <div class="naics-bubble active" data-naics="541990">
-      <span class="nb-code">541990</span><span class="nb-label">Professional Svcs</span>
-    </div>
-    <div class="naics-bubble active" data-naics="541690">
-      <span class="nb-code">541690</span><span class="nb-label">Scientific Consulting</span>
-    </div>
-    <div class="naics-bubble active" data-naics="541370">
-      <span class="nb-code">541370</span><span class="nb-label">Surveying & Mapping</span>
-    </div>
   </div>
 
   <div class="controls">
@@ -469,6 +449,12 @@ async function load() {
     document.getElementById('s-warm').textContent  = allOpps.filter(o => o.urgency === 'warm').length;
     document.getElementById('s-ok').textContent    = allOpps.filter(o => o.urgency === 'ok').length;
 
+    // Build NAICS bubbles dynamically from subscription profile
+    buildNaicsRibbon(naicsClient, data.client.name);
+    // Update primary NAICS display
+    const primaryEl = document.getElementById('primaryNaicsEl');
+    if (primaryEl) primaryEl.textContent = data.client.naics && data.client.naics[0] ? data.client.naics[0] : '541511';
+
     // Load analysis badges in background (single query)
     const noticeIds = allOpps.map(o => o.notice_id).filter(Boolean);
     loadAnalysisBadges(noticeIds);
@@ -479,7 +465,45 @@ async function load() {
   }
 }
 
-// NAICS bubble toggle
+// NAICS label map — extends as new codes are added to subscription
+const NAICS_LABELS = {
+  '541511':'Custom Programming','541512':'Systems Design','541519':'Other IT Services',
+  '541611':'Mgmt Consulting','541611':'Mgmt Consulting','561210':'Facilities Support',
+  '238210':'Cabling Contractors','518210':'Data Centers','541513':'IT Facilities Mgmt',
+  '541990':'Professional Svcs','541690':'Scientific Consulting','541330':'Eng Services',
+  '517919':'Telecom Services','541370':'Surveying & Mapping',
+};
+
+function buildNaicsRibbon(codes, clientName) {
+  const ribbon = document.getElementById('naicsRibbon');
+  if (!codes || !codes.length) return;
+  // Primary = 541511 (SAM.gov registered primary) or first in list
+  const PRIMARY = '541511';
+  const sorted = [].concat(codes).sort(function(a,b){
+    if (a===PRIMARY) return -1; if (b===PRIMARY) return 1; return 0;
+  });
+  ribbon.innerHTML = '<span class="naics-ribbon-label">NAICS</span>'
+    + sorted.map(function(code){
+      const isPrimary = code === PRIMARY;
+      const label = NAICS_LABELS[code] || code;
+      return '<div class="naics-bubble active" data-naics="'+code+'">'
+        + '<span class="nb-code">'+code+(isPrimary?' ⭐':'')+'</span>'
+        + '<span class="nb-label">'+label+'</span>'
+        + '</div>';
+    }).join('');
+  // Attach toggle listeners
+  ribbon.querySelectorAll('.naics-bubble').forEach(b => {
+    b.addEventListener('click', () => {
+      const allActive = ribbon.querySelectorAll('.naics-bubble.active').length;
+      if (b.classList.contains('active') && allActive === 1) return;
+      b.classList.toggle('active');
+      b.classList.toggle('inactive');
+      applyFilters();
+    });
+  });
+}
+
+// NAICS bubble toggle — legacy handler (bubbles now built dynamically by buildNaicsRibbon)
 document.querySelectorAll('.naics-bubble').forEach(b => {
   b.addEventListener('click', () => {
     const isActive = b.classList.contains('active');
