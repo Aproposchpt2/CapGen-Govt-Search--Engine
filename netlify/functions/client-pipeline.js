@@ -37,7 +37,8 @@ async function fetchClientFromDB(uei) {
     return {
       name:  sub.business_name || uei,
       naics: sub.naics,
-      psc:   (CLIENT_NAICS[uei] || {}).psc || [],  // preserve hardcoded PSC codes if any
+      cage:  sub.cage || null,
+      psc:   (CLIENT_NAICS[uei] || {}).psc || [],
     };
   } catch { return null; }
 }
