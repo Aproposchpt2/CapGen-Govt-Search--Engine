@@ -16,11 +16,14 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6}
 
-/* Back bar */
-.back-bar{background:rgba(91,211,255,.06);border-bottom:1px solid rgba(91,211,255,.18);
-  padding:9px 28px;display:flex;align-items:center;gap:10px}
-.back-link{color:var(--cyan);font-size:.82rem;font-weight:700;text-decoration:none}
-.back-link:hover{opacity:.8}
+/* Back bar — matches demo-snapshot banner style */
+.back-bar{background:var(--surface);border-bottom:1px solid var(--line2);
+  padding:11px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.back-bar-left{font-size:.82rem;color:var(--muted)}
+.back-link{background:var(--cyan);color:#0A1A3A;font-family:'Jost',sans-serif;font-weight:700;
+  font-size:.78rem;padding:7px 16px;border-radius:8px;text-decoration:none;white-space:nowrap;
+  border:none;cursor:pointer;transition:.15s;display:inline-block}
+.back-link:hover{opacity:.88}
 
 header{background:var(--surface);border-bottom:1px solid var(--line);padding:14px 28px;
   display:flex;align-items:center;justify-content:space-between;gap:16px}
@@ -144,6 +147,7 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:14p
 <body>
 
 <div class="back-bar">
+  <span class="back-bar-left" id="backBarBiz">Best Match Contract</span>
   <a href="#" class="back-link" id="backLink">← Return to All Contracts</a>
 </div>
 
@@ -219,6 +223,11 @@ const token = q.get('t') || sessionStorage.getItem('demo_view_token') || '';
 document.getElementById('backLink').href = token ? '/demo/snapshot?t=' + encodeURIComponent(token) : '/demo';
 document.getElementById('subCta').href   = token ? STRIPE_BASE + '?client_reference_id=' + encodeURIComponent(token) : STRIPE_BASE;
 if (token) sessionStorage.setItem('demo_view_token', token);
+
+// Fill banner business name once snapshot loads
+function setBannerName(name) {
+  if (name) document.getElementById('backBarBiz').textContent = name + ' — Best Match';
+}
 
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function fmtDate(iso){ if(!iso)return'—'; return new Date(iso).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
@@ -340,6 +349,7 @@ async function load() {
   if (snapRes.ok) {
     const snap = await snapRes.json();
     clientData = snap.profile ? { uei: snap.profile.uei, name: snap.profile.legal_name, naics: (snap.profile.naics||[]).map(n=>n.code||n) } : null;
+    if (clientData && clientData.name) setBannerName(clientData.name);
     const bestOpp = snap.opportunities && snap.opportunities[0];
     if (bestOpp) {
       bestOppId = bestOpp.notice_id;
