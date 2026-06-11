@@ -141,9 +141,13 @@ document.getElementById('resendBtn').addEventListener('click', async function() 
 });
 
 async function loadClientAndRedirect(email, token) {
+  // Clear any stale demo session to prevent cross-user data leakage
+  sessionStorage.removeItem('demo_view_token');
+  sessionStorage.removeItem('demo_uei');
+
   try {
     const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1ZGlzbGZrbm1ob2ZjZ3p5b3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMDI3ODAsImV4cCI6MjA5Mjc3ODc4MH0.Kxpe0kJt0k7ZchYu70BOwm4KdT0C5aSsyeR1ov6NlQ0';
-    const res = await fetch(`https://judislfknmhofcgzyozc.supabase.co/rest/v1/capgen_subscriptions?email=eq.${encodeURIComponent(email)}&select=uei,business_name,naics,onboarding_state,status`, {
+    const res = await fetch(`https://judislfknmhofcgzyozc.supabase.co/rest/v1/capgen_subscriptions?email=eq.${encodeURIComponent(email)}&select=uei,business_name,naics,onboarding_state,status&limit=1`, {
       headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` }
     });
     const data = await res.json();
@@ -151,15 +155,20 @@ async function loadClientAndRedirect(email, token) {
       const sub = data[0];
       if (sub.uei) sessionStorage.setItem('capgen_uei', sub.uei);
       sessionStorage.setItem('capgen_biz', sub.business_name || '');
+      sessionStorage.setItem('capgen_email', email);
       // Route by onboarding_state
       const state = sub.onboarding_state || 'complete';
       if (state === 'entity_pending' || state === 'enrichment_pending') {
         window.location.href = '/capgen-onboarding?s=' + state;
         return;
       }
+      // Subscriber with complete profile → show dashboard choice
+      window.location.href = '/member-home';
+      return;
     }
   } catch(e) { console.warn('Client lookup:', e.message); }
-  window.location.href = '/pipeline';
+  // No subscription record found — redirect to contract dashboard (UEI known or guest)
+  window.location.href = '/apropos';
 }
 
 // Check existing session on load
