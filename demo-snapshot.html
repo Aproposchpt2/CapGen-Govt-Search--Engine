@@ -209,11 +209,12 @@ const STRIPE_BASE = 'https://buy.stripe.com/bJebJ0dA65Gv9BheDm7EQ0Y';
 const token = new URLSearchParams(location.search).get('t') || '';
 let allOpps = [], clientData = null;
 
-// Set up subscribe CTA with view_token attribution
+// Set up CTAs immediately — href set before API call so clicks always work
 if (token) {
   document.getElementById('subCta').href = STRIPE_BASE + '?client_reference_id=' + encodeURIComponent(token);
-  document.getElementById('oppBtn').style.display = 'inline-block';
-  // Store in sessionStorage for pipeline page return link
+  const oppBtn = document.getElementById('oppBtn');
+  oppBtn.href = '/opportunity?t=' + encodeURIComponent(token);
+  oppBtn.style.display = 'inline-block';
   sessionStorage.setItem('demo_view_token', token);
 }
 
