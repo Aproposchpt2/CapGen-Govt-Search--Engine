@@ -53,6 +53,14 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:14p
 .naics-bubble.inactive{opacity:.38;border-color:transparent}
 .nb-code{font-size:.75rem;font-weight:900;color:var(--muted);letter-spacing:.04em;line-height:1}
 .nb-label{font-size:.6rem;color:var(--soft);text-align:center;line-height:1.2;max-width:80px}
+/* NAICS quick-select controls */
+.naics-controls{display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.naics-ctrl-label{font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--soft);margin-right:2px}
+.naics-ctrl-btn{background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--muted);
+  padding:4px 11px;border-radius:6px;font-size:.72rem;font-weight:700;cursor:pointer;
+  transition:.15s;font-family:Arial,sans-serif}
+.naics-ctrl-btn:hover{border-color:var(--cyan);color:var(--cyan);background:rgba(91,211,255,.08)}
+.naics-ctrl-btn.active-ctrl{background:rgba(91,211,255,.15);border-color:var(--cyan);color:var(--cyan)}
 
 .opp-table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
 .opp-table th{font-size:.64rem;text-transform:uppercase;letter-spacing:.1em;color:var(--soft);padding:11px 14px;text-align:left;border-bottom:1px solid var(--line);background:rgba(255,255,255,.03)}
@@ -291,6 +299,15 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:14p
   <p style="font-family:'Cormorant Garamond',serif;font-style:italic;font-size:.82rem;color:rgba(255,255,255,.3);margin-bottom:14px">Opportunities sourced from official public records.</p>
 
   <!-- NAICS ribbon -->
+  <!-- NAICS quick-select controls -->
+  <div class="naics-controls" id="naicsControls" style="display:none">
+    <span class="naics-ctrl-label">Filter</span>
+    <button class="naics-ctrl-btn active-ctrl" id="ctrlAll"    onclick="naicsSelectAll()">All Codes</button>
+    <button class="naics-ctrl-btn"              id="ctrlPrimary" onclick="naicsSelectPrimary()">Primary Only</button>
+    <button class="naics-ctrl-btn"              id="ctrlIT"    onclick="naicsSelectGroup('it')">IT Services</button>
+    <button class="naics-ctrl-btn"              id="ctrlConsult" onclick="naicsSelectGroup('consult')">Consulting</button>
+  </div>
+
   <!-- NAICS ribbon — built dynamically from subscription profile on load -->
   <div class="naics-ribbon" id="naicsRibbon">
     <span class="naics-ribbon-label">NAICS</span>
@@ -450,7 +467,7 @@ async function load() {
     document.getElementById('s-ok').textContent    = allOpps.filter(o => o.urgency === 'ok').length;
 
     // Build NAICS bubbles dynamically from subscription profile
-    buildNaicsRibbon(naicsClient, data.client.name);
+    buildNaicsRibbon(naicsClient);
     // Update primary NAICS display dynamically
     const primaryEl = document.getElementById('primaryNaicsEl');
     if (primaryEl) primaryEl.textContent = '541512'; // SAM.gov registered primary (updated June 2026)
@@ -479,33 +496,105 @@ const NAICS_LABELS = {
   '517919':'Telecom Services','561499':'Business Support',
 };
 
-function buildNaicsRibbon(codes, clientName) {
-  const ribbon = document.getElementById('naicsRibbon');
+// NAICS groups for quick-select buttons
+const NAICS_GROUPS = {
+  it:      ['541511','541512','541519','541513'],
+  consult: ['541611','541618','541330','541370'],
+};
+const PRIMARY_NAICS = '541512'; // SAM.gov registered primary
+
+function buildNaicsRibbon(codes) {
+  const ribbon   = document.getElementById('naicsRibbon');
+  const controls = document.getElementById('naicsControls');
   if (!codes || !codes.length) return;
-  // Primary = 541511 (SAM.gov registered primary) or first in list
-  const PRIMARY = '541511';
+
+  // Primary first, then alphabetical
   const sorted = [].concat(codes).sort(function(a,b){
-    if (a===PRIMARY) return -1; if (b===PRIMARY) return 1; return 0;
+    if (a===PRIMARY_NAICS) return -1;
+    if (b===PRIMARY_NAICS) return 1;
+    return a.localeCompare(b);
   });
+
   ribbon.innerHTML = '<span class="naics-ribbon-label">NAICS</span>'
     + sorted.map(function(code){
-      const isPrimary = code === PRIMARY;
       const label = NAICS_LABELS[code] || code;
-      return '<div class="naics-bubble active" data-naics="'+code+'">'
-        + '<span class="nb-code">'+code+(isPrimary?' ⭐':'')+'</span>'
+      return '<div class="naics-bubble active" data-naics="'+code+'" title="'+label+'">'
+        + '<span class="nb-code">'+code+(code===PRIMARY_NAICS?' ⭐':'')+'</span>'
         + '<span class="nb-label">'+label+'</span>'
         + '</div>';
     }).join('');
-  // Attach toggle listeners
-  ribbon.querySelectorAll('.naics-bubble').forEach(b => {
-    b.addEventListener('click', () => {
-      const allActive = ribbon.querySelectorAll('.naics-bubble.active').length;
-      if (b.classList.contains('active') && allActive === 1) return;
-      b.classList.toggle('active');
-      b.classList.toggle('inactive');
+
+  // Click behaviour:
+  // • If ALL active → clicking one ISOLATES it (deactivates all others)
+  // • If some active → normal toggle
+  // • Cannot deactivate the last remaining bubble
+  ribbon.querySelectorAll('.naics-bubble').forEach(function(b) {
+    b.addEventListener('click', function() {
+      const bubbles   = ribbon.querySelectorAll('.naics-bubble');
+      const numActive = ribbon.querySelectorAll('.naics-bubble.active').length;
+      const allActive = numActive === bubbles.length;
+
+      if (allActive) {
+        // Isolate this one — deactivate all others
+        bubbles.forEach(function(x) {
+          x.classList.toggle('active',  x === b);
+          x.classList.toggle('inactive', x !== b);
+        });
+      } else if (b.classList.contains('active') && numActive === 1) {
+        // Last active — select all instead of leaving zero
+        naicsSelectAll();
+        return;
+      } else {
+        b.classList.toggle('active');
+        b.classList.toggle('inactive');
+      }
+      updateCtrlHighlight();
       applyFilters();
     });
   });
+
+  if (controls) controls.style.display = 'flex';
+  updateCtrlHighlight();
+}
+
+function naicsSelectAll() {
+  document.querySelectorAll('#naicsRibbon .naics-bubble').forEach(function(b){
+    b.classList.add('active'); b.classList.remove('inactive');
+  });
+  updateCtrlHighlight(); applyFilters();
+}
+
+function naicsSelectPrimary() {
+  document.querySelectorAll('#naicsRibbon .naics-bubble').forEach(function(b){
+    const isPrimary = b.dataset.naics === PRIMARY_NAICS;
+    b.classList.toggle('active',   isPrimary);
+    b.classList.toggle('inactive', !isPrimary);
+  });
+  updateCtrlHighlight(); applyFilters();
+}
+
+function naicsSelectGroup(group) {
+  const groupCodes = NAICS_GROUPS[group] || [];
+  document.querySelectorAll('#naicsRibbon .naics-bubble').forEach(function(b){
+    const inGroup = groupCodes.includes(b.dataset.naics);
+    b.classList.toggle('active',   inGroup);
+    b.classList.toggle('inactive', !inGroup);
+  });
+  updateCtrlHighlight(); applyFilters();
+}
+
+function updateCtrlHighlight() {
+  const bubbles   = document.querySelectorAll('#naicsRibbon .naics-bubble');
+  const active    = [...document.querySelectorAll('#naicsRibbon .naics-bubble.active')].map(b=>b.dataset.naics);
+  const allActive = active.length === bubbles.length;
+  const onlyPrimary = active.length===1 && active[0]===PRIMARY_NAICS;
+
+  document.getElementById('ctrlAll')    ?.classList.toggle('active-ctrl', allActive);
+  document.getElementById('ctrlPrimary')?.classList.toggle('active-ctrl', onlyPrimary);
+  document.getElementById('ctrlIT')     ?.classList.toggle('active-ctrl',
+    !allActive && NAICS_GROUPS.it.every(c=>active.includes(c)) && active.every(c=>NAICS_GROUPS.it.includes(c)));
+  document.getElementById('ctrlConsult')?.classList.toggle('active-ctrl',
+    !allActive && NAICS_GROUPS.consult.every(c=>active.includes(c)) && active.every(c=>NAICS_GROUPS.consult.includes(c)));
 }
 
 // NAICS bubble toggle — legacy handler (bubbles now built dynamically by buildNaicsRibbon)
