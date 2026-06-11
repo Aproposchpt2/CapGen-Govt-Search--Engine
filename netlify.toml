@@ -90,6 +90,11 @@
   to = "/capgen-onboarding.html"
   status = 200
 
+[[redirects]]
+  from = "/profile"
+  to = "/capgen-profile.html"
+  status = 200
+
 [[headers]]
   for = "/*"
   [headers.values]
