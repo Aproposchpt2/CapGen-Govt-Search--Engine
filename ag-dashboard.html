@@ -453,7 +453,7 @@ async function load() {
     buildNaicsRibbon(naicsClient, data.client.name);
     // Update primary NAICS display dynamically
     const primaryEl = document.getElementById('primaryNaicsEl');
-    if (primaryEl) primaryEl.textContent = '541511'; // SAM.gov registered primary
+    if (primaryEl) primaryEl.textContent = '541512'; // SAM.gov registered primary (updated June 2026)
     // Update UEI / CAGE from subscription data
     const ueiCageEl = document.getElementById('ueiCageEl');
     if (ueiCageEl && data.client.cage) {
@@ -472,11 +472,11 @@ async function load() {
 
 // NAICS label map — extends as new codes are added to subscription
 const NAICS_LABELS = {
-  '541511':'Custom Programming','541512':'Systems Design','541519':'Other IT Services',
-  '541611':'Mgmt Consulting','541611':'Mgmt Consulting','561210':'Facilities Support',
-  '238210':'Cabling Contractors','518210':'Data Centers','541513':'IT Facilities Mgmt',
-  '541990':'Professional Svcs','541690':'Scientific Consulting','541330':'Eng Services',
-  '517919':'Telecom Services','541370':'Surveying & Mapping',
+  '541512':'Systems Design','541511':'Custom Programming','541519':'Other IT Services',
+  '541330':'Engineering Services','541370':'Scientific Consulting','541611':'Mgmt Consulting',
+  '541618':'Other Mgmt Consulting','561210':'Facilities Support','238210':'Cabling',
+  '518210':'Data Processing','541513':'IT Facilities Mgmt','541990':'Professional Svcs',
+  '517919':'Telecom Services','561499':'Business Support',
 };
 
 function buildNaicsRibbon(codes, clientName) {
