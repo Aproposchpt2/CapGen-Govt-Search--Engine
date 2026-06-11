@@ -1,4 +1,4 @@
-﻿﻿'use strict';
+﻿'use strict';
 // pipeline-otp-send.js
 // POST { email } → generates 6-digit code, stores in Supabase, emails via Resend.
 
@@ -81,6 +81,7 @@ exports.handler = async (event) => {
             <p style="margin:0;font-size:12px;color:#3a5470;line-height:1.6;">
               This code expires in ${OTP_MINUTES} minutes. If you didn't request this, ignore this email.
             </p>
+            <p style="margin:16px 0 0;font-size:11px;color:#2a3f52;font-style:italic;text-align:center;">CapGen intelligence is sourced from official public records.</p>
           </div>
         </div>`,
     }),
