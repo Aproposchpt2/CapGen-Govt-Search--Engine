@@ -97,7 +97,7 @@ async function sendWelcomeEmail(email, firstName, businessName) {
           <p style="margin:0 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:#5BD3FF;font-weight:700;">CapGen Pro · AI4 Businesses</p>
           <h2 style="margin:0 0 16px;font-size:22px;color:#f0f6ff;">Welcome, ${firstName}. Your pipeline is being built.</h2>
           <p style="margin:0 0 20px;font-size:14px;color:#8facd0;line-height:1.7;">
-            We pulled your SAM.gov registration and are configuring your live federal contract pipeline for <strong style="color:#f0f6ff;">${businessName}</strong>. It will be ready within minutes.
+            We've pulled your official registration data and are configuring your live federal contract pipeline for <strong style="color:#f0f6ff;">${businessName}</strong>. It will be ready within minutes.
           </p>
           <div style="background:#132954;border:1px solid rgba(91,175,255,.15);border-radius:10px;padding:18px 20px;margin-bottom:24px;">
             <p style="margin:0 0 12px;font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:#5a7899;font-weight:700;">Your Onboarding Steps</p>
