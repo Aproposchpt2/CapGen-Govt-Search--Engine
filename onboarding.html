@@ -143,13 +143,20 @@ document.getElementById('resendBtn').addEventListener('click', async function() 
 async function loadClientAndRedirect(email, token) {
   try {
     const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1ZGlzbGZrbm1ob2ZjZ3p5b3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMDI3ODAsImV4cCI6MjA5Mjc3ODc4MH0.Kxpe0kJt0k7ZchYu70BOwm4KdT0C5aSsyeR1ov6NlQ0';
-    const res = await fetch(`https://judislfknmhofcgzyozc.supabase.co/rest/v1/capgen_subscriptions?email=eq.${encodeURIComponent(email)}&select=uei,business_name,naics`, {
+    const res = await fetch(`https://judislfknmhofcgzyozc.supabase.co/rest/v1/capgen_subscriptions?email=eq.${encodeURIComponent(email)}&select=uei,business_name,naics,onboarding_state,status`, {
       headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` }
     });
     const data = await res.json();
-    if (Array.isArray(data) && data[0] && data[0].uei) {
-      sessionStorage.setItem('capgen_uei', data[0].uei);
-      sessionStorage.setItem('capgen_biz', data[0].business_name || '');
+    if (Array.isArray(data) && data[0]) {
+      const sub = data[0];
+      if (sub.uei) sessionStorage.setItem('capgen_uei', sub.uei);
+      sessionStorage.setItem('capgen_biz', sub.business_name || '');
+      // Route by onboarding_state
+      const state = sub.onboarding_state || 'complete';
+      if (state === 'entity_pending' || state === 'enrichment_pending') {
+        window.location.href = '/capgen-onboarding?s=' + state;
+        return;
+      }
     }
   } catch(e) { console.warn('Client lookup:', e.message); }
   window.location.href = '/pipeline';
