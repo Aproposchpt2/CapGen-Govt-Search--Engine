@@ -278,11 +278,56 @@ function renderCard(opp, rank, analysis) {
     + '</div>';
 }
 
+// ── Live client-side scoring (mirrors demo-create-background.js) ──────────────
+function scoreOpp(opp, naicsCodes, primaryNaics, setAsides) {
+  var score = 0, criteria = {};
+  // 1. NAICS (30 pts)
+  if (opp.naics === primaryNaics)            { score += 30; criteria.naics = 'primary'; }
+  else if (naicsCodes.includes(opp.naics))   { score += 20; criteria.naics = 'secondary'; }
+  else                                        { criteria.naics = 'none'; }
+  // 2. Set-aside (25 pts)
+  var sa = (opp.set_aside || '').toLowerCase().trim();
+  var saOpen = !sa || ['none','unrestricted','full and open','no set aside','n/a'].some(function(p){ return sa.includes(p); });
+  if (saOpen) { score += 15; criteria.setaside = 'open'; }
+  else {
+    var ok = false;
+    if      (/isbee|indian small business economic enterprise/.test(sa)) ok = setAsides.some(function(c){ return /isbee/i.test(c); });
+    else if (/8\(a\)|8a set/.test(sa))                                   ok = setAsides.some(function(c){ return /8.?a/i.test(c); });
+    else if (/wosb|edwosb|woman.owned small business/.test(sa))          ok = setAsides.some(function(c){ return /wosb|woman/i.test(c); });
+    else if (/sdvosb|service.disabled veteran/.test(sa))                 ok = setAsides.some(function(c){ return /sdvosb|service.disabled/i.test(c); });
+    else if (/vosb|veteran.owned small business/.test(sa))               ok = setAsides.some(function(c){ return /vosb|veteran/i.test(c); });
+    else if (/hubzone/.test(sa))                                         ok = setAsides.some(function(c){ return /hubzone/i.test(c); });
+    else if (/small business/.test(sa))                                  ok = setAsides.some(function(c){ return /small business/i.test(c); });
+    else ok = true;
+    if (ok) { score += 25; criteria.setaside = 'eligible'; }
+    else    { score += 0;  criteria.setaside = 'ineligible'; }
+  }
+  // 3. Risk/timeline (20 pts)
+  var dl = opp.days_left;
+  if      (dl === null || dl === undefined) { score += 12; criteria.risk = 'no_deadline'; }
+  else if (dl >= 30)                        { score += 20; criteria.risk = 'low'; }
+  else if (dl >= 14)                        { score += 13; criteria.risk = 'medium'; }
+  else if (dl >= 7)                         { score += 6;  criteria.risk = 'high'; }
+  else                                      { score += 2;  criteria.risk = 'critical'; }
+  // 4. Capability (15 pts)
+  if (naicsCodes.includes(opp.naics)) { score += 15; criteria.capability = 'aligned'; }
+  else                                { score += 5;  criteria.capability = 'partial'; }
+  // 5. Past performance (5 pts)
+  criteria.past_performance = naicsCodes.includes(opp.naics) ? 'relevant' : 'adjacent';
+  score += naicsCodes.includes(opp.naics) ? 5 : 2;
+  // 6. Location (3 pts)
+  criteria.location = 'national'; score += 3;
+  // 7. Certifications (2 pts)
+  criteria.certifications = setAsides.length > 0 ? 'verified' : 'basic';
+  score += setAsides.length > 0 ? 2 : 1;
+  return { score: Math.min(score, 100), criteria: criteria };
+}
+
 // ── Pagination / filter state ─────────────────────────────────────────────────
 let allOpps          = [];
-let snapAnalysis     = null;
 let profileSetAsides = null;
 let currentPage      = 0;
+const snapAnalysis   = null; // live pipeline — no pre-computed analysis
 let currentFilter    = 'best';
 const PAGE_SIZE      = 5;
 let ignoredIds   = new Set(JSON.parse(localStorage.getItem('ignored_opps_' + (token || '')) || '[]'));
@@ -383,23 +428,38 @@ async function load() {
     return;
   }
   try {
-    var res  = await fetch('/.netlify/functions/demo-get?t=' + encodeURIComponent(token));
-    if (!res.ok) throw new Error('Snapshot not found');
-    var snap = await res.json();
+    // Use the live pipeline — same source as All Contracts, scored here in the browser
+    var res = await fetch('/.netlify/functions/demo-pipeline?t=' + encodeURIComponent(token) + '&days=90');
+    if (res.status === 202) {
+      document.getElementById('loadingEl').textContent = 'Building your profile — this takes about 30 seconds…';
+      setTimeout(load, 5000);
+      return;
+    }
+    if (!res.ok) throw new Error('Could not load live opportunities');
+    var data = await res.json();
 
-    var profile      = snap.profile || {};
-    var bizName      = profile.legal_name || snap.business_name || '';
-    snapAnalysis     = snap.analysis;
-    profileSetAsides = profile.set_asides || null;
-    allOpps          = snap.opportunities || [];
+    var client       = data.client || {};
+    var bizName      = client.name || '';
+    var naicsCodes   = client.naics || [];
+    var primaryNaics = client.primary_naics || '';
+    profileSetAsides = client.certifications || [];
 
-    // Ensure days_left is populated for filter logic
-    var now = new Date();
-    allOpps.forEach(function(o) {
-      if (o.days_left === undefined || o.days_left === null) {
-        o.days_left = o.response_deadline
-          ? Math.floor((new Date(o.response_deadline) - now) / 86400000) : null;
-      }
+    // Score every live opportunity client-side using the 7-criteria algorithm
+    allOpps = (data.opportunities || []).map(function(opp) {
+      var s = scoreOpp(opp, naicsCodes, primaryNaics, profileSetAsides);
+      return {
+        notice_id:         opp.notice_id,
+        title:             opp.title,
+        agency:            opp.agency,
+        naics:             opp.naics,
+        set_aside:         opp.set_aside,
+        response_deadline: opp.deadline,
+        days_left:         opp.days_left,
+        urgency:           opp.urgency,
+        url:               opp.url,
+        match_score:       s.score,
+        match_criteria:    s.criteria,
+      };
     });
 
     if (bizName) document.getElementById('bannerBiz').textContent = bizName + ' — Best Matches';
@@ -416,7 +476,7 @@ async function load() {
 
     if (!allOpps.length) {
       document.getElementById('cardsEl').innerHTML =
-        '<div style="text-align:center;padding:48px;color:var(--soft)">No matched opportunities found for your NAICS codes this week.</div>';
+        '<div style="text-align:center;padding:48px;color:var(--soft)">No open opportunities found for your NAICS codes.</div>';
       return;
     }
 
