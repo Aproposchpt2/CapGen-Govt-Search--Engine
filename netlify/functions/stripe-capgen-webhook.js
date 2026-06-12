@@ -159,7 +159,11 @@ async function handleCheckout(session) {
   var businessName = (session.metadata && session.metadata.business_name) || name || '';
   var customerId   = session.customer || '';
   var sessionId    = session.id || '';
-  var viewToken    = session.client_reference_id || '';
+  // client_reference_id format: "{demo_token},{plan}" or just "{demo_token}"
+  var refId        = session.client_reference_id || '';
+  var refParts     = refId.split(',');
+  var viewToken    = refParts[0] || '';
+  var planKey      = refParts[1] || '';
   var subId        = session.subscription || null;
 
   if (!email) { console.error('[webhook] no email in session'); return; }
@@ -167,14 +171,31 @@ async function handleCheckout(session) {
 
   var onboardingState = 'enrichment_pending'; // default
   var snapshotId = null;
+  // Billing period — determined by plan key or Stripe amount
+  var PLAN_CONFIG = {
+    'individual-monthly': { plan_type:'individual-monthly', payment_type:'subscription',  plan_amount:99.99,   days:30  },
+    'individual-yearly':  { plan_type:'individual-yearly',  payment_type:'one_time',       plan_amount:899.99,  days:365 },
+    'agency-monthly':     { plan_type:'agency-monthly',     payment_type:'subscription',   plan_amount:499.99,  days:30  },
+    'agency-yearly':      { plan_type:'agency-yearly',      payment_type:'one_time',       plan_amount:4999.99, days:365 },
+  };
+  var planCfg = PLAN_CONFIG[planKey] || PLAN_CONFIG['individual-monthly'];
+  var now = new Date();
+  var periodEnd = new Date(now.getTime() + planCfg.days * 24 * 3600 * 1000);
+
   var subRecord = {
-    email:                   email.toLowerCase().trim(),
-    first_name:              firstName,
-    business_name:           businessName || null,
-    stripe_customer_id:      customerId || null,
-    stripe_subscription_id:  subId,
-    status:                  'active',
-    updated_at:              new Date().toISOString(),
+    email:                  email.toLowerCase().trim(),
+    first_name:             firstName,
+    business_name:          businessName || null,
+    stripe_customer_id:     customerId || null,
+    stripe_subscription_id: subId,
+    status:                 'active',
+    plan_type:              planCfg.plan_type,
+    payment_type:           planCfg.payment_type,
+    plan_amount:            planCfg.plan_amount,
+    current_period_start:   now.toISOString(),
+    current_period_end:     periodEnd.toISOString(),
+    last_payment_at:        now.toISOString(),
+    updated_at:             now.toISOString(),
   };
 
   // Path A: demo convert — view_token resolves to a complete snapshot
