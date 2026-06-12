@@ -206,20 +206,40 @@ async function handleCheckout(session, livemode) {
     var snapshot = await getSnapshot(viewToken);
     if (snapshot) {
       var p         = snapshot.profile || {};
-      demoEmail     = snapshot.requester_email || null;      // from demo intake form
+      demoEmail     = snapshot.requester_email || null;
       demoBusinessName = p.legal_name || snapshot.business_name || null;
       demoUei       = p.uei || null;
       demoNaics     = p.naics ? p.naics.map(function(n) { return n.code || n; }) : null;
       demoSetAsides = p.set_asides || [];
       demoSnapshotId = snapshot.id;
-      onboardingState = 'enrichment_pending'; // entity known, needs capabilities
+      onboardingState = 'enrichment_pending';
       console.log('[webhook] Path A: snapshot found uei=' + (demoUei || 'none'));
     } else {
-      console.log('[webhook] token provided but snapshot not found — falling to needs_profile');
-      // Correct fallback per spec Q2
+      console.log('[webhook] token present but snapshot not found — falling to Option A (generate)');
     }
-  } else {
-    console.log('[webhook] Path B: no token — needs_profile');
+  }
+
+  // Option A: no demo token or snapshot not found → generate token, create snapshot row
+  if (!demoSnapshotId) {
+    var generatedToken = crypto.randomBytes(32).toString('hex');
+    try {
+      await sbInsert('demo_snapshots', {
+        entity_uei:        '',
+        business_name:     name || email,
+        requester_email:   email,
+        requester_name:    firstName,
+        profile:           {},
+        view_token:        generatedToken,
+        status:            'complete',
+        generated_at:      new Date().toISOString(),
+      });
+      viewToken       = generatedToken;
+      demoSnapshotId  = generatedToken; // used as placeholder
+      onboardingState = 'needs_profile';
+      console.log('[webhook] Option A: generated token for no-demo subscriber');
+    } catch(e) {
+      console.error('[webhook] Option A token generation failed:', e.message);
+    }
   }
 
   // ── Plan config ───────────────────────────────────────────────────────────
@@ -260,12 +280,15 @@ async function handleCheckout(session, livemode) {
   console.log('[webhook] capgen_subscriptions upserted for ' + email
     + ' (' + (livemode ? 'LIVE' : 'TEST') + ') state=' + onboardingState);
 
-  // ── Welcome email ─────────────────────────────────────────────────────────
+  // ── Welcome email — CTA links to their dashboard via token ───────────────
+  var dashboardUrl = viewToken
+    ? 'https://capgen.aproposgroupllc.com/demo/snapshot?t=' + viewToken
+    : ONBOARD_URL;
   try {
     await sendWelcomeEmail({
       email: email, firstName: firstName,
-      businessName: demoBusinessName || name || '',
-      ctaUrl: ONBOARD_URL,
+      businessName: demoBusinessName || null,
+      ctaUrl: dashboardUrl,
     });
   } catch(e) { console.error('[webhook] welcome email failed:', e.message); }
 
