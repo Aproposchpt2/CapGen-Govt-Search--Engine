@@ -129,13 +129,13 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:14p
 
 <script>
 'use strict';
-const STRIPE_BASE = 'https://ai4-product-purchasing.ai4businesses.org/capgen-signup-intake';
+const STRIPE_BASE = 'https://ai4-product-purchasing.ai4businesses.org/capgen-offer.html?type=capgen';
 const q     = new URLSearchParams(location.search);
 const token = q.get('t') || sessionStorage.getItem('demo_view_token') || '';
 const uei   = q.get('uei') || sessionStorage.getItem('capgen_uei') || '';
 
 document.getElementById('backBtn').href = token ? '/demo/snapshot?t=' + encodeURIComponent(token) : '/apropos';
-document.getElementById('subCta').href  = token ? STRIPE_BASE + '?demo_token=' + encodeURIComponent(token) : STRIPE_BASE;
+document.getElementById('subCta').href  = token ? STRIPE_BASE + '&demo_token=' + encodeURIComponent(token) : STRIPE_BASE;
 if (token) sessionStorage.setItem('demo_view_token', token);
 
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
