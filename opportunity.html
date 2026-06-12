@@ -104,6 +104,7 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:14p
 <div class="top-banner">
   <span class="banner-biz" id="bannerBiz">Top 5 Best Matches</span>
   <a href="#" class="back-btn" id="backBtn">← Return to All Contracts</a>
+  <a href="#" id="reportBtn" style="background:rgba(217,164,91,.15);border:1px solid rgba(217,164,91,.35);color:#d9a45b;font-family:'Jost',sans-serif;font-weight:700;font-size:.78rem;padding:7px 16px;border-radius:8px;text-decoration:none;white-space:nowrap">Capability Report ↓</a>
 </div>
 
 <header>
@@ -134,8 +135,10 @@ const q     = new URLSearchParams(location.search);
 const token = q.get('t') || localStorage.getItem('demo_view_token') || '';
 
 document.getElementById('backBtn').href = token ? '/demo/snapshot?t=' + encodeURIComponent(token) : '/demo';
-document.getElementById('subCta').href  = token ? STRIPE_BASE + '?client_reference_id=' + encodeURIComponent(token) : STRIPE_BASE;
+document.getElementById('subCta').href  = STRIPE_BASE; // token stays in DB — fetched by email at onboarding
 if (token) localStorage.setItem('demo_view_token', token);
+const reportBtn = document.getElementById('reportBtn');
+if (reportBtn) reportBtn.href = token ? '/demo/report?t=' + encodeURIComponent(token) : '/demo';
 
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function fmtDate(iso){ if(!iso) return '—'; return new Date(iso).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
