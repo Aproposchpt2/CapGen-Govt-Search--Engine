@@ -141,13 +141,11 @@ document.getElementById('resendBtn').addEventListener('click', async function() 
 });
 
 async function loadClientAndRedirect(email, token) {
-  // Clear ALL previous user session data — full slate wipe on every login
+  // Clear stale previous-user data (pipeline_session was just set by OTP — do not touch)
   sessionStorage.removeItem('demo_view_token');
   sessionStorage.removeItem('demo_uei');
   sessionStorage.removeItem('capgen_uei');
   sessionStorage.removeItem('capgen_biz');
-  sessionStorage.removeItem('capgen_email');
-  sessionStorage.removeItem('pipeline_session');
 
   try {
     const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1ZGlzbGZrbm1ob2ZjZ3p5b3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMDI3ODAsImV4cCI6MjA5Mjc3ODc4MH0.Kxpe0kJt0k7ZchYu70BOwm4KdT0C5aSsyeR1ov6NlQ0';
