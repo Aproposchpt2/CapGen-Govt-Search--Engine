@@ -43,10 +43,38 @@ async function sbUpsert(table, row) {
   var url = method === 'PATCH'
     ? SUPABASE_URL + '/rest/v1/' + table + '?email=eq.' + encodeURIComponent(email)
     : SUPABASE_URL + '/rest/v1/' + table;
+
+  var body;
+  if (method === 'PATCH') {
+    // Always-safe to overwrite on conflict
+    body = {
+      stripe_customer_id:     row.stripe_customer_id,
+      stripe_subscription_id: row.stripe_subscription_id,
+      plan_type:              row.plan_type,
+      payment_type:           row.payment_type,
+      plan_amount:            row.plan_amount,
+      current_period_start:   row.current_period_start,
+      current_period_end:     row.current_period_end,
+      last_payment_at:        row.last_payment_at,
+      status:                 row.status,
+      onboarding_state:       row.onboarding_state,
+      livemode:               row.livemode,
+      updated_at:             row.updated_at,
+    };
+    // Preserve-existing fields: only include if new value is non-null
+    // (prevents clobbering populated business_name, uei, naics etc.)
+    ['business_name','uei','naics','set_asides','demo_snapshot_id',
+     'demo_token','demo_email','first_name'].forEach(function(f) {
+      if (row[f] !== null && row[f] !== undefined) body[f] = row[f];
+    });
+  } else {
+    body = row;
+  }
+
   var res = await fetch(url, {
     method: method,
     headers: sbH({ Prefer: 'return=minimal' }),
-    body: JSON.stringify(row),
+    body: JSON.stringify(body),
   });
   if (!res.ok) console.error('[webhook] upsert error:', (await res.text()).slice(0, 200));
 }
@@ -204,7 +232,8 @@ async function handleCheckout(session, livemode) {
   var subRow = {
     email:                  email.toLowerCase().trim(),
     first_name:             firstName,
-    business_name:          demoBusinessName || name || null,
+    // business_name only from snapshot — never Stripe customer name (spec Issue 3)
+    business_name:          demoBusinessName || null,
     uei:                    demoUei,
     naics:                  demoNaics,
     set_asides:             demoSetAsides,
