@@ -137,6 +137,7 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:14p
   </div>
   <div class="demo-nav">
     <a href="#" class="btn-opp" id="oppBtn" style="display:none">See Best Match →</a>
+    <a href="#" id="reportBtn" style="display:none;background:rgba(217,164,91,.15);border:1px solid rgba(217,164,91,.35);color:#d9a45b;font-family:'Jost',sans-serif;font-weight:700;font-size:.78rem;padding:7px 16px;border-radius:8px;text-decoration:none;white-space:nowrap">Capability Report ↓</a>
   </div>
 </div>
 
@@ -211,10 +212,13 @@ let allOpps = [], clientData = null;
 
 // Set up CTAs immediately — href set before API call so clicks always work
 if (token) {
-  document.getElementById('subCta').href = STRIPE_BASE + '&demo_token=' + encodeURIComponent(token);
-  const oppBtn = document.getElementById('oppBtn');
-  oppBtn.href = '/opportunity?t=' + encodeURIComponent(token);
-  oppBtn.style.display = 'inline-block';
+  document.getElementById('subCta').href = STRIPE_BASE; // token stays in DB — fetched by email at onboarding
+  const oppBtn    = document.getElementById('oppBtn');
+  const reportBtn = document.getElementById('reportBtn');
+  oppBtn.href    = '/opportunity?t=' + encodeURIComponent(token);
+  reportBtn.href = '/demo/report?t=' + encodeURIComponent(token);
+  oppBtn.style.display    = 'inline-block';
+  reportBtn.style.display = 'inline-block';
   localStorage.setItem('demo_view_token', token);
 }
 
