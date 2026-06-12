@@ -350,7 +350,10 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:14p
 </div><!-- end #auth-app -->
 
 <script>
-const UEI = sessionStorage.getItem('capgen_uei') || 'YVNXN3XBUSD5';
+// UEI priority: URL param → sessionStorage → default (Apropos Group)
+const _ueiParam = new URLSearchParams(location.search).get('uei');
+const UEI = _ueiParam || sessionStorage.getItem('capgen_uei') || 'YVNXN3XBUSD5';
+if (_ueiParam) sessionStorage.setItem('capgen_uei', _ueiParam); // persist for this session
 let allOpps = [];
 let naicsClient = [];
 let renderedOpps = [];
