@@ -277,7 +277,7 @@ function renderCard(opp, rank, analysis) {
     + fitHtml
     + '<div class="card-actions">'
     + (opp.url ? '<a href="' + esc(opp.url) + '" target="_blank" rel="noopener" class="btn-view">View Opportunity →</a>' : '')
-    + '<button class="btn-analyze" onclick="openAnalyzeFit(' + JSON.stringify(opp) + ')">Analyze Fit ↗</button>'
+    + '<button class="btn-analyze" onclick="openAnalyzeFit(\'' + esc(opp.notice_id || '') + '\')">Analyze Fit ↗</button>'
     + '<button class="btn-ignore" onclick="ignoreOpp(' + JSON.stringify(opp.notice_id || '') + ')">✕ Ignore</button>'
     + '</div>'
     + '</div>';
@@ -426,9 +426,10 @@ function signOut() {
   window.location.href = '/';
 }
 
-function openAnalyzeFit(opp) {
-  sessionStorage.setItem('analyze_opp', JSON.stringify(opp));
-  window.location.href = '/analyze-fit?id=' + encodeURIComponent(opp.notice_id || '') + '&t=' + encodeURIComponent(token);
+function openAnalyzeFit(noticeId) {
+  var opp = allOpps.find(function(o) { return o.notice_id === noticeId; });
+  if (opp) sessionStorage.setItem('analyze_opp', JSON.stringify(opp));
+  window.location.href = '/analyze-fit?id=' + encodeURIComponent(noticeId) + '&t=' + encodeURIComponent(token);
 }
 
 async function load() {
