@@ -141,41 +141,57 @@ document.getElementById('resendBtn').addEventListener('click', async function() 
 });
 
 async function loadClientAndRedirect(email) {
-  // ONE TOKEN. Check localStorage first — set when user did the demo on this device.
-  const demoToken = localStorage.getItem('demo_view_token') || '';
-  if (demoToken) {
-    window.location.href = '/demo/snapshot?t=' + encodeURIComponent(demoToken);
+  const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1ZGlzbGZrbm1ob2ZjZ3p5b3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMDI3ODAsImV4cCI6MjA5Mjc3ODc4MH0.Kxpe0kJt0k7ZchYu70BOwm4KdT0C5aSsyeR1ov6NlQ0';
+  const SUPA = 'https://judislfknmhofcgzyozc.supabase.co';
+
+  // 1. Check localStorage first (already on this device — fastest path)
+  const cached = localStorage.getItem('demo_view_token') || '';
+  if (cached) {
+    window.location.href = '/demo/snapshot?t=' + encodeURIComponent(cached);
     return;
   }
 
-  // No token in localStorage — check subscription for webhook-generated token (direct subscribers,
-  // or user logging in from a different device than where they did the demo)
+  // 2. Look up token from demo_snapshots by email — token stays in DB, never in URLs
   try {
-    const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1ZGlzbGZrbm1ob2ZjZ3p5b3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMDI3ODAsImV4cCI6MjA5Mjc3ODc4MH0.Kxpe0kJt0k7ZchYu70BOwm4KdT0C5aSsyeR1ov6NlQ0';
-    const res = await fetch(
-      'https://judislfknmhofcgzyozc.supabase.co/rest/v1/capgen_subscriptions?email=eq.'
-      + encodeURIComponent(email) + '&select=demo_token,onboarding_state&limit=1',
-      { headers: { apikey: anonKey, Authorization: 'Bearer ' + anonKey } }
+    const snapRes = await fetch(
+      SUPA + '/rest/v1/demo_snapshots?requester_email=eq.' + encodeURIComponent(email)
+      + '&status=eq.complete&order=created_at.desc&limit=1&select=view_token,business_name',
+      { headers: { apikey: ANON, Authorization: 'Bearer ' + ANON } }
     );
-    const data = await res.json();
-    if (Array.isArray(data) && data[0]) {
-      const sub = data[0];
+    const snaps = await snapRes.json();
+    if (Array.isArray(snaps) && snaps[0] && snaps[0].view_token) {
+      const t = snaps[0].view_token;
+      localStorage.setItem('demo_view_token', t);
+      if (snaps[0].business_name) localStorage.setItem('demo_biz_name', snaps[0].business_name);
+      window.location.href = '/demo/snapshot?t=' + encodeURIComponent(t);
+      return;
+    }
+  } catch(e) { console.warn('Snapshot lookup:', e.message); }
+
+  // 3. Check subscription for webhook-generated token (Option A / different device)
+  try {
+    const subRes = await fetch(
+      SUPA + '/rest/v1/capgen_subscriptions?email=eq.' + encodeURIComponent(email)
+      + '&select=demo_token,onboarding_state&limit=1',
+      { headers: { apikey: ANON, Authorization: 'Bearer ' + ANON } }
+    );
+    const subs = await subRes.json();
+    if (Array.isArray(subs) && subs[0]) {
+      const sub = subs[0];
       if (sub.demo_token) {
-        // Subscriber has a token — store it and send them to their dashboard
         localStorage.setItem('demo_view_token', sub.demo_token);
         window.location.href = '/demo/snapshot?t=' + encodeURIComponent(sub.demo_token);
         return;
       }
-      // Subscriber exists but no token yet (needs_profile / onboarding incomplete)
       const state = sub.onboarding_state || 'needs_profile';
-      if (state === 'entity_pending' || state === 'enrichment_pending' || state === 'needs_profile') {
+      if (state !== 'complete') {
         window.location.href = '/capgen-onboarding?s=entity_pending';
         return;
       }
     }
-  } catch(e) { console.warn('Token lookup:', e.message); }
+  } catch(e) { console.warn('Subscription lookup:', e.message); }
 
-  // Nothing found — send them to start a demo (gets them a token)
+  // 4. No snapshot, no subscription — start a demo to get a token
   window.location.href = '/demo';
 }
 
