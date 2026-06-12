@@ -384,7 +384,6 @@ function render(opps) {
     return;
   }
 
-  const capgenUrl = `/capability-generator.html?uei=${UEI}`;
   renderedOpps = opps;
 
   // Desktop table rows
@@ -401,7 +400,7 @@ function render(opps) {
         <div><span class="days-badge ${daysCls}">${daysLabel}</span></div>
         <div style="font-size:.68rem;color:var(--soft);margin-top:3px">${fmtDeadline(o.deadline)}</div>
       </td>
-      <td style="white-space:nowrap"><a class="capgen-btn" href="${capgenUrl}">CapGen ↗</a><button class="analyze-btn" data-idx="${idx}">Analyze Fit</button></td>
+      <td style="white-space:nowrap"><button class="analyze-btn" data-idx="${idx}">Analyze Fit</button></td>
     </tr>`;
   }).join('');
 
@@ -426,8 +425,7 @@ function render(opps) {
         </div>
       </div>
       <div style="display:flex;gap:8px">
-        <a class="capgen-btn" href="${capgenUrl}" style="flex:1;text-align:center;display:block;padding:8px">CapGen ↗</a>
-        <button class="analyze-btn" data-idx="${idx}" style="flex:1;padding:8px;margin-left:0">Analyze Fit</button>
+        <button class="analyze-btn" data-idx="${idx}" style="width:100%;padding:8px;margin-left:0">Analyze Fit</button>
       </div>
     </div>`;
   }).join('');
@@ -826,7 +824,7 @@ function renderStage1(data, opp) {
     + '<p style="font-family:\'Cormorant Garamond\',serif;font-style:italic;font-size:.75rem;color:rgba(255,255,255,.28);margin-top:16px;margin-bottom:0">Analysis based on data sourced from official public records.</p>'
     + '<div class="fit-footer-btns">'
     + (opp.url ? '<a href="' + opp.url + '" target="_blank" rel="noopener" class="fit-btn-sam">View Opportunity ↗</a>' : '')
-    + '<a href="/capability-generator.html?uei=YVNXN3XBUSD5" class="fit-btn-capgen">Generate CapGen ↗</a>'
+    + ''
     + '</div>';
 }
 

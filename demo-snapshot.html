@@ -193,10 +193,9 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:14p
           <th>NAICS</th>
           <th>Set-Aside</th>
           <th style="text-align:center">Deadline</th>
-          <th></th>
         </tr>
       </thead>
-      <tbody id="oppBody"><tr><td colspan="6" class="loading-state">Loading your opportunities…</td></tr></tbody>
+      <tbody id="oppBody"><tr><td colspan="5" class="loading-state">Loading your opportunities…</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -258,11 +257,10 @@ function render(opps) {
   document.getElementById('s-warm').textContent  = opps.filter(o => o.urgency === 'warm').length;
   document.getElementById('s-ok').textContent    = opps.filter(o => o.urgency === 'ok').length;
 
-  const capgenUrl = '/capability-generator.html?uei=' + encodeURIComponent((clientData && clientData.uei) || '');
   const tbody = document.getElementById('oppBody');
 
   if (!opps.length) {
-    tbody.innerHTML = '<tr><td colspan="6" class="empty">No open opportunities in this window. Try a wider date range.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="empty">No open opportunities in this window. Try a wider date range.</td></tr>';
     return;
   }
 
@@ -275,7 +273,6 @@ function render(opps) {
       + '<td style="font-size:.74rem;color:var(--soft)">' + esc((o.set_aside && o.set_aside !== 'None' ? o.set_aside : 'Unrestricted').slice(0,30)) + '</td>'
       + '<td class="deadline-cell">' + urgencyBadge(o)
       + '<div style="font-size:.66rem;color:var(--soft);margin-top:2px">' + fmtDeadline(o.deadline) + '</div></td>'
-      + '<td><a class="capgen-btn" href="' + esc(capgenUrl) + '">CapGen ↗</a></td>'
       + '</tr>';
   }).join('');
 }
@@ -299,7 +296,7 @@ function applyFilters() {
 
 async function load() {
   if (!token) {
-    document.getElementById('oppBody').innerHTML = '<tr><td colspan="6" class="empty">No snapshot token found. <a href="/demo" style="color:var(--cyan)">Start a new demo →</a></td></tr>';
+    document.getElementById('oppBody').innerHTML = '<tr><td colspan="5" class="empty">No snapshot token found. <a href="/demo" style="color:var(--cyan)">Start a new demo →</a></td></tr>';
     return;
   }
   const days = document.querySelector('.win-btn.active')?.dataset.days || '60';
@@ -309,7 +306,7 @@ async function load() {
     // Still generating — poll every 5 seconds
     if (res.status === 202) {
       document.getElementById('oppBody').innerHTML =
-        '<tr><td colspan="6" class="loading-state">Building your dashboard — pulling live contract data… this takes about 30 seconds.</td></tr>';
+        '<tr><td colspan="5" class="loading-state">Building your dashboard — pulling live contract data… this takes about 30 seconds.</td></tr>';
       setTimeout(() => load(), 5000);
       return;
     }
@@ -371,7 +368,7 @@ async function load() {
 
     applyFilters();
   } catch(e) {
-    document.getElementById('oppBody').innerHTML = '<tr><td colspan="6" class="empty" style="color:var(--red)">' + esc(e.message) + '</td></tr>';
+    document.getElementById('oppBody').innerHTML = '<tr><td colspan="5" class="empty" style="color:var(--red)">' + esc(e.message) + '</td></tr>';
   }
 }
 

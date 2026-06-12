@@ -311,8 +311,6 @@ function render(opps) {
     return;
   }
 
-  const capgenUrl = `/capability-generator.html?uei=${UEI}`;
-
   // Desktop table rows
   tbody.innerHTML = opps.map(o => {
     const daysCls = o.urgency === 'hot' ? 'days-hot' : o.urgency === 'warm' ? 'days-warm' : o.urgency === 'ok' ? 'days-ok' : 'days-none';
@@ -327,7 +325,7 @@ function render(opps) {
         <div><span class="days-badge ${daysCls}">${daysLabel}</span></div>
         <div style="font-size:.68rem;color:var(--soft);margin-top:3px">${fmtDeadline(o.deadline)}</div>
       </td>
-      <td><a class="capgen-btn" href="${capgenUrl}">CapGen ↗</a></td>
+      <td></td>
     </tr>`;
   }).join('');
 
@@ -351,9 +349,7 @@ function render(opps) {
           <span class="opp-card-date">${fmtDeadline(o.deadline)}</span>
         </div>
       </div>
-      <div>
-        <a class="capgen-btn" href="${capgenUrl}" style="width:100%;text-align:center;display:block;padding:8px">Generate CapGen Statement ↗</a>
-      </div>
+      <div></div>
     </div>`;
   }).join('');
 }

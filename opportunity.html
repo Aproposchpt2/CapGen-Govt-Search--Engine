@@ -237,7 +237,7 @@ function criteriaHtml(opp, analysis) {
     + '</div>';
 }
 
-function renderCard(opp, rank, analysis, capgenUrl) {
+function renderCard(opp, rank, analysis) {
   const isTop = rank === 0;
   const displayScore = analysis ? (analysis.fit_score != null ? analysis.fit_score : '—') : (opp.match_score != null ? opp.match_score : '—');
   let fitHtml = '';
@@ -273,19 +273,18 @@ function renderCard(opp, rank, analysis, capgenUrl) {
     + fitHtml
     + '<div class="card-actions">'
     + (opp.url ? '<a href="' + esc(opp.url) + '" target="_blank" rel="noopener" class="btn-view">View Opportunity →</a>' : '')
-    + '<a href="' + esc(capgenUrl) + '" class="btn-capgen">Generate CapGen Statement</a>'
     + '<button class="btn-ignore" onclick="ignoreOpp(' + JSON.stringify(opp.notice_id || '') + ')">✕ Ignore</button>'
     + '</div>'
     + '</div>';
 }
 
 // ── Pagination / filter state ─────────────────────────────────────────────────
-let allOpps      = [];
-let snapAnalysis = null;
-let capgenUrl    = '/capability-generator.html';
-let currentPage  = 0;
-let currentFilter = 'best';
-const PAGE_SIZE  = 5;
+let allOpps          = [];
+let snapAnalysis     = null;
+let profileSetAsides = null;
+let currentPage      = 0;
+let currentFilter    = 'best';
+const PAGE_SIZE      = 5;
 let ignoredIds   = new Set(JSON.parse(localStorage.getItem('ignored_opps_' + (token || '')) || '[]'));
 
 function saveIgnored() {
@@ -314,8 +313,18 @@ function changePage(delta) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+function isEligible(opp) {
+  if (!profileSetAsides || !profileSetAsides.length) return true;
+  var saCode = (opp.set_aside || '').toLowerCase().trim();
+  if (!saCode || saCode === 'none' || saCode === 'unrestricted' || saCode === 'full and open') return true;
+  return profileSetAsides.some(function(sa) {
+    var s = (sa || '').toLowerCase().trim();
+    return saCode.includes(s) || s.includes(saCode);
+  });
+}
+
 function getFiltered() {
-  var pool = allOpps.filter(function(o) { return !ignoredIds.has(o.notice_id); });
+  var pool = allOpps.filter(function(o) { return !ignoredIds.has(o.notice_id) && isEligible(o); });
   if (currentFilter === '60') pool = pool.filter(function(o) { return o.days_left !== null && o.days_left <= 60; });
   else if (currentFilter === '30') pool = pool.filter(function(o) { return o.days_left !== null && o.days_left <= 30; });
   else if (currentFilter === '7')  pool = pool.filter(function(o) { return o.days_left !== null && o.days_left <= 7; });
@@ -341,7 +350,7 @@ function renderPage() {
   }
 
   document.getElementById('cardsEl').innerHTML = page.map(function(opp, i) {
-    return renderCard(opp, start + i, start + i === 0 ? snapAnalysis : null, capgenUrl);
+    return renderCard(opp, start + i, start + i === 0 ? snapAnalysis : null);
   }).join('');
 }
 
@@ -361,12 +370,11 @@ async function load() {
     if (!res.ok) throw new Error('Snapshot not found');
     var snap = await res.json();
 
-    var profile    = snap.profile || {};
-    var bizName    = profile.legal_name || snap.business_name || '';
-    var entityUei  = profile.uei || '';
-    capgenUrl      = '/capability-generator.html?uei=' + encodeURIComponent(entityUei);
-    snapAnalysis   = snap.analysis;
-    allOpps        = snap.opportunities || [];
+    var profile      = snap.profile || {};
+    var bizName      = profile.legal_name || snap.business_name || '';
+    snapAnalysis     = snap.analysis;
+    profileSetAsides = profile.set_asides || null;
+    allOpps          = snap.opportunities || [];
 
     // Ensure days_left is populated for filter logic
     var now = new Date();
