@@ -140,43 +140,52 @@ document.getElementById('resendBtn').addEventListener('click', async function() 
   setTimeout(() => { this.textContent = 'Resend code'; this.disabled = false; }, 5000);
 });
 
-async function loadClientAndRedirect(email, token) {
-  // Clear stale previous-user data (pipeline_session was just set by OTP — do not touch)
-  sessionStorage.removeItem('demo_view_token');
-  sessionStorage.removeItem('demo_uei');
-  sessionStorage.removeItem('capgen_uei');
-  sessionStorage.removeItem('capgen_biz');
+async function loadClientAndRedirect(email) {
+  // ONE TOKEN. Check localStorage first — set when user did the demo on this device.
+  const demoToken = localStorage.getItem('demo_view_token') || '';
+  if (demoToken) {
+    window.location.href = '/demo/snapshot?t=' + encodeURIComponent(demoToken);
+    return;
+  }
 
+  // No token in localStorage — check subscription for webhook-generated token (direct subscribers,
+  // or user logging in from a different device than where they did the demo)
   try {
     const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1ZGlzbGZrbm1ob2ZjZ3p5b3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMDI3ODAsImV4cCI6MjA5Mjc3ODc4MH0.Kxpe0kJt0k7ZchYu70BOwm4KdT0C5aSsyeR1ov6NlQ0';
-    const res = await fetch(`https://judislfknmhofcgzyozc.supabase.co/rest/v1/capgen_subscriptions?email=eq.${encodeURIComponent(email)}&select=uei,business_name,naics,onboarding_state,status&limit=1`, {
-      headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` }
-    });
+    const res = await fetch(
+      'https://judislfknmhofcgzyozc.supabase.co/rest/v1/capgen_subscriptions?email=eq.'
+      + encodeURIComponent(email) + '&select=demo_token,onboarding_state&limit=1',
+      { headers: { apikey: anonKey, Authorization: 'Bearer ' + anonKey } }
+    );
     const data = await res.json();
     if (Array.isArray(data) && data[0]) {
       const sub = data[0];
-      if (sub.uei) sessionStorage.setItem('capgen_uei', sub.uei);
-      sessionStorage.setItem('capgen_biz', sub.business_name || '');
-      sessionStorage.setItem('capgen_email', email);
-      // Route by onboarding_state
-      const state = sub.onboarding_state || 'complete';
-      if (state === 'entity_pending' || state === 'enrichment_pending') {
-        window.location.href = '/capgen-onboarding?s=' + state;
+      if (sub.demo_token) {
+        // Subscriber has a token — store it and send them to their dashboard
+        localStorage.setItem('demo_view_token', sub.demo_token);
+        window.location.href = '/demo/snapshot?t=' + encodeURIComponent(sub.demo_token);
         return;
       }
-      // Subscriber with complete profile → show dashboard choice
-      window.location.href = '/member-home';
-      return;
+      // Subscriber exists but no token yet (needs_profile / onboarding incomplete)
+      const state = sub.onboarding_state || 'needs_profile';
+      if (state === 'entity_pending' || state === 'enrichment_pending' || state === 'needs_profile') {
+        window.location.href = '/capgen-onboarding?s=entity_pending';
+        return;
+      }
     }
-  } catch(e) { console.warn('Client lookup:', e.message); }
-  // No subscription record found — redirect to contract dashboard (UEI known or guest)
-  window.location.href = '/apropos';
+  } catch(e) { console.warn('Token lookup:', e.message); }
+
+  // Nothing found — send them to start a demo (gets them a token)
+  window.location.href = '/demo';
 }
 
-// Check existing session on load
+// Auto-redirect if already have a demo token (returning visitor)
 (function() {
-  const s = sessionStorage.getItem('pipeline_session');
-  if (s) { try { const d = JSON.parse(atob(s)); if (d.email && (Date.now()-d.ts)<8*60*60*1000) { window.location.href='/pipeline'; } } catch(_) {} }
+  const t = localStorage.getItem('demo_view_token');
+  if (t) {
+    // Has a token — show login so they prove identity, then they'll be sent to their dashboard
+    // Do NOT auto-redirect; OTP gate must be passed first
+  }
 })();
 </script>
 </body>
