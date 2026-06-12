@@ -109,6 +109,11 @@
   status = 200
 
 [[redirects]]
+  from = "/demo/report"
+  to = "/demo-report.html"
+  status = 200
+
+[[redirects]]
   from = "/member-home"
   to = "/member-home.html"
   status = 200
