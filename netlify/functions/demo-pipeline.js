@@ -48,12 +48,16 @@ exports.handler = async function(event) {
 
   // Load snapshot
   var snapRes = await fetch(
-    SUPABASE_URL + '/rest/v1/demo_snapshots?view_token=eq.' + encodeURIComponent(token) + '&status=eq.complete&limit=1',
+    SUPABASE_URL + '/rest/v1/demo_snapshots?view_token=eq.' + encodeURIComponent(token) + '&limit=1',
     { headers: sbH() }
   );
   if (!snapRes.ok) return { statusCode: 502, headers: CORS, body: JSON.stringify({ error: 'Database error' }) };
   var snaps = await snapRes.json();
-  if (!snaps.length) return { statusCode: 404, headers: CORS, body: JSON.stringify({ error: 'Snapshot not found or not complete' }) };
+  if (!snaps.length) return { statusCode: 404, headers: CORS, body: JSON.stringify({ error: 'Snapshot not found' }) };
+  // If still generating — return pending status so dashboard can poll
+  if (snaps[0].status === 'pending') {
+    return { statusCode: 202, headers: CORS, body: JSON.stringify({ status: 'pending', message: 'Building your dashboard...' }) };
+  }
 
   var snap     = snaps[0];
   var profile  = snap.profile || {};
