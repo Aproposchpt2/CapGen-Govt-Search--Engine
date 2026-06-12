@@ -38,6 +38,8 @@ async function fetchClientFromDB(uei) {
       name:  sub.business_name || uei,
       naics: sub.naics,
       cage:  sub.cage || null,
+      city:  sub.address ? sub.address.split(',')[0].trim() : null,
+      state: sub.address ? (sub.address.split(',')[1] || '').trim() : null,
       psc:   (CLIENT_NAICS[uei] || {}).psc || [],
     };
   } catch { return null; }
