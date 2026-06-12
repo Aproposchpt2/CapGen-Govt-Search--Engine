@@ -73,6 +73,10 @@ const uei    = sessionStorage.getItem('capgen_uei') || '';
 if (!stored) { window.location.href = '/onboarding'; }
 if (biz) document.getElementById('bizName').textContent = biz;
 
+// Wire All Contracts link with UEI in URL — avoids sessionStorage race condition
+const allContractsLink = document.querySelector('a[href="/apropos"]');
+if (allContractsLink && uei) allContractsLink.href = '/apropos?uei=' + encodeURIComponent(uei);
+
 // Best Match links to opportunity with subscriber's UEI (no demo token needed)
 if (uei) {
   document.getElementById('bestMatchBtn').href = '/opportunity?uei=' + encodeURIComponent(uei);
