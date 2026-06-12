@@ -220,6 +220,10 @@ if (token) {
   oppBtn.style.display    = 'inline-block';
   reportBtn.style.display = 'inline-block';
   localStorage.setItem('demo_view_token', token);
+  if (localStorage.getItem('is_subscriber')) {
+    const bar = document.querySelector('.sub-bar');
+    if (bar) bar.style.display = 'none';
+  }
 }
 
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
