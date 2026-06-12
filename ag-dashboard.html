@@ -263,7 +263,7 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:14p
   <div class="brand">
     <div class="brand-mark">AG</div>
     <div>
-      <div class="brand-name">APROPOS GROUP LLC</div>
+      <div class="brand-name" id="brandName">APROPOS GROUP LLC</div>
       <div class="brand-sub">Federal Contract Pipeline · CapGen by AI4 Businesses</div>
     </div>
   </div>
@@ -279,7 +279,7 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:14p
   <div class="entity-card">
     <div class="entity-field"><div class="ef-label">SAM Status</div><div class="ef-value active">● Active</div></div>
     <div class="entity-field"><div class="ef-label">Business Type</div><div class="ef-value">Small Business</div></div>
-    <div class="entity-field"><div class="ef-label">Location</div><div class="ef-value">North Las Vegas, NV</div></div>
+    <div class="entity-field"><div class="ef-label">Location</div><div class="ef-value" id="locationEl">North Las Vegas, NV</div></div>
     <div class="entity-field"><div class="ef-label">Primary NAICS</div><div class="ef-value" id="primaryNaicsEl">—</div></div>
     <div class="entity-field"><div class="ef-label">NAICS Monitored</div><div class="ef-value" id="naicsCount">—</div></div>
     <div class="entity-field"><div class="ef-label">Last Refreshed</div><div class="ef-value" id="lastRefresh">—</div></div>
@@ -468,6 +468,13 @@ async function load() {
     document.getElementById('s-hot').textContent   = allOpps.filter(o => o.urgency === 'hot').length;
     document.getElementById('s-warm').textContent  = allOpps.filter(o => o.urgency === 'warm').length;
     document.getElementById('s-ok').textContent    = allOpps.filter(o => o.urgency === 'ok').length;
+
+    // Update header + entity card with subscriber's business data
+    const clientName = data.client.name || 'Apropos Group LLC';
+    const brandEl = document.getElementById('brandName');
+    const locEl   = document.getElementById('locationEl');
+    if (brandEl) brandEl.textContent = clientName.toUpperCase();
+    if (locEl && data.client.city) locEl.textContent = [data.client.city, data.client.state].filter(Boolean).join(', ');
 
     // Build NAICS bubbles dynamically from subscription profile
     buildNaicsRibbon(naicsClient);
