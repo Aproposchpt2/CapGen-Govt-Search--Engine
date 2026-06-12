@@ -205,13 +205,13 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:14p
 
 <script>
 'use strict';
-const STRIPE_BASE = 'https://ai4-product-purchasing.ai4businesses.org/capgen-signup-intake';
+const STRIPE_BASE = 'https://ai4-product-purchasing.ai4businesses.org/capgen-offer.html?type=capgen';
 const token = new URLSearchParams(location.search).get('t') || '';
 let allOpps = [], clientData = null;
 
 // Set up CTAs immediately — href set before API call so clicks always work
 if (token) {
-  document.getElementById('subCta').href = STRIPE_BASE + '?demo_token=' + encodeURIComponent(token);
+  document.getElementById('subCta').href = STRIPE_BASE + '&demo_token=' + encodeURIComponent(token);
   const oppBtn = document.getElementById('oppBtn');
   oppBtn.href = '/opportunity?t=' + encodeURIComponent(token);
   oppBtn.style.display = 'inline-block';
