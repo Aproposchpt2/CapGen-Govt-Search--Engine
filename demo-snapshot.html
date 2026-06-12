@@ -215,7 +215,7 @@ if (token) {
   const oppBtn = document.getElementById('oppBtn');
   oppBtn.href = '/opportunity?t=' + encodeURIComponent(token);
   oppBtn.style.display = 'inline-block';
-  sessionStorage.setItem('demo_view_token', token);
+  localStorage.setItem('demo_view_token', token);
 }
 
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -297,7 +297,7 @@ async function load() {
     const rule   = document.getElementById('bizRule');
     banner.textContent = (clientData.name || 'Your Business') + ' — Contract Dashboard';
     rule.textContent   = 'Sourced from official public records.';
-    sessionStorage.setItem('demo_uei', clientData.uei || '');
+    // uei stored in snapshot — no need to duplicate in sessionStorage
 
     // Opportunity Dashboard link
     const oppBtn = document.getElementById('oppBtn');
