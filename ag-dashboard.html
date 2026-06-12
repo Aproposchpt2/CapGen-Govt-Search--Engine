@@ -350,7 +350,7 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:14p
 </div><!-- end #auth-app -->
 
 <script>
-const UEI = 'YVNXN3XBUSD5';
+const UEI = sessionStorage.getItem('capgen_uei') || 'YVNXN3XBUSD5';
 let allOpps = [];
 let naicsClient = [];
 let renderedOpps = [];
