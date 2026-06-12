@@ -204,8 +204,26 @@ async function createSnapshot(uei,businessName){
     clearInterval(procTimer);
     if(res.status===429){hide('step3');show('step1');setErr('step1Err',data.message||'Daily demo limit reached. Please try again tomorrow.');return;}
     if(!res.ok) throw new Error(data.error||'Creation failed');
-    if(data.view_token) window.location.href='/demo/snapshot?t='+encodeURIComponent(data.view_token);
-    else throw new Error('No view_token returned');
+    if(!data.view_token) throw new Error('No view_token returned');
+
+    // Cached path — surface it visibly, never silently redirect
+    if(data.cached){
+      hide('step3'); show('step1');
+      const dateStr = data.cached_date
+        ? new Date(data.cached_date).toLocaleDateString('en-US',{month:'long',day:'numeric'})
+        : 'a previous session';
+      setErr('step1Err',
+        'A snapshot for this email already exists (from ' + dateStr + '). '
+        + '<a href="/demo/snapshot?t=' + encodeURIComponent(data.view_token)
+        + '" style="color:#6EE7A8;font-weight:700">View your existing snapshot →</a> '
+        + 'or use a different email for a fresh one.'
+      );
+      const btn=document.getElementById('lookupBtn');
+      btn.disabled=false; btn.textContent='See My Opportunities →';
+      return;
+    }
+
+    window.location.href='/demo/snapshot?t='+encodeURIComponent(data.view_token);
   }catch(e){
     clearInterval(procTimer);
     hide('step3'); show('step1');
