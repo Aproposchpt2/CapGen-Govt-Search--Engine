@@ -178,6 +178,7 @@ async function loadClientAndRedirect(email) {
     const subs = await subRes.json();
     if (Array.isArray(subs) && subs[0]) {
       const sub = subs[0];
+      localStorage.setItem('is_subscriber', '1'); // hide Subscribe bar on all demo pages
       if (sub.demo_token) {
         localStorage.setItem('demo_view_token', sub.demo_token);
         window.location.href = '/demo/snapshot?t=' + encodeURIComponent(sub.demo_token);
