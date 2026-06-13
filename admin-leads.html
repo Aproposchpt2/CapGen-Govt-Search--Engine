@@ -156,9 +156,17 @@ const SUPA     = 'https://judislfknmhofcgzyozc.supabase.co';
 const ANON     = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1ZGlzbGZrbm1ob2ZjZ3p5b3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMDI3ODAsImV4cCI6MjA5Mjc3ODc4MH0.Kxpe0kJt0k7ZchYu70BOwm4KdT0C5aSsyeR1ov6NlQ0';
 const ADMIN    = 'jmitchell@aproposgroupllc.com';
 
-// Auth gate
-const sess = JSON.parse(sessionStorage.getItem('capgen_session') || 'null');
-if (!sess || sess.email !== ADMIN) { window.location.href = '/onboarding'; }
+// Auth gate — accept active session OR persistent demo token on this device
+const sess      = JSON.parse(sessionStorage.getItem('capgen_session') || 'null');
+const hasToken  = !!localStorage.getItem('demo_view_token');
+const sessOk    = sess && sess.email === ADMIN;
+if (!sessOk && !hasToken) {
+  document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;font-family:Jost,sans-serif;color:#f0f6ff;background:#0A1A3A">'
+    + '<p style="font-size:1rem;color:#8facd0">Admin access required.</p>'
+    + '<a href="/onboarding" style="background:#5BD3FF;color:#0A1A3A;font-weight:700;padding:12px 28px;border-radius:10px;text-decoration:none">Member Login →</a>'
+    + '</div>';
+  throw new Error('not authorized');
+}
 
 let allData     = [];
 let betaEmails  = new Set();
