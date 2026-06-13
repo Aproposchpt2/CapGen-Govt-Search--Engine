@@ -228,7 +228,18 @@ function renderReport(row) {
   const m   = s1.match || {};
   const rec = row.recommendation || 'PENDING';
   const cls = recClass(rec);
-  const dl  = opp ? deadlineDays(opp.response_deadline || opp.deadline) : null;
+
+  // Use sessionStorage opp if available, fall back to metadata stored in stage1 by the backend
+  const oppTitle    = (opp && opp.title)        || s1._title    || noticeId;
+  const oppAgency   = (opp && opp.agency)       || s1._agency   || '—';
+  const oppNaics    = (opp && opp.naics)        || s1._naics    || '—';
+  const oppSetAside = (opp && opp.set_aside)    || s1._set_aside|| '';
+  const oppDeadline = (opp && (opp.response_deadline || opp.deadline)) || s1._deadline || null;
+
+  // Update banner title now that we have it
+  document.getElementById('bannerTitle').textContent = oppTitle.slice(0, 70);
+
+  const dl    = deadlineDays(oppDeadline);
   const dlCls = deadlineChipClass(dl);
   const dlLabel = dl === null ? 'No deadline' : dl < 1 ? 'Closed' : dl + ' days left';
 
@@ -241,14 +252,14 @@ function renderReport(row) {
       <div class="score-label">Fit Score</div>
     </div>
     <div class="hero-right">
-      <div class="opp-title-hero">${esc(opp ? opp.title : (s1.opportunity_summary || '').slice(0,80))}</div>
-      <div class="opp-agency-hero">${esc(opp ? opp.agency : '')}</div>
+      <div class="opp-title-hero">${esc(oppTitle)}</div>
+      <div class="opp-agency-hero">${esc(oppAgency)}</div>
       <span class="rec-badge ${cls}">${esc(recLabel(rec))}</span>
       <div class="hero-chips">
-        ${opp && opp.naics ? `<span class="hchip hchip-naics">NAICS ${esc(opp.naics)}</span>` : ''}
+        ${oppNaics ? `<span class="hchip hchip-naics">NAICS ${esc(oppNaics)}</span>` : ''}
         <span class="hchip ${dlCls}">${esc(dlLabel)}</span>
-        ${opp && opp.set_aside && opp.set_aside !== 'None' && opp.set_aside !== 'Unrestricted'
-          ? `<span class="hchip hchip-neutral">${esc(opp.set_aside.slice(0,40))}</span>` : ''}
+        ${oppSetAside && oppSetAside !== 'None' && oppSetAside !== 'Unrestricted'
+          ? `<span class="hchip hchip-neutral">${esc(oppSetAside.slice(0,40))}</span>` : ''}
       </div>
     </div>
   </div>`;
@@ -256,10 +267,10 @@ function renderReport(row) {
   // ── Section 1 — Opportunity Summary ────────────────────────────────────────
   html += section(1, 'Opportunity Summary', `
     <table class="meta-table">
-      <tr><td>Agency</td><td>${esc(opp ? opp.agency : '—')}</td></tr>
-      <tr><td>NAICS</td><td>${esc(opp ? opp.naics : '—')}</td></tr>
-      <tr><td>Set-Aside</td><td>${esc(opp ? (opp.set_aside || 'Unrestricted') : '—')}</td></tr>
-      <tr><td>Deadline</td><td>${esc(opp ? fmtDate(opp.response_deadline || opp.deadline) : '—')}</td></tr>
+      <tr><td>Agency</td><td>${esc(oppAgency)}</td></tr>
+      <tr><td>NAICS</td><td>${esc(oppNaics)}</td></tr>
+      <tr><td>Set-Aside</td><td>${esc(oppSetAside || 'Unrestricted')}</td></tr>
+      <tr><td>Deadline</td><td>${esc(fmtDate(oppDeadline))}</td></tr>
       <tr><td>Notice ID</td><td>${esc(noticeId)}</td></tr>
     </table>
     <p style="margin-top:14px">${esc(s1.opportunity_summary || 'Summary not available.')}</p>
@@ -344,7 +355,7 @@ function renderReport(row) {
 
   // ── Action bar ──────────────────────────────────────────────────────────────
   html += `<div class="action-bar">
-    ${opp && opp.url ? `<a href="${esc(opp.url)}" target="_blank" rel="noopener" style="background:var(--cyan);color:#0A1A3A;font-family:'Jost',sans-serif;font-weight:700;font-size:.82rem;padding:10px 22px;border-radius:8px;text-decoration:none">View on SAM.gov →</a>` : ''}
+    <a href="https://sam.gov/opp/${esc(noticeId)}/view" target="_blank" rel="noopener" style="background:var(--cyan);color:#0A1A3A;font-family:'Jost',sans-serif;font-weight:700;font-size:.82rem;padding:10px 22px;border-radius:8px;text-decoration:none">View on SAM.gov →</a>
     <button class="btn-export" onclick="window.print()">Export as PDF ↓</button>
     ${!s2 && (rec === 'BID' || rec === 'CONDITIONAL') ? '' :
       rec !== 'BID' && rec !== 'CONDITIONAL' ? `<button class="btn-stage2" onclick="requestDeep()">Run Full Analysis →</button>` : ''}

@@ -232,9 +232,9 @@ export const handler = async (event) => {
         return { statusCode: 200, body: 'stage1 failed' };
       }
 
-      // Persist Stage 1
+      // Persist Stage 1 — include opp metadata so UI can display without sessionStorage
       await sbPatch(markFilter, {
-        stage1,
+        stage1: Object.assign({ _title: opp.title || '', _agency: opp.agency || '', _naics: opp.naics_code || '', _set_aside: opp.set_aside || '', _deadline: opp.response_deadline || '' }, stage1),
         recommendation,
         fit_score:    fitScore,
         input_tokens: s1Usage.input_tokens || 0,
