@@ -133,6 +133,11 @@
   to = "/beta-welcome.html"
   status = 200
 
+[[redirects]]
+  from = "/admin/leads"
+  to = "/admin-leads.html"
+  status = 200
+
 [[headers]]
   for = "/*"
   [headers.values]

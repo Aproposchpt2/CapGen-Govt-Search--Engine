@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CapGen — Leads Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0A1A3A;--surface:#0f2244;--panel:#132954;--line:rgba(91,175,255,.15);
+  --line2:rgba(91,175,255,.28);--text:#f0f6ff;--muted:#8facd0;--soft:#5a7899;
+  --green:#6EE7A8;--amber:#F59E0B;--cyan:#5BD3FF;--red:#F87171;
+  font-family:'Jost',Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
+
+.top-banner{background:var(--surface);border-bottom:1px solid var(--line2);
+  padding:12px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.banner-title{font-size:.9rem;font-weight:700}
+.badge-admin{background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:var(--amber);
+  font-size:.68rem;font-weight:700;padding:3px 10px;border-radius:5px}
+
+.page{max-width:1280px;margin:0 auto;padding:24px 20px 60px}
+
+/* Stats row */
+.stat-bar{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:20px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 18px;min-width:140px}
+.stat-val{font-size:1.5rem;font-weight:900;line-height:1;color:var(--cyan)}
+.stat-val.green{color:var(--green)}.stat-val.amber{color:var(--amber)}
+.stat-label{font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--soft);margin-top:4px}
+
+/* Controls */
+.controls{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;align-items:center}
+.ctrl-input{background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:8px;
+  color:var(--text);padding:8px 12px;font-size:.84rem;outline:none;font-family:'Jost',sans-serif}
+.ctrl-input:focus{border-color:var(--cyan)}
+.ctrl-select{background:#0f2244;border:1px solid var(--line);border-radius:8px;
+  color:var(--text);padding:8px 12px;font-size:.84rem;outline:none;font-family:'Jost',sans-serif;cursor:pointer}
+.btn-run{background:var(--green);color:#0A1A3A;font-family:'Jost',sans-serif;font-weight:700;
+  font-size:.82rem;padding:9px 18px;border:none;border-radius:8px;cursor:pointer;transition:.15s;white-space:nowrap}
+.btn-run:hover{opacity:.88}
+.btn-run:disabled{opacity:.5;cursor:wait}
+.btn-export{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);color:var(--text);
+  font-family:'Jost',sans-serif;font-weight:700;font-size:.82rem;padding:9px 18px;border-radius:8px;
+  cursor:pointer;transition:.15s}
+.btn-export:hover{background:rgba(255,255,255,.12)}
+.enrich-status{font-size:.78rem;color:var(--muted);margin-left:4px}
+
+/* Table */
+.tbl-wrap{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+table{width:100%;border-collapse:collapse}
+th{font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--soft);
+  padding:10px 14px;text-align:left;border-bottom:1px solid var(--line);background:rgba(255,255,255,.03);white-space:nowrap}
+th.sortable{cursor:pointer}
+th.sortable:hover{color:var(--cyan)}
+td{padding:11px 14px;border-bottom:1px solid rgba(91,175,255,.06);vertical-align:middle;font-size:.84rem}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(91,175,255,.04)}
+.company-name{font-weight:700;color:var(--text);display:block;margin-bottom:2px}
+.company-loc{font-size:.72rem;color:var(--muted)}
+.naics-chip{background:rgba(91,211,255,.1);border:1px solid rgba(91,211,255,.22);color:var(--cyan);
+  padding:2px 7px;border-radius:4px;font-size:.68rem;font-weight:700;display:inline-block}
+.award-val{font-weight:700;color:var(--green)}
+.award-none{color:var(--soft);font-style:italic;font-size:.78rem}
+.status-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.66rem;font-weight:700}
+.status-beta{background:rgba(110,231,168,.15);border:1px solid rgba(110,231,168,.28);color:var(--green)}
+.status-sub{background:rgba(91,211,255,.15);border:1px solid rgba(91,211,255,.28);color:var(--cyan)}
+.status-none{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--soft)}
+.agency-cell{font-size:.72rem;color:var(--muted);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rank{font-size:.78rem;font-weight:700;color:var(--soft);min-width:28px;display:inline-block;text-align:right}
+
+.loading{text-align:center;padding:52px;color:var(--muted)}
+.empty{text-align:center;padding:52px;color:var(--soft)}
+.page-info{font-size:.76rem;color:var(--muted);margin-left:auto}
+
+@media(max-width:900px){
+  th:nth-child(4),td:nth-child(4),th:nth-child(5),td:nth-child(5){display:none}
+  .page{padding:14px 12px 60px}
+}
+</style>
+</head>
+<body>
+
+<div class="top-banner">
+  <span class="banner-title">CapGen — Leads Intelligence Dashboard</span>
+  <span class="badge-admin">ADMIN ONLY</span>
+</div>
+
+<div class="page">
+
+  <!-- Stats -->
+  <div class="stat-bar" id="statBar">
+    <div class="stat"><div class="stat-val" id="s-total">—</div><div class="stat-label">Total Contractors</div></div>
+    <div class="stat"><div class="stat-val green" id="s-enriched">—</div><div class="stat-label">With Award Data</div></div>
+    <div class="stat"><div class="stat-val amber" id="s-unenriched">—</div><div class="stat-label">Not Yet Enriched</div></div>
+    <div class="stat"><div class="stat-val" id="s-beta">—</div><div class="stat-label">Beta Testers</div></div>
+    <div class="stat"><div class="stat-val" id="s-sub">—</div><div class="stat-label">Subscribers</div></div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <input type="search" class="ctrl-input" id="searchInput" placeholder="Search company…" oninput="applyFilters()"/>
+    <select class="ctrl-select" id="naicsFilter" onchange="applyFilters()">
+      <option value="">All NAICS</option>
+    </select>
+    <select class="ctrl-select" id="stateFilter" onchange="applyFilters()">
+      <option value="">All States</option>
+    </select>
+    <select class="ctrl-select" id="statusFilter" onchange="applyFilters()">
+      <option value="">All Status</option>
+      <option value="subscriber">Subscribers</option>
+      <option value="beta">Beta Testers</option>
+      <option value="none">Not Enrolled</option>
+    </select>
+    <select class="ctrl-select" id="awardsFilter" onchange="applyFilters()">
+      <option value="">All Award Levels</option>
+      <option value="1m">$1M+</option>
+      <option value="500k">$500K+</option>
+      <option value="100k">$100K+</option>
+      <option value="0">Has Awards</option>
+      <option value="none">No Awards Found</option>
+    </select>
+    <span class="page-info" id="countLabel"></span>
+    <button class="btn-export" onclick="exportCsv()">Export CSV ↓</button>
+    <button class="btn-run" id="enrichBtn" onclick="runEnrichment()">Run USASpending Enrichment</button>
+    <span class="enrich-status" id="enrichStatus"></span>
+  </div>
+
+  <!-- Table -->
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Company</th>
+          <th>NAICS</th>
+          <th>State</th>
+          <th>Top Agency</th>
+          <th class="sortable" onclick="toggleSort('award')">Total Awards ↕</th>
+          <th>Awards</th>
+          <th>Last Award</th>
+          <th>CapGen Status</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"><tr><td colspan="9" class="loading">Loading…</td></tr></tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+'use strict';
+const SUPA     = 'https://judislfknmhofcgzyozc.supabase.co';
+const ANON     = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1ZGlzbGZrbm1ob2ZjZ3p5b3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMDI3ODAsImV4cCI6MjA5Mjc3ODc4MH0.Kxpe0kJt0k7ZchYu70BOwm4KdT0C5aSsyeR1ov6NlQ0';
+const ADMIN    = 'jmitchell@aproposgroupllc.com';
+
+// Auth gate
+const sess = JSON.parse(sessionStorage.getItem('capgen_session') || 'null');
+if (!sess || sess.email !== ADMIN) { window.location.href = '/onboarding'; }
+
+let allData     = [];
+let betaEmails  = new Set();
+let subEmails   = new Set();
+let sortDir     = 'desc';
+
+function fmt(val) {
+  if (val === null || val === undefined) return null;
+  if (val >= 1000000) return '$' + (val/1000000).toFixed(1) + 'M';
+  if (val >= 1000)    return '$' + (val/1000).toFixed(0)     + 'K';
+  return '$' + val.toLocaleString();
+}
+
+function enrollStatus(row) {
+  const email = row.email || '';
+  if (subEmails.has(email))  return 'subscriber';
+  if (betaEmails.has(email)) return 'beta';
+  return 'none';
+}
+
+function applyFilters() {
+  const q       = (document.getElementById('searchInput').value || '').toLowerCase();
+  const naics   = document.getElementById('naicsFilter').value;
+  const state   = document.getElementById('stateFilter').value;
+  const status  = document.getElementById('statusFilter').value;
+  const awards  = document.getElementById('awardsFilter').value;
+
+  let filtered = allData.filter(function(r) {
+    if (q && !(r.legal_name||'').toLowerCase().includes(q)) return false;
+    if (naics  && r.primary_naics !== naics) return false;
+    if (state  && r.address_state !== state) return false;
+    if (status && enrollStatus(r) !== status) return false;
+    if (awards === '1m')   return (r.total_award_value || 0) >= 1000000;
+    if (awards === '500k') return (r.total_award_value || 0) >= 500000;
+    if (awards === '100k') return (r.total_award_value || 0) >= 100000;
+    if (awards === '0')    return (r.total_award_value || 0) > 0;
+    if (awards === 'none') return r.enriched_at && !r.total_award_value;
+    return true;
+  });
+
+  // Sort by award value
+  filtered.sort(function(a, b) {
+    const av = a.total_award_value || 0, bv = b.total_award_value || 0;
+    return sortDir === 'desc' ? bv - av : av - bv;
+  });
+
+  document.getElementById('countLabel').textContent = filtered.length + ' contractors';
+  renderTable(filtered);
+}
+
+function toggleSort(field) {
+  sortDir = sortDir === 'desc' ? 'asc' : 'desc';
+  applyFilters();
+}
+
+function renderTable(rows) {
+  if (!rows.length) {
+    document.getElementById('tableBody').innerHTML = '<tr><td colspan="9" class="empty">No contractors match the current filters.</td></tr>';
+    return;
+  }
+  document.getElementById('tableBody').innerHTML = rows.map(function(r, i) {
+    const status = enrollStatus(r);
+    const awardFmt = r.total_award_value > 0 ? fmt(r.total_award_value) : null;
+    const statusHtml = status === 'subscriber'
+      ? '<span class="status-badge status-sub">Subscriber</span>'
+      : status === 'beta'
+      ? '<span class="status-badge status-beta">Beta Tester</span>'
+      : '<span class="status-badge status-none">Not Enrolled</span>';
+
+    return '<tr>'
+      + '<td><span class="rank">' + (i+1) + '</span></td>'
+      + '<td><span class="company-name">' + esc(r.legal_name||'—') + '</span>'
+        + '<span class="company-loc">' + esc([r.address_city, r.address_state].filter(Boolean).join(', ') || '—') + '</span></td>'
+      + '<td><span class="naics-chip">' + esc(r.primary_naics||'—') + '</span></td>'
+      + '<td style="font-size:.8rem">' + esc(r.address_state||'—') + '</td>'
+      + '<td class="agency-cell" title="' + esc(r.top_agency||'') + '">' + esc((r.top_agency||'—').split('.')[0].trim()) + '</td>'
+      + '<td>' + (awardFmt ? '<span class="award-val">' + awardFmt + '</span>' : r.enriched_at ? '<span class="award-none">No awards found</span>' : '<span class="award-none">Not enriched</span>') + '</td>'
+      + '<td style="font-size:.8rem;color:var(--muted)">' + (r.award_count || '—') + '</td>'
+      + '<td style="font-size:.78rem;color:var(--muted)">' + (r.last_award_date ? r.last_award_date.slice(0,7) : '—') + '</td>'
+      + '<td>' + statusHtml + '</td>'
+      + '</tr>';
+  }).join('');
+}
+
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function populateDropdowns() {
+  var naicsSet = {}, stateSet = {};
+  allData.forEach(function(r) {
+    if (r.primary_naics) naicsSet[r.primary_naics] = true;
+    if (r.address_state) stateSet[r.address_state] = true;
+  });
+  var nOpt = 'style="background:#0f2244;color:#f0f6ff"';
+  document.getElementById('naicsFilter').innerHTML = '<option value="" ' + nOpt + '>All NAICS</option>'
+    + Object.keys(naicsSet).sort().map(function(n){ return '<option value="' + n + '" ' + nOpt + '>' + n + '</option>'; }).join('');
+  document.getElementById('stateFilter').innerHTML = '<option value="" ' + nOpt + '>All States</option>'
+    + Object.keys(stateSet).sort().map(function(s){ return '<option value="' + s + '" ' + nOpt + '>' + s + '</option>'; }).join('');
+}
+
+function updateStats() {
+  const enriched   = allData.filter(r => r.enriched_at).length;
+  const unenriched = allData.length - enriched;
+  document.getElementById('s-total').textContent     = allData.length;
+  document.getElementById('s-enriched').textContent  = enriched;
+  document.getElementById('s-unenriched').textContent= unenriched;
+  document.getElementById('s-beta').textContent      = betaEmails.size;
+  document.getElementById('s-sub').textContent       = subEmails.size;
+}
+
+function exportCsv() {
+  const q      = (document.getElementById('searchInput').value || '').toLowerCase();
+  const naics  = document.getElementById('naicsFilter').value;
+  const state  = document.getElementById('stateFilter').value;
+  const status = document.getElementById('statusFilter').value;
+
+  let rows = allData.filter(function(r) {
+    if (q && !(r.legal_name||'').toLowerCase().includes(q)) return false;
+    if (naics  && r.primary_naics !== naics) return false;
+    if (state  && r.address_state !== state) return false;
+    if (status && enrollStatus(r) !== status) return false;
+    return true;
+  }).sort(function(a,b){ return (b.total_award_value||0) - (a.total_award_value||0); });
+
+  const header = ['Company','NAICS','City','State','Total Awards','Award Count','Last Award','Top Agency','CapGen Status'];
+  const csv    = [header, ...rows.map(function(r) {
+    return [
+      r.legal_name, r.primary_naics, r.address_city, r.address_state,
+      r.total_award_value || 0, r.award_count || 0,
+      r.last_award_date || '', r.top_agency || '',
+      enrollStatus(r),
+    ].map(function(v){ return '"' + String(v||'').replace(/"/g,'""') + '"'; }).join(',');
+  })].map(function(r){ return Array.isArray(r) ? r.join(',') : r.join(','); }).join('\n');
+
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  a.download = 'capgen-leads-' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+}
+
+async function runEnrichment() {
+  const btn = document.getElementById('enrichBtn');
+  const lbl = document.getElementById('enrichStatus');
+  btn.disabled = true;
+  lbl.textContent = 'Running batch 1…';
+
+  let offset = 0, totalProcessed = 0, totalEnriched = 0;
+
+  try {
+    while (true) {
+      const res  = await fetch('/.netlify/functions/usaspending-enrich', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ admin_email: ADMIN, batch_size: 20, offset }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Enrichment failed');
+
+      totalProcessed += data.processed;
+      totalEnriched  += data.enriched;
+      lbl.textContent = `Processed ${totalProcessed} · ${totalEnriched} with awards…`;
+
+      if (!data.next_offset) break;
+      offset = data.next_offset;
+      await new Promise(r => setTimeout(r, 1000));
+    }
+    lbl.style.color = '#6EE7A8';
+    lbl.textContent = `Done — ${totalEnriched} of ${totalProcessed} have federal awards. Refreshing…`;
+    setTimeout(function() { location.reload(); }, 2000);
+  } catch(e) {
+    lbl.style.color = '#F87171';
+    lbl.textContent = 'Error: ' + e.message;
+    btn.disabled = false;
+  }
+}
+
+async function load() {
+  try {
+    // Load contractors + enrolled emails in parallel
+    const [contractorRes, betaRes, subRes] = await Promise.all([
+      fetch(SUPA + '/rest/v1/contractors?sam_status=eq.Active&select=id,legal_name,primary_naics,naics_codes,address_city,address_state,uei,cage,total_award_value,award_count,last_award_date,top_agency,enriched_at&order=total_award_value.desc.nullslast&limit=1000',
+        { headers: { apikey: ANON, Authorization: 'Bearer ' + ANON } }),
+      fetch(SUPA + '/rest/v1/beta_testers?select=email&status=eq.active',
+        { headers: { apikey: ANON, Authorization: 'Bearer ' + ANON } }),
+      fetch(SUPA + '/rest/v1/capgen_subscriptions?select=email',
+        { headers: { apikey: ANON, Authorization: 'Bearer ' + ANON } }),
+    ]);
+
+    allData    = await contractorRes.json();
+    const beta = await betaRes.json();
+    const subs = await subRes.json();
+
+    betaEmails = new Set((beta || []).map(b => b.email));
+    subEmails  = new Set((subs || []).map(s => s.email));
+
+    updateStats();
+    populateDropdowns();
+    applyFilters();
+
+  } catch(e) {
+    document.getElementById('tableBody').innerHTML =
+      '<tr><td colspan="9" class="empty" style="color:var(--red)">Error loading data: ' + esc(e.message) + '</td></tr>';
+  }
+}
+
+load();
+</script>
+</body>
+</html>
