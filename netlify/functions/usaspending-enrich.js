@@ -19,10 +19,22 @@ function sbH(extra = {}) {
   return { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json', ...extra };
 }
 
+// Check if a USASpending recipient name is close enough to our search name
+function nameMatches(returned, searched) {
+  const normalize = s => (s || '').toLowerCase()
+    .replace(/\s+(llc|inc|corp|co|ltd|dba|lp|llp|pllc)\.?$/g, '')
+    .replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
+  const a = normalize(returned), b = normalize(searched);
+  if (!a || !b) return false;
+  // Exact or one contains the other (at least 80% of the shorter string)
+  if (a === b) return true;
+  const shorter = a.length < b.length ? a : b;
+  const longer  = a.length < b.length ? b : a;
+  return longer.includes(shorter) && shorter.length >= Math.floor(longer.length * 0.6);
+}
+
 async function getAwardTotals(cage, legalName) {
-  // Search by company name — most reliable cross-reference for this dataset
-  const searchTerm = legalName;
-  const filters = { recipient_search_text: [searchTerm], award_type_codes: ['A','B','C','D'] };
+  const filters = { recipient_search_text: [legalName], award_type_codes: ['A','B','C','D'] };
 
   try {
     const res = await fetch(USA_SPENDING, {
@@ -33,7 +45,7 @@ async function getAwardTotals(cage, legalName) {
           ...filters,
           time_period: [{ start_date: '2022-01-01', end_date: '2026-12-31' }],
         },
-        fields: ['Award ID', 'Award Amount', 'Awarding Agency', 'Period of Performance Start Date'],
+        fields: ['Award ID', 'Recipient Name', 'Award Amount', 'Awarding Agency', 'Period of Performance Start Date'],
         sort: 'Award Amount',
         order: 'desc',
         limit: 100,
@@ -44,7 +56,12 @@ async function getAwardTotals(cage, legalName) {
 
     if (!res.ok) return null;
     const data = await res.json();
-    const awards = (data.results || []).filter(a => (a['Award Amount'] || 0) > 0);
+    // Validate recipient name before accepting — prevents false positives from partial name matches
+    const awards = (data.results || []).filter(a => {
+      if ((a['Award Amount'] || 0) <= 0) return false;
+      const recipientName = a['Recipient Name'] || '';
+      return nameMatches(recipientName, legalName);
+    });
     if (!awards.length) return null;
 
     const total       = awards.reduce((sum, a) => sum + (a['Award Amount'] || 0), 0);
