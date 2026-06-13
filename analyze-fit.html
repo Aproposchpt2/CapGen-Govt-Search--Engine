@@ -435,7 +435,7 @@ async function requestDeep() {
 }
 
 async function runAnalysis(force = false) {
-  if (!noticeId || !sessionTok) return;
+  if (!noticeId || (!sessionTok && !betaToken)) return;
 
   startProgress();
   document.getElementById('loadingEl').style.display = 'block';
