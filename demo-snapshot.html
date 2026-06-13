@@ -180,8 +180,8 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:14p
       <button class="win-btn" data-days="7">7 Days</button>
     </div>
     <input type="search" class="search-input" id="searchInput" placeholder="Search title or agency…"/>
-    <select id="stateFilter" class="search-input" style="min-width:0;width:auto;padding:8px 12px;cursor:pointer">
-      <option value="">All States</option>
+    <select id="stateFilter" class="search-input" style="min-width:0;width:auto;padding:8px 12px;cursor:pointer;background:#0f2244;color:#f0f6ff">
+      <option value="" style="background:#0f2244;color:#f0f6ff">All States</option>
     </select>
     <span class="count-badge" id="countBadge"></span>
   </div>
@@ -309,9 +309,10 @@ function populateStateDropdown() {
   var sorted = Object.keys(states).sort();
   var sel = document.getElementById('stateFilter');
   var cur = sel.value;
-  sel.innerHTML = '<option value="">All States</option>'
-    + (hasNational ? '<option value="national">National / Not Specified</option>' : '')
-    + sorted.map(function(s) { return '<option value="' + s + '">' + s + '</option>'; }).join('');
+  var opt = 'style="background:#0f2244;color:#f0f6ff"';
+  sel.innerHTML = '<option value="" ' + opt + '>All States</option>'
+    + (hasNational ? '<option value="national" ' + opt + '>National / Not Specified</option>' : '')
+    + sorted.map(function(s) { return '<option value="' + s + '" ' + opt + '>' + s + '</option>'; }).join('');
   sel.value = cur;
 }
 
