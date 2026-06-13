@@ -114,6 +114,11 @@ document.getElementById('verifyBtn').addEventListener('click', async function() 
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Invalid code.');
 
+    // Clear any stale token from a previous session under a different email
+    localStorage.removeItem('demo_view_token');
+    localStorage.removeItem('demo_biz_name');
+    localStorage.removeItem('is_subscriber');
+
     // Persist session
     sessionStorage.setItem('pipeline_session', data.token);
     sessionStorage.setItem('capgen_email', currentEmail);

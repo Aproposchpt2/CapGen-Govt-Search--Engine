@@ -90,6 +90,6 @@ exports.handler = async (event) => {
   return {
     statusCode: 200,
     headers,
-    body: JSON.stringify({ ok: true, token, email, view_token: viewToken, is_subscriber: isSubscriber }),
+    body: JSON.stringify({ ok: true, token, email, view_token: viewToken, is_subscriber: isSubscriber, clear_stale: true }),
   };
 };
