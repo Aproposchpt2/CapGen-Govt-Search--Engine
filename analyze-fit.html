@@ -8,6 +8,15 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital@1&family=Jost:wght@400;600;700&display=swap" rel="stylesheet">
 <script>if(localStorage.getItem('is_subscriber')||sessionStorage.getItem('pipeline_session')){document.documentElement.style.setProperty('--sub-bar','none');}</script>
 <style>
+/* Progress bar */
+#progress-bar{position:fixed;top:0;left:0;height:3px;width:0%;z-index:9999;
+  background:linear-gradient(90deg,var(--cyan,#5BD3FF),var(--green,#6EE7A8));
+  transition:width .4s ease,opacity .5s ease;box-shadow:0 0 8px rgba(91,211,255,.6)}
+#progress-bar.running{animation:progress-run 12s ease-out forwards}
+#progress-bar.done{width:100%!important;opacity:0}
+@keyframes progress-run{0%{width:0%}40%{width:55%}70%{width:72%}90%{width:84%}100%{width:88%}}
+</style>
+<style>
 :root{
   --bg:#0A1A3A;--surface:#0f2244;--panel:#132954;--line:rgba(91,175,255,.15);
   --line2:rgba(91,175,255,.28);--text:#f0f6ff;--muted:#8facd0;--soft:#5a7899;
@@ -138,6 +147,7 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:14p
 </style>
 </head>
 <body>
+<div id="progress-bar"></div>
 
 <div class="top-banner">
   <span class="banner-title" id="bannerTitle">Analyze Fit</span>
@@ -175,6 +185,18 @@ document.getElementById('backBtn').href = token ? '/opportunity?t=' + encodeURIC
 if (opp) document.getElementById('bannerTitle').textContent = (opp.title || 'Analyze Fit').slice(0, 60);
 
 if (!sessionTok) { window.location.href = '/onboarding'; }
+
+const progressBar = document.getElementById('progress-bar');
+
+function startProgress() {
+  progressBar.classList.remove('done');
+  progressBar.classList.add('running');
+}
+
+function completeProgress() {
+  progressBar.classList.remove('running');
+  progressBar.classList.add('done');
+}
 
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
@@ -362,6 +384,7 @@ function renderReport(row) {
   </div>
   <p class="trust-line">Analysis based on official public records and your registered capability profile.</p>`;
 
+  completeProgress();
   document.getElementById('reportEl').innerHTML = html;
   document.getElementById('reportEl').style.display = 'block';
   document.getElementById('loadingEl').style.display = 'none';
@@ -376,6 +399,7 @@ async function requestDeep() {
 async function runAnalysis(force = false) {
   if (!noticeId || !sessionTok) return;
 
+  startProgress();
   document.getElementById('loadingEl').style.display = 'block';
   document.getElementById('reportEl').style.display  = 'none';
 
