@@ -132,7 +132,8 @@ exports.handler = async (event) => {
       We'll check in around day 10 for your honest feedback. That's all we ask.
     </p>
     <a href="${dashboardUrl}" style="display:block;background:#6EE7A8;color:#0A1A3A;font-weight:700;font-size:15px;padding:16px;border-radius:10px;text-align:center;text-decoration:none;">Open My Dashboard →</a>
-    <p style="margin:20px 0 0;font-size:11px;color:#2a3f52;font-style:italic;text-align:center;">CapGen intelligence is sourced from official public records.</p>
+    <p style="margin:16px 0 0;font-size:12px;color:#3a5470;text-align:center;">Need your link again? Visit <a href="https://capgen.aproposgroupllc.com/beta" style="color:#5BD3FF;text-decoration:none;font-weight:700">capgen.aproposgroupllc.com/beta</a></p>
+    <p style="margin:10px 0 0;font-size:11px;color:#2a3f52;font-style:italic;text-align:center;">CapGen intelligence is sourced from official public records.</p>
   </div>
 </div>`,
       }),
