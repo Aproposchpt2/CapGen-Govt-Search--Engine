@@ -106,9 +106,11 @@ exports.handler = async (event) => {
   const offset    = body.offset || 0;
 
   // Load batch of contractors not yet enriched (or force re-enrich if force=true)
+  // When filtering by enriched_at=is.null, never use offset — the pool shrinks as rows are enriched,
+  // so offset causes rows to be skipped. Always grab the first N unenriched rows.
   const filter = body.force
     ? `sam_status=eq.Active&order=legal_name.asc&limit=${batchSize}&offset=${offset}`
-    : `sam_status=eq.Active&enriched_at=is.null&order=legal_name.asc&limit=${batchSize}&offset=${offset}`;
+    : `sam_status=eq.Active&enriched_at=is.null&order=legal_name.asc&limit=${batchSize}`;
 
   const res = await fetch(
     `${SUPABASE_URL}/rest/v1/contractors?${filter}&select=id,legal_name,cage`,

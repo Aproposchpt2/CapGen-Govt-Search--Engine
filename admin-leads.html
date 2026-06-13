@@ -313,24 +313,24 @@ async function runEnrichment() {
   btn.disabled = true;
   lbl.textContent = 'Running batch 1…';
 
-  let offset = 0, totalProcessed = 0, totalEnriched = 0;
+  let totalProcessed = 0, totalEnriched = 0;
 
   try {
     while (true) {
       const res  = await fetch('/.netlify/functions/usaspending-enrich', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ admin_email: ADMIN, batch_size: 20, offset }),
+        body: JSON.stringify({ admin_email: ADMIN, batch_size: 20 }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Enrichment failed');
 
-      totalProcessed += data.processed;
-      totalEnriched  += data.enriched;
+      totalProcessed += (data.processed || 0);
+      totalEnriched  += (data.enriched  || 0);
       lbl.textContent = `Processed ${totalProcessed} · ${totalEnriched} with awards…`;
 
-      if (!data.next_offset) break;
-      offset = data.next_offset;
+      // Stop when no more unenriched rows returned
+      if (!data.processed || data.processed === 0) break;
       await new Promise(r => setTimeout(r, 1000));
     }
     lbl.style.color = '#6EE7A8';
