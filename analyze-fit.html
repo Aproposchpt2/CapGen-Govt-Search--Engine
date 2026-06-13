@@ -490,10 +490,15 @@ async function poll(rowId) {
     const res  = await fetch('/.netlify/functions/analyze-fit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sessionTok },
-      body: JSON.stringify({ opportunityId: noticeId, deep: true, opportunity: opp ? {
-        title: opp.title, agency: opp.agency, naics: opp.naics,
-        set_aside: opp.set_aside, deadline: opp.response_deadline || opp.deadline,
-      } : undefined }),
+      body: JSON.stringify({
+        opportunityId: noticeId,
+        deep: true,
+        beta_token: betaToken || undefined,
+        opportunity: opp ? {
+          title: opp.title, agency: opp.agency, naics: opp.naics,
+          set_aside: opp.set_aside, deadline: opp.response_deadline || opp.deadline,
+        } : undefined,
+      }),
     });
     const data = await res.json();
 

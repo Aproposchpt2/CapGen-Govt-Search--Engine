@@ -96,6 +96,11 @@ export const handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: CORS, body: '' };
   if (event.httpMethod !== 'POST')    return { statusCode: 405, headers: CORS, body: JSON.stringify({ error: 'POST only' }) };
 
+  // Parse body FIRST — auth reads beta_token from it
+  let body;
+  try { body = JSON.parse(event.body || '{}'); }
+  catch { return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Invalid JSON' }) }; }
+
   // Auth: subscriber session first, then beta token
   let accountEmail = await verifySession(event.headers?.authorization || event.headers?.Authorization || '');
   let isBetaUser   = false;
@@ -105,16 +110,14 @@ export const handler = async (event) => {
   }
   if (!accountEmail) return { statusCode: 401, headers: CORS, body: JSON.stringify({ error: 'UNAUTHORIZED' }) };
 
-  let body;
-  try { body = JSON.parse(event.body || '{}'); }
-  catch { return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Invalid JSON' }) }; }
-
   const { opportunityId, force = false, deep = false, opportunity: inlineOpp } = body;
   if (!opportunityId) return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'opportunityId required' }) };
 
-  // Load profile from demo_snapshots
-  const snaps = await sbGet(`demo_snapshots?requester_email=eq.${encodeURIComponent(accountEmail)}&order=created_at.desc&limit=1`);
-  if (!snaps.length) return { statusCode: 409, headers: CORS, body: JSON.stringify({ error: 'PROFILE_REQUIRED' }) };
+  // Beta users have no demo_snapshots row — profile is in beta_testers (loaded by background)
+  if (!isBetaUser) {
+    const snaps = await sbGet(`demo_snapshots?requester_email=eq.${encodeURIComponent(accountEmail)}&order=created_at.desc&limit=1`);
+    if (!snaps.length) return { statusCode: 409, headers: CORS, body: JSON.stringify({ error: 'PROFILE_REQUIRED' }) };
+  }
 
   // Cache check
   const aeEnc  = encodeURIComponent(accountEmail);
@@ -170,7 +173,7 @@ export const handler = async (event) => {
   } catch (e) {
     // Unique constraint → another request already in flight, return that row
     const inFlight = await sbGet(
-      `opportunity_analyses?account_email=eq.${aeEnc}&opportunity_id=eq.${oidEnc}&profile_version=eq.${profile.profile_version}&limit=1`
+      `opportunity_analyses?account_email=eq.${aeEnc}&opportunity_id=eq.${oidEnc}&profile_version=eq.0&limit=1`
     );
     if (inFlight.length) return { statusCode: 200, headers: CORS, body: JSON.stringify({ ...inFlight[0], cached: true }) };
     return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: 'Insert failed: ' + e.message }) };
@@ -178,7 +181,7 @@ export const handler = async (event) => {
 
   // Await the trigger — MUST await or the fetch is killed when handler returns
   await fireBackground({ rowId: row.id, accountEmail, opportunityId,
-    profileVersion: 0, deep, skipStage1: false, opportunity: inlineOpp });
+    profileVersion: 0, isBeta: isBetaUser, deep, skipStage1: false, opportunity: inlineOpp });
 
   return { statusCode: 202, headers: CORS, body: JSON.stringify({ id: row.id, status: 'pending', opportunity_id: opportunityId, cached: false }) };
 };

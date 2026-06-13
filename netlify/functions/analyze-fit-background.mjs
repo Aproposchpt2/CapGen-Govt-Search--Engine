@@ -172,7 +172,7 @@ export const handler = async (event) => {
   try { body = JSON.parse(event.body || '{}'); }
   catch { return { statusCode: 400, body: 'Invalid JSON' }; }
 
-  const { rowId, accountEmail, opportunityId, profileVersion, deep = false, skipStage1 = false, opportunity: inlineOpp } = body;
+  const { rowId, accountEmail, opportunityId, profileVersion, isBeta = false, deep = false, skipStage1 = false, opportunity: inlineOpp } = body;
   if (!rowId) return { statusCode: 400, body: 'rowId required' };
 
   console.log(`[bg] Starting analysis rowId=${rowId} skipStage1=${skipStage1} deep=${deep}`);
@@ -181,26 +181,48 @@ export const handler = async (event) => {
   const markFilter = `id=eq.${rowId}`;
 
   try {
-    // Load profile from demo_snapshots
-    const snaps = await sbGet(`demo_snapshots?requester_email=eq.${encodeURIComponent(accountEmail)}&order=created_at.desc&limit=1`);
-    if (!snaps.length) {
-      await sbPatch(markFilter, { status: 'failed', stage1: { error: 'Profile not found' } });
-      return { statusCode: 200, body: 'no profile' };
+    // Load profile — beta users read from beta_testers; subscribers from demo_snapshots
+    let profile;
+    if (isBeta) {
+      const testers = await sbGet(`beta_testers?email=eq.${encodeURIComponent(accountEmail)}&limit=1`);
+      if (!testers.length) {
+        await sbPatch(markFilter, { status: 'failed', stage1: { error: 'Beta profile not found' } });
+        return { statusCode: 200, body: 'no beta profile' };
+      }
+      const t = testers[0];
+      profile = {
+        business_name:    t.company_name || '',
+        uei:              '',
+        cage:             t.cage_code || '',
+        naics:            [t.primary_naics, ...(t.additional_naics || [])].filter(Boolean),
+        set_asides:       [],
+        certifications:   [],
+        capabilities:     'IT services, computer systems design',
+        past_performance: 'Not specified',
+        team_size:        'Not specified',
+        keywords:         [],
+      };
+    } else {
+      const snaps = await sbGet(`demo_snapshots?requester_email=eq.${encodeURIComponent(accountEmail)}&order=created_at.desc&limit=1`);
+      if (!snaps.length) {
+        await sbPatch(markFilter, { status: 'failed', stage1: { error: 'Profile not found' } });
+        return { statusCode: 200, body: 'no profile' };
+      }
+      const snap    = snaps[0];
+      const rawProf = snap.profile || {};
+      profile = {
+        business_name:    rawProf.legal_name || snap.business_name || '',
+        uei:              rawProf.uei  || '',
+        cage:             rawProf.cage || '',
+        naics:            (rawProf.naics || []).map(n => n.code || n),
+        set_asides:       rawProf.set_asides || [],
+        certifications:   rawProf.set_asides || [],
+        capabilities:     rawProf.capabilities || 'IT services, computer programming, systems design',
+        past_performance: rawProf.past_performance || 'Not specified',
+        team_size:        rawProf.team_size || 'Not specified',
+        keywords:         rawProf.keywords || [],
+      };
     }
-    const snap    = snaps[0];
-    const rawProf = snap.profile || {};
-    const profile = {
-      business_name:  rawProf.legal_name || snap.business_name || '',
-      uei:            rawProf.uei  || '',
-      cage:           rawProf.cage || '',
-      naics:          (rawProf.naics || []).map(n => n.code || n),
-      set_asides:     rawProf.set_asides || [],
-      certifications: rawProf.set_asides || [],
-      capabilities:   rawProf.capabilities || 'IT services, computer programming, systems design',
-      past_performance: rawProf.past_performance || 'Not specified',
-      team_size:      rawProf.team_size || 'Not specified',
-      keywords:       rawProf.keywords || [],
-    };
 
     // Load existing row (to get stage1 if skipStage1)
     const existingRows = await sbGet(`opportunity_analyses?id=eq.${rowId}&limit=1`);
