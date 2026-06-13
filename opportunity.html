@@ -387,19 +387,16 @@ function setStateFilter(s) {
   renderPage();
 }
 
+var US_STATES = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA',
+  'KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY',
+  'NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'];
+
 function populateStateDropdown() {
-  var states = {};
-  var hasNational = false;
-  allOpps.forEach(function(o) {
-    if (o.state) states[o.state] = true;
-    else hasNational = true;
-  });
-  var sorted = Object.keys(states).sort();
-  var sel = document.getElementById('stateFilter');
   var opt = 'style="background:#0f2244;color:#f0f6ff"';
+  var sel = document.getElementById('stateFilter');
   sel.innerHTML = '<option value="" ' + opt + '>All States</option>'
-    + (hasNational ? '<option value="national" ' + opt + '>National / Not Specified</option>' : '')
-    + sorted.map(function(s) { return '<option value="' + s + '" ' + opt + '>' + s + '</option>'; }).join('');
+    + '<option value="national" ' + opt + '>National / Not Specified</option>'
+    + US_STATES.map(function(s) { return '<option value="' + s + '" ' + opt + '>' + s + '</option>'; }).join('');
 }
 
 function changePage(delta) {
@@ -458,8 +455,13 @@ function renderPage() {
   document.getElementById('nextBtn').disabled = end >= total;
 
   if (!page.length) {
+    var stateMsg = currentState && currentState !== 'national'
+      ? 'No current open contracts matching your capability profile in ' + currentState + ' at this time.'
+      : currentState === 'national'
+      ? 'No national-scope contracts found for your profile right now — try All States.'
+      : 'No matches in this window — try a wider date range or different filter.';
     document.getElementById('cardsEl').innerHTML =
-      '<div style="text-align:center;padding:40px;color:var(--soft)">No matches in this window — try a wider date range.</div>';
+      '<div style="text-align:center;padding:40px;color:var(--soft)">' + stateMsg + '</div>';
     return;
   }
 
