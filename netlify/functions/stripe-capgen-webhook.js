@@ -162,8 +162,13 @@ var PLAN_CONFIG = {
 //      also keeps tier correct on later plan upgrades/downgrades.
 // TEST price IDs. Add LIVE price IDs here when promoting to production.
 var PRICE_TO_TIER = {
-  'price_1TihYEB1NkJ0LaToaH8hsv5v': 'scout',     // CapGen Scout    $119.99/mo (test) — replaces price_1TifH4… ($119.00)
-  'price_1TifJBB1NkJ0LaToksLpaD17': 'operator',  // CapGen Operator $199.99/mo (test)
+  // LIVE
+  'price_1TifAUBMRgYNYb8DTXjPV6c7': 'scout',     // CapGen Scout     $119.99/mo (LIVE)
+  'price_1TifEFBMRgYNYb8DLy3REnjC': 'operator',  // CapGen Operator  $199.99/mo (LIVE)
+  'price_1TifFCBMRgYNYb8DjRa6jkhA': 'commander', // CapGen Commander $347.99/mo (LIVE)
+  // TEST
+  'price_1TihYEB1NkJ0LaToaH8hsv5v': 'scout',     // CapGen Scout     $119.99/mo (test)
+  'price_1TifJBB1NkJ0LaToksLpaD17': 'operator',  // CapGen Operator  $199.99/mo (test)
   'price_1TifKNB1NkJ0LaToosUWKTfM': 'commander', // CapGen Commander $347.99/mo (test)
 };
 var AMOUNT_TO_TIER = { 11999: 'scout', 19999: 'operator', 34799: 'commander' };
@@ -392,8 +397,12 @@ async function handleSubscriptionUpsert(subscription, livemode) {
     updated_at:             new Date().toISOString(),
   };
   if (item.price && item.price.unit_amount != null) patch.plan_amount = item.price.unit_amount / 100;
-  if (subscription.current_period_start) patch.current_period_start = new Date(subscription.current_period_start * 1000).toISOString();
-  if (subscription.current_period_end)   patch.current_period_end   = new Date(subscription.current_period_end * 1000).toISOString();
+  // Period: top-level on older API versions; moved to the line item on
+  // 2025+ versions (e.g. 2026-02-25.clover). Read whichever is present.
+  var pStart = subscription.current_period_start || item.current_period_start;
+  var pEnd   = subscription.current_period_end   || item.current_period_end;
+  if (pStart) patch.current_period_start = new Date(pStart * 1000).toISOString();
+  if (pEnd)   patch.current_period_end   = new Date(pEnd * 1000).toISOString();
 
   await fetch(
     SUPABASE_URL + '/rest/v1/capgen_subscriptions?email=eq.' + encodeURIComponent(email),
