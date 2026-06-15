@@ -255,8 +255,10 @@ async function handleCheckout(session, livemode) {
   // Option A: no snapshot found → generate token for direct subscriber
   if (!demoSnapshotId) {
     var generatedToken = crypto.randomBytes(32).toString('hex');
+    var newSnapshotId  = crypto.randomUUID();
     try {
       await sbInsert('demo_snapshots', {
+        id:                newSnapshotId,
         entity_uei:        '',
         business_name:     name || email,
         requester_email:   email,
@@ -267,7 +269,10 @@ async function handleCheckout(session, livemode) {
         generated_at:      new Date().toISOString(),
       });
       viewToken       = generatedToken;
-      demoSnapshotId  = generatedToken; // used as placeholder
+      // Must be the snapshot's UUID — demo_snapshot_id is a uuid column.
+      // (Was the 64-char view token, which is invalid for uuid and silently
+      //  failed the capgen_subscriptions insert for no-demo subscribers.)
+      demoSnapshotId  = newSnapshotId;
       onboardingState = 'entity_pending';
       console.log('[webhook] Option A: generated token for no-demo subscriber');
     } catch(e) {
