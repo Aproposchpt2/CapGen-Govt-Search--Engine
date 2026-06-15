@@ -1,0 +1,7 @@
+# Netlify local build output — must NOT be committed.
+# Committing .netlify/functions/*.zip + manifest.json makes Netlify deploy
+# those stale prebuilt zips instead of bundling functions from source.
+.netlify/
+
+# Dependencies
+node_modules/
