@@ -64,7 +64,7 @@ async function sbUpsert(table, row) {
     // Preserve-existing fields: only include if new value is non-null
     // (prevents clobbering populated business_name, uei, naics etc.)
     ['business_name','uei','naics','set_asides','demo_snapshot_id',
-     'demo_token','demo_email','first_name','subscription_tier'].forEach(function(f) {
+     'demo_token','demo_email','payer_email','first_name','subscription_tier'].forEach(function(f) {
       if (row[f] !== null && row[f] !== undefined) body[f] = row[f];
     });
   } else {
@@ -211,18 +211,31 @@ async function sendWelcomeEmail(opts) {
 // ── checkout.session.completed ────────────────────────────────────────────────
 
 async function handleCheckout(session, livemode) {
-  var email       = (session.customer_details && session.customer_details.email) || session.customer_email || '';
+  var payerEmail  = (session.customer_details && session.customer_details.email) || session.customer_email || '';
   var name        = (session.customer_details && session.customer_details.name)  || '';
   var firstName   = name.split(' ')[0] || 'there';
   var customerId  = session.customer   || '';
   var subId       = session.subscription || null;
-  var refId       = session.client_reference_id || '';
-  var parts       = refId.split(',');
-  var viewToken   = parts[0] || '';
-  var planKey     = parts[1] || '';
+  var refId       = (session.client_reference_id || '').trim();
+
+  // Account identity comes from client_reference_id (set by the intake/offer page,
+  // NOT editable in the Stripe email field) — this handles the buyer != customer
+  // case: the account/login email is the intake email; the payer email is whoever
+  // actually checked out. An email in client_reference_id = intake-first flow; a
+  // hex string = legacy demo "view_token,planKey".
+  var refEmail = '', viewToken = '', planKey = '';
+  if (refId.indexOf('@') > -1) {
+    refEmail = refId.toLowerCase();
+  } else if (refId) {
+    var parts = refId.split(',');
+    viewToken = parts[0] || '';
+    planKey   = parts[1] || '';
+  }
+  var email = refEmail || payerEmail;   // account email = login / OTP key
 
   if (!email) { console.error('[webhook] no email in session'); return; }
-  console.log('[webhook] checkout email=' + email + ' token=' + (viewToken || 'none') + ' plan=' + (planKey || 'none'));
+  console.log('[webhook] checkout account=' + email + ' payer=' + (payerEmail || 'none')
+    + ' token=' + (viewToken || 'none') + ' plan=' + (planKey || 'none'));
 
   // ── Snapshot lookup (Path A) ──────────────────────────────────────────────
   var onboardingState = 'entity_pending'; // default: no snapshot
@@ -310,6 +323,9 @@ async function handleCheckout(session, livemode) {
     // Store demo email only if it differs from checkout email (mismatch case)
     demo_email:             (demoEmail && demoEmail.toLowerCase() !== email.toLowerCase())
                               ? demoEmail.toLowerCase() : null,
+    // Whoever paid, when it's not the account holder (buyer != customer).
+    payer_email:            (payerEmail && payerEmail.toLowerCase() !== email.toLowerCase())
+                              ? payerEmail.toLowerCase() : null,
     stripe_customer_id:     customerId || null,
     stripe_subscription_id: subId,
     plan_type:              planCfg.plan_type,
