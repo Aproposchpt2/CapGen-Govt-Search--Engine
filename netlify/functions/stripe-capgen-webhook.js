@@ -64,7 +64,7 @@ async function sbUpsert(table, row) {
     // Preserve-existing fields: only include if new value is non-null
     // (prevents clobbering populated business_name, uei, naics etc.)
     ['business_name','uei','naics','set_asides','demo_snapshot_id',
-     'demo_token','demo_email','first_name'].forEach(function(f) {
+     'demo_token','demo_email','first_name','subscription_tier'].forEach(function(f) {
       if (row[f] !== null && row[f] !== undefined) body[f] = row[f];
     });
   } else {
@@ -152,6 +152,21 @@ var PLAN_CONFIG = {
   'agency-monthly':     { plan_type:'agency-monthly',     payment_type:'subscription',   plan_amount:499.99,  days:30  },
   'agency-yearly':      { plan_type:'agency-yearly',      payment_type:'one_time',       plan_amount:4999.99, days:365 },
 };
+
+// ── Tier mapping — 3-tier model (Scout / Operator / Commander) ─────────────────
+// Stripe Payment Links don't set client_reference_id, and checkout.session
+// payloads don't include line items, so tier is detected two ways:
+//   1) checkout.session.completed  → by amount_total (cents)  — guarantees the
+//      row gets a tier immediately regardless of event ordering.
+//   2) customer.subscription.created/updated → by price ID    — authoritative;
+//      also keeps tier correct on later plan upgrades/downgrades.
+// TEST price IDs. Add LIVE price IDs here when promoting to production.
+var PRICE_TO_TIER = {
+  'price_1TifH4B1NkJ0LaToRINtkWrc': 'scout',     // CapGen Scout    $119.99/mo (test)
+  'price_1TifJBB1NkJ0LaToksLpaD17': 'operator',  // CapGen Operator $199.99/mo (test)
+  'price_1TifKNB1NkJ0LaToosUWKTfM': 'commander', // CapGen Commander $347.99/mo (test)
+};
+var AMOUNT_TO_TIER = { 11999: 'scout', 19999: 'operator', 34799: 'commander' };
 
 // ── Welcome email ─────────────────────────────────────────────────────────────
 
@@ -265,6 +280,11 @@ async function handleCheckout(session, livemode) {
   var now       = new Date();
   var periodEnd = new Date(now.getTime() + planCfg.days * 24 * 3600000);
 
+  // ── Tier detection (3-tier model) — by amount_total; price-ID correction
+  //    follows in customer.subscription.created/updated. See maps above.
+  var tier = AMOUNT_TO_TIER[session.amount_total] || null;
+  if (tier) console.log('[webhook] tier from amount_total ' + session.amount_total + ' → ' + tier);
+
   // ── Build subscription row ────────────────────────────────────────────────
   // Keyed on checkout email (source of truth for OTP login — per spec Q6)
   var subRow = {
@@ -284,7 +304,8 @@ async function handleCheckout(session, livemode) {
     stripe_subscription_id: subId,
     plan_type:              planCfg.plan_type,
     payment_type:           planCfg.payment_type,
-    plan_amount:            planCfg.plan_amount,
+    plan_amount:            tier && session.amount_total ? session.amount_total / 100 : planCfg.plan_amount,
+    subscription_tier:      tier,
     current_period_start:   now.toISOString(),
     current_period_end:     periodEnd.toISOString(),
     last_payment_at:        now.toISOString(),
@@ -334,6 +355,50 @@ async function handleCheckout(session, livemode) {
       });
     } catch(e) { console.warn('[webhook] auth user note:', e.message); }
   }
+}
+
+// ── customer.subscription.created / updated ──────────────────────────────────
+// Authoritative tier sync by price ID. Finds the subscriber row by
+// stripe_customer_id (set by handleCheckout). If the row doesn't exist yet
+// (subscription event arrived first), we skip — handleCheckout sets the tier
+// from amount_total, so the tier still lands correctly regardless of ordering.
+
+async function handleSubscriptionUpsert(subscription, livemode) {
+  var customerId = subscription.customer;
+  var item       = (subscription.items && subscription.items.data && subscription.items.data[0]) || {};
+  var priceId    = (item.price && item.price.id) || '';
+  var tier       = PRICE_TO_TIER[priceId] || null;
+  if (!tier) { console.warn('[webhook] sub upsert: unmapped price ' + priceId + ' — skipping'); return; }
+
+  var res = await fetch(
+    SUPABASE_URL + '/rest/v1/capgen_subscriptions?stripe_customer_id=eq.'
+    + encodeURIComponent(customerId) + '&select=email',
+    { headers: sbH() }
+  );
+  if (!res.ok) return;
+  var rows = await res.json();
+  if (!rows.length) {
+    console.warn('[webhook] sub upsert: customer not found yet ' + customerId + ' (checkout will set tier)');
+    return;
+  }
+  var email = rows[0].email;
+
+  var patch = {
+    subscription_tier:      tier,
+    stripe_subscription_id: subscription.id,
+    status:                 (subscription.status === 'active' || subscription.status === 'trialing') ? 'active' : subscription.status,
+    livemode:               livemode,
+    updated_at:             new Date().toISOString(),
+  };
+  if (item.price && item.price.unit_amount != null) patch.plan_amount = item.price.unit_amount / 100;
+  if (subscription.current_period_start) patch.current_period_start = new Date(subscription.current_period_start * 1000).toISOString();
+  if (subscription.current_period_end)   patch.current_period_end   = new Date(subscription.current_period_end * 1000).toISOString();
+
+  await fetch(
+    SUPABASE_URL + '/rest/v1/capgen_subscriptions?email=eq.' + encodeURIComponent(email),
+    { method: 'PATCH', headers: sbH({ Prefer: 'return=minimal' }), body: JSON.stringify(patch) }
+  );
+  console.log('[webhook] tier synced ' + tier + ' for ' + email + ' (price ' + priceId + ')');
 }
 
 // ── customer.subscription.deleted ────────────────────────────────────────────
@@ -396,6 +461,8 @@ exports.handler = async function(event) {
   // ── Route ─────────────────────────────────────────────────────────────────
   if (eventType === 'checkout.session.completed') {
     await handleCheckout(stripeEvent.data.object, livemode);
+  } else if (eventType === 'customer.subscription.created' || eventType === 'customer.subscription.updated') {
+    await handleSubscriptionUpsert(stripeEvent.data.object, livemode);
   } else if (eventType === 'customer.subscription.deleted') {
     await handleSubscriptionDeleted(stripeEvent.data.object);
   } else {
