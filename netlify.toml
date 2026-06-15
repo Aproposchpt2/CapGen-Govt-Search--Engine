@@ -55,8 +55,9 @@
 
 [[redirects]]
   from = "/offer"
-  to = "/offer.html"
-  status = 200
+  to = "https://ai4-product-purchasing.ai4businesses.org/capgen-offer.html"
+  status = 301
+  force = true
 
 [[redirects]]
   from = "/welcome"
@@ -75,8 +76,9 @@
 
 [[redirects]]
   from = "/signup"
-  to = "/offer.html"
-  status = 200
+  to = "https://ai4-product-purchasing.ai4businesses.org/capgen-offer.html"
+  status = 301
+  force = true
 
 [[redirects]]
   from = "/demo"
