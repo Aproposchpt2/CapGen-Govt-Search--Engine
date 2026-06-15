@@ -463,6 +463,20 @@ async function runAnalysis(force = false) {
     });
     const data = await res.json();
 
+    // Tier gate — Scout doesn't include Analyze Fit. Server enforces it (403);
+    // show a friendly upgrade prompt instead of a raw error.
+    if (res.status === 403 && data && data.error === 'UPGRADE_REQUIRED') {
+      completeProgress();
+      document.getElementById('loadingEl').innerHTML =
+        '<div style="max-width:460px;margin:30px auto;text-align:center;padding:34px 28px;border:1px solid rgba(255,255,255,.14);border-radius:16px;background:rgba(255,255,255,.04)">'
+        + '<div style="font-size:2rem;margin-bottom:12px">🔒</div>'
+        + '<h2 style="font-size:1.3rem;font-weight:800;color:#fff;margin-bottom:10px">Analyze Fit is an Operator feature</h2>'
+        + '<p style="color:var(--muted);font-size:.92rem;line-height:1.6;margin-bottom:22px">Get instant bid/no-bid analysis — fit score, key requirements, and watch-outs — on any opportunity. Upgrade to Operator to unlock it.</p>'
+        + '<a href="https://ai4-product-purchasing.ai4businesses.org/capgen-offer.html" style="display:inline-block;background:#6EE7A8;color:#06210f;font-weight:800;text-decoration:none;padding:13px 26px;border-radius:10px">Upgrade to Operator &rarr;</a>'
+        + '</div>';
+      return;
+    }
+
     if (!res.ok) {
       document.getElementById('loadingEl').innerHTML =
         `<p style="color:var(--red);text-align:center;padding:40px">Error ${res.status}: ${esc(data.error || 'Analysis failed.')} — Please go back and try again.</p>`;

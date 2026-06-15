@@ -110,6 +110,23 @@ export const handler = async (event) => {
   }
   if (!accountEmail) return { statusCode: 401, headers: CORS, body: JSON.stringify({ error: 'UNAUTHORIZED' }) };
 
+  // Tier gate — Analyze Fit is an Operator+ feature. Beta users are always
+  // allowed (preserve rule). Only an explicit 'scout' tier is denied; operator,
+  // commander, and legacy/null tiers pass so nothing existing breaks.
+  if (!isBetaUser) {
+    let tier = null;
+    try {
+      const subs = await sbGet(`capgen_subscriptions?email=eq.${encodeURIComponent(accountEmail)}&select=subscription_tier&limit=1`);
+      tier = subs.length ? subs[0].subscription_tier : null;
+    } catch { /* on lookup error, fail open rather than block a paying user */ }
+    if (tier === 'scout') {
+      return { statusCode: 403, headers: CORS, body: JSON.stringify({
+        error: 'UPGRADE_REQUIRED', feature: 'analyze_fit', tier,
+        message: 'Analyze Fit is an Operator feature. Upgrade to unlock instant bid/no-bid analysis.'
+      }) };
+    }
+  }
+
   const { opportunityId, force = false, deep = false, opportunity: inlineOpp } = body;
   if (!opportunityId) return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'opportunityId required' }) };
 
