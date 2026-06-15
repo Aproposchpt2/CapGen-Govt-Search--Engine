@@ -220,7 +220,7 @@ async function handleCheckout(session, livemode) {
   console.log('[webhook] checkout email=' + email + ' token=' + (viewToken || 'none') + ' plan=' + (planKey || 'none'));
 
   // ── Snapshot lookup (Path A) ──────────────────────────────────────────────
-  var onboardingState = 'needs_profile'; // default: no snapshot
+  var onboardingState = 'entity_pending'; // default: no snapshot
   var demoEmail       = null;
   var demoBusinessName= null;
   var demoUei         = null;
@@ -268,7 +268,7 @@ async function handleCheckout(session, livemode) {
       });
       viewToken       = generatedToken;
       demoSnapshotId  = generatedToken; // used as placeholder
-      onboardingState = 'needs_profile';
+      onboardingState = 'entity_pending';
       console.log('[webhook] Option A: generated token for no-demo subscriber');
     } catch(e) {
       console.error('[webhook] Option A token generation failed:', e.message);
@@ -337,10 +337,6 @@ async function handleCheckout(session, livemode) {
       email: email, first_name: firstName,
       business_name: demoBusinessName || name || '',
       pipeline_url: ONBOARD_URL, welcome_sent_at: now.toISOString(),
-      metadata: {
-        stripe_customer_id: customerId, stripe_session_id: session.id,
-        source: 'stripe_checkout', livemode: livemode, plan: planKey,
-      },
     });
   } catch(e) { console.warn('[webhook] client_onboarding log failed:', e.message); }
 
