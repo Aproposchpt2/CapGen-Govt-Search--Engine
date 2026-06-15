@@ -162,7 +162,7 @@ var PLAN_CONFIG = {
 //      also keeps tier correct on later plan upgrades/downgrades.
 // TEST price IDs. Add LIVE price IDs here when promoting to production.
 var PRICE_TO_TIER = {
-  'price_1TifH4B1NkJ0LaToRINtkWrc': 'scout',     // CapGen Scout    $119.99/mo (test)
+  'price_1TihYEB1NkJ0LaToaH8hsv5v': 'scout',     // CapGen Scout    $119.99/mo (test) — replaces price_1TifH4… ($119.00)
   'price_1TifJBB1NkJ0LaToksLpaD17': 'operator',  // CapGen Operator $199.99/mo (test)
   'price_1TifKNB1NkJ0LaToosUWKTfM': 'commander', // CapGen Commander $347.99/mo (test)
 };
