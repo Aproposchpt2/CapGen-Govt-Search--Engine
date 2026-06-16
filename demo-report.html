@@ -144,6 +144,7 @@ function signOut() {
 let entityData = null;
 
 async function load() {
+  if (token === 'apex-demo') { renderDemoCapability(); return; }
   if (!token) {
     document.getElementById('loadingEl').innerHTML = '<p class="error-state">No session. <a href="/demo" style="color:var(--green)">Start a new demo →</a></p>';
     return;
@@ -172,6 +173,72 @@ async function load() {
     document.getElementById('loadingEl').innerHTML =
       '<p class="error-state">Could not generate report: ' + e.message + '</p>';
   }
+}
+
+// Public demo — inject a static APEX Group LLC capability profile (no backend).
+function renderDemoCapability() {
+  document.getElementById('bannerBiz').textContent = 'APEX Group LLC — Capability Report';
+  document.getElementById('reportIframe').srcdoc = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,Helvetica,sans-serif;color:#1a2740;background:#fff;padding:34px;line-height:1.5;font-size:13px}
+.h{border-bottom:4px solid #C8A84B;padding-bottom:14px;margin-bottom:18px}
+.h h1{font-size:27px;color:#0A1A3A;letter-spacing:.5px}
+.h .tag{color:#4A5A78;font-size:13px;margin-top:5px;font-style:italic}
+.g{display:grid;grid-template-columns:1.6fr 1fr;gap:24px}
+h2{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#C8A84B;border-bottom:1px solid #d8dee8;padding-bottom:4px;margin:16px 0 8px}
+ul{list-style:none} li{padding:3px 0 3px 16px;position:relative} li:before{content:"\\25B8";color:#0A1A3A;position:absolute;left:0}
+.d{display:flex;justify-content:space-between;border-bottom:1px solid #eef1f6;padding:4px 0;font-size:12px}
+.d span:first-child{color:#6a7892;font-weight:700}
+.naics{font-family:monospace;font-size:12px;color:#0A1A3A;line-height:1.9}
+.pp{margin-bottom:9px} .pp strong{color:#0A1A3A;font-size:12px} .pp p{color:#4A5A78;font-size:11.5px}
+.f{margin-top:18px;border-top:1px solid #d8dee8;padding-top:10px;color:#90a;font-size:10.5px;color:#8a96ab;font-style:italic}
+</style></head><body>
+<div class="h"><h1>APEX GROUP LLC</h1><div class="tag">Mission-focused IT and professional services for federal agencies.</div></div>
+<div class="g">
+  <div>
+    <h2>Core Competencies</h2>
+    <ul>
+      <li>Systems integration, modernization &amp; sustainment</li>
+      <li>Cybersecurity, RMF &amp; A&amp;A / FedRAMP compliance</li>
+      <li>Cloud migration &amp; managed cloud services</li>
+      <li>IT help desk &amp; tier 1&ndash;3 end-user support</li>
+      <li>Data engineering &amp; analytics</li>
+      <li>Program &amp; project management (PMP / Agile)</li>
+    </ul>
+    <h2>Differentiators</h2>
+    <ul>
+      <li>Cleared, credentialed technical workforce</li>
+      <li>Low-risk, continuity-first transition methodology</li>
+      <li>Process maturity aligned to CMMI &amp; ISO practices</li>
+      <li>Performance measured against clear, agency-facing SLAs</li>
+    </ul>
+    <h2>Representative Past Performance</h2>
+    <div class="pp"><strong>DoD Component &mdash; IT Sustainment &amp; Help Desk</strong><p>Multi-year operations &amp; maintenance with sustained SLA performance across distributed sites.</p></div>
+    <div class="pp"><strong>Federal Civilian Agency &mdash; Cybersecurity A&amp;A</strong><p>Assessment &amp; authorization support; RMF package development and continuous monitoring.</p></div>
+    <div class="pp"><strong>Federal Agency &mdash; Cloud Migration Advisory</strong><p>Phased migration of legacy workloads with zero unplanned downtime during cutover.</p></div>
+  </div>
+  <div>
+    <h2>Company Data</h2>
+    <div class="d"><span>Business Type</span><span>Small Business</span></div>
+    <div class="d"><span>Primary NAICS</span><span class="naics">541511</span></div>
+    <div class="d"><span>UEI</span><span>On request</span></div>
+    <div class="d"><span>CAGE</span><span>On request</span></div>
+    <h2>NAICS Codes</h2>
+    <div class="naics">541511 &middot; 541512 &middot; 541519<br>541611 &middot; 541618 &middot; 541690<br>541330 &middot; 518210</div>
+    <h2>Certifications</h2>
+    <ul><li>Small Business</li><li>SAM.gov registered &amp; active</li></ul>
+    <h2>Contact</h2>
+    <div class="d"><span>Email</span><span>captures@apexgroup.example</span></div>
+    <div class="d"><span>Web</span><span>apexgroup.example</span></div>
+  </div>
+</div>
+<div class="f">CapGen sample capability profile &mdash; illustrative demo content, built automatically from your registered profile in the live product.</div>
+</body></html>`;
+  document.getElementById('loadingEl').style.display = 'none';
+  document.getElementById('reportFrame').style.display = 'block';
+  var tl = document.getElementById('trustLine'); if (tl) tl.style.display = 'block';
+  var pb = document.getElementById('printBtn'); if (pb) pb.style.display = 'inline-block';
+  var eb = document.getElementById('emailBtn'); if (eb) eb.style.display = 'none'; // no email in demo
 }
 
 function printReport() {
