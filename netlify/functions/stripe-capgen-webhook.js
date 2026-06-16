@@ -144,6 +144,34 @@ async function getSnapshotByEmail(email) {
   } catch(e) { console.warn('[webhook] snapshot by email failed:', e.message); return null; }
 }
 
+// ── Entity sync (Commander Phase 1/2) ─────────────────────────────────────────
+// Ensure the account has a primary entity mirroring its profile. Single source
+// for entity creation — covers intake-first AND direct-pay flows. Entity 2 for
+// Commander is added later at onboarding (intake loop).
+async function ensurePrimaryEntity(accountEmail) {
+  try {
+    var subs = await sbGet('capgen_subscriptions?email=eq.' + encodeURIComponent(accountEmail)
+      + '&select=id,business_name,uei,cage,naics,set_asides,certifications,capabilities,'
+      + 'past_performance,keywords,sam_status,address,team_size,profile_version,onboarding_state,demo_snapshot_id&limit=1');
+    if (!subs.length) return;
+    var s = subs[0];
+    var existing = await sbGet('capgen_entities?account_id=eq.' + s.id + '&select=id&limit=1');
+    if (existing.length) return; // already has at least one entity
+    await sbInsert('capgen_entities', {
+      account_id: s.id, account_email: accountEmail,
+      label: s.business_name || 'Primary Entity', business_name: s.business_name,
+      uei: s.uei, cage: s.cage, naics: s.naics || [], set_asides: s.set_asides || [],
+      certifications: s.certifications || [], capabilities: s.capabilities,
+      past_performance: s.past_performance, keywords: s.keywords || [],
+      sam_status: s.sam_status, address: s.address, team_size: s.team_size,
+      profile_version: s.profile_version || 1,
+      onboarding_state: s.onboarding_state || 'entity_pending',
+      demo_snapshot_id: s.demo_snapshot_id, is_primary: true, entity_index: 1,
+    });
+    console.log('[webhook] primary entity created for ' + accountEmail);
+  } catch(e) { console.warn('[webhook] ensurePrimaryEntity failed:', e.message); }
+}
+
 // ── Plan config ───────────────────────────────────────────────────────────────
 
 var PLAN_CONFIG = {
@@ -344,6 +372,9 @@ async function handleCheckout(session, livemode) {
   await sbUpsert('capgen_subscriptions', subRow);
   console.log('[webhook] capgen_subscriptions upserted for ' + email
     + ' (' + (livemode ? 'LIVE' : 'TEST') + ') state=' + onboardingState);
+
+  // Commander Phase 2 — make sure the account has its primary entity.
+  await ensurePrimaryEntity(email);
 
   // ── Welcome email — CTA links to their dashboard via token ───────────────
   var dashboardUrl = viewToken
