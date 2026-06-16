@@ -464,6 +464,7 @@ function renderDemoReport() {
 }
 
 let pollTimer = null;
+let stage1Shown = false;
 
 async function requestDeep() {
   await runAnalysis(true);
@@ -519,9 +520,13 @@ async function runAnalysis(force = false) {
       return;
     }
 
-    if (data.status === 'pending' || data.status === 'stage1_complete') {
-      document.getElementById('loadingLabel').textContent =
-        data.status === 'stage1_complete' ? 'Building pursuit package…' : 'Analyzing opportunity fit…';
+    if (data.status === 'stage1_complete') {
+      if (!stage1Shown) { renderReport(data); stage1Shown = true; } // show the verdict NOW
+      pollTimer = setTimeout(() => poll(data.id), 1500);            // Stage 2 fills in behind it
+      return;
+    }
+    if (data.status === 'pending') {
+      document.getElementById('loadingLabel').textContent = 'Analyzing opportunity fit…';
       pollTimer = setTimeout(() => poll(data.id), 1500);
       return;
     }
@@ -554,8 +559,8 @@ async function poll(rowId) {
       renderReport(data);
       return;
     }
-    if (data.status === 'stage1_complete') {
-      document.getElementById('loadingLabel').textContent = 'Building pursuit package…';
+    if (data.status === 'stage1_complete' && !stage1Shown) {
+      renderReport(data); stage1Shown = true;   // verdict appears the moment Stage 1 lands
     }
     pollTimer = setTimeout(() => poll(rowId), 1500);
   } catch(e) {

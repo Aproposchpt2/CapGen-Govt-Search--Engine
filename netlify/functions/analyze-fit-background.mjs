@@ -37,7 +37,7 @@ async function sbPatch(filter, update) {
 async function callClaude(system, user, maxTokens, model) {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
-    signal: AbortSignal.timeout(55000), // never hang — fail fast instead of 2-min stalls
+    signal: AbortSignal.timeout(90000), // never hang, but allow Stage 2 to finish its JSON
     headers: {
       'content-type': 'application/json',
       'x-api-key': ANTHROPIC_KEY,
@@ -303,7 +303,7 @@ export const handler = async (event) => {
     const stage2User = `${profileBlock}\n\n${oppBlock}\n\nSTAGE 1 ANALYSIS:\n${JSON.stringify(stage1, null, 2)}\n\n${STAGE2_SCHEMA}`;
     let stage2, s2Usage = {};
     try {
-      const r2 = await callClaudeWithRetry(STAGE2_SYSTEM, stage2User, 3000, STAGE2_MODEL);
+      const r2 = await callClaudeWithRetry(STAGE2_SYSTEM, stage2User, 4096, STAGE2_MODEL);
       stage2   = r2.parsed;
       s2Usage  = r2.usage;
       console.log(`[bg] Stage 2 complete (${s2Usage.input_tokens}in/${s2Usage.output_tokens}out)`);
