@@ -6,6 +6,10 @@ const SUPABASE_URL  = process.env.SUPABASE_URL;
 const SUPABASE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
 const MODEL         = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6';
+// Stage 1 is fast triage/scoring → Haiku (2–4x faster verdict). Stage 2 is the
+// deep pursuit package → Sonnet for quality. Both env-overridable.
+const STAGE1_MODEL  = process.env.ANALYZE_STAGE1_MODEL || 'claude-haiku-4-5';
+const STAGE2_MODEL  = process.env.ANALYZE_STAGE2_MODEL || MODEL;
 
 // ── Supabase helpers ─────────────────────────────────────────────────────────
 
@@ -30,7 +34,7 @@ async function sbPatch(filter, update) {
 
 // ── Claude API ───────────────────────────────────────────────────────────────
 
-async function callClaude(system, user, maxTokens) {
+async function callClaude(system, user, maxTokens, model) {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -39,9 +43,10 @@ async function callClaude(system, user, maxTokens) {
       'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
-      model: MODEL,
+      model: model || MODEL,
       max_tokens: maxTokens,
-      system,
+      // Cache the static system prompt so repeat analyses skip re-processing it.
+      system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
       messages: [{ role: 'user', content: user }],
     }),
   });
@@ -58,11 +63,11 @@ async function callClaude(system, user, maxTokens) {
   return { parsed, usage };
 }
 
-async function callClaudeWithRetry(system, user, maxTokens) {
-  try { return await callClaude(system, user, maxTokens); }
+async function callClaudeWithRetry(system, user, maxTokens, model) {
+  try { return await callClaude(system, user, maxTokens, model); }
   catch (e) {
     if (e && e.retryable) {
-      return await callClaude(system, user + '\n\nReturn ONLY valid JSON. No prose, no fences.', maxTokens);
+      return await callClaude(system, user + '\n\nReturn ONLY valid JSON. No prose, no fences.', maxTokens, model);
     }
     throw e;
   }
@@ -263,7 +268,7 @@ export const handler = async (event) => {
       console.log('[bg] Running Stage 1…');
       const stage1User = `${profileBlock}\n\n${oppBlock}\n\n${STAGE1_SCHEMA}`;
       try {
-        const r1   = await callClaudeWithRetry(STAGE1_SYSTEM, stage1User, 1200);
+        const r1   = await callClaudeWithRetry(STAGE1_SYSTEM, stage1User, 1200, STAGE1_MODEL);
         stage1     = r1.parsed;
         s1Usage    = r1.usage;
         recommendation = stage1.recommendation || 'NO_BID';
@@ -298,7 +303,7 @@ export const handler = async (event) => {
     const stage2User = `${profileBlock}\n\n${oppBlock}\n\nSTAGE 1 ANALYSIS:\n${JSON.stringify(stage1, null, 2)}\n\n${STAGE2_SCHEMA}`;
     let stage2, s2Usage = {};
     try {
-      const r2 = await callClaudeWithRetry(STAGE2_SYSTEM, stage2User, 3000);
+      const r2 = await callClaudeWithRetry(STAGE2_SYSTEM, stage2User, 3000, STAGE2_MODEL);
       stage2   = r2.parsed;
       s2Usage  = r2.usage;
       console.log(`[bg] Stage 2 complete (${s2Usage.input_tokens}in/${s2Usage.output_tokens}out)`);

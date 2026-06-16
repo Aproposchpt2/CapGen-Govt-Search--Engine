@@ -522,7 +522,7 @@ async function runAnalysis(force = false) {
     if (data.status === 'pending' || data.status === 'stage1_complete') {
       document.getElementById('loadingLabel').textContent =
         data.status === 'stage1_complete' ? 'Building pursuit package…' : 'Analyzing opportunity fit…';
-      pollTimer = setTimeout(() => poll(data.id), 3000);
+      pollTimer = setTimeout(() => poll(data.id), 1500);
       return;
     }
 
@@ -557,9 +557,9 @@ async function poll(rowId) {
     if (data.status === 'stage1_complete') {
       document.getElementById('loadingLabel').textContent = 'Building pursuit package…';
     }
-    pollTimer = setTimeout(() => poll(rowId), 3000);
+    pollTimer = setTimeout(() => poll(rowId), 1500);
   } catch(e) {
-    pollTimer = setTimeout(() => poll(rowId), 5000);
+    pollTimer = setTimeout(() => poll(rowId), 2500);
   }
 }
 
