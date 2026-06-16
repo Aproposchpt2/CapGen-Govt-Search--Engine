@@ -37,6 +37,7 @@ async function sbPatch(filter, update) {
 async function callClaude(system, user, maxTokens, model) {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
+    signal: AbortSignal.timeout(55000), // never hang — fail fast instead of 2-min stalls
     headers: {
       'content-type': 'application/json',
       'x-api-key': ANTHROPIC_KEY,
@@ -45,8 +46,7 @@ async function callClaude(system, user, maxTokens, model) {
     body: JSON.stringify({
       model: model || MODEL,
       max_tokens: maxTokens,
-      // Cache the static system prompt so repeat analyses skip re-processing it.
-      system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
+      system,
       messages: [{ role: 'user', content: user }],
     }),
   });
