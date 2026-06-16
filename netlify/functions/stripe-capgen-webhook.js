@@ -487,19 +487,35 @@ async function handleSubscriptionDeleted(subscription) {
   var customerId = subscription.customer;
   var res = await fetch(
     SUPABASE_URL + '/rest/v1/capgen_subscriptions?stripe_customer_id=eq.'
-    + encodeURIComponent(customerId) + '&select=email',
+    + encodeURIComponent(customerId) + '&select=id,email',
     { headers: sbH() }
   );
   if (!res.ok) return;
   var rows = await res.json();
   if (!rows.length) { console.warn('[webhook] deleted sub: customer not found', customerId); return; }
-  var email = rows[0].email;
+  var acctId = rows[0].id;
+  var email  = rows[0].email;
+  var nowIso = new Date().toISOString();
+
+  // Cancel the account itself
   await fetch(
     SUPABASE_URL + '/rest/v1/capgen_subscriptions?email=eq.' + encodeURIComponent(email),
     { method: 'PATCH', headers: sbH({ Prefer: 'return=minimal' }),
-      body: JSON.stringify({ status: 'canceled', updated_at: new Date().toISOString() }) }
+      body: JSON.stringify({ status: 'canceled', updated_at: nowIso }) }
   );
-  console.log('[webhook] subscription canceled for', email);
+
+  // Commander cascade — deactivate voucher-redeemed children + revoke unused codes.
+  await fetch(
+    SUPABASE_URL + '/rest/v1/capgen_subscriptions?parent_account_id=eq.' + acctId + '&status=neq.canceled',
+    { method: 'PATCH', headers: sbH({ Prefer: 'return=minimal' }),
+      body: JSON.stringify({ status: 'canceled', updated_at: nowIso }) }
+  );
+  await fetch(
+    SUPABASE_URL + '/rest/v1/capgen_vouchers?parent_account_id=eq.' + acctId + '&status=eq.unredeemed',
+    { method: 'PATCH', headers: sbH({ Prefer: 'return=minimal' }),
+      body: JSON.stringify({ status: 'revoked' }) }
+  );
+  console.log('[webhook] canceled ' + email + ' + any voucher children/codes');
 }
 
 // ── Main handler ─────────────────────────────────────────────────────────────
