@@ -9,7 +9,7 @@ const MODEL         = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6';
 // Stage 1 is fast triage/scoring → Haiku (2–4x faster verdict). Stage 2 is the
 // deep pursuit package → Sonnet for quality. Both env-overridable.
 const STAGE1_MODEL  = process.env.ANALYZE_STAGE1_MODEL || 'claude-haiku-4-5';
-const STAGE2_MODEL  = process.env.ANALYZE_STAGE2_MODEL || MODEL;
+const STAGE2_MODEL  = process.env.ANALYZE_STAGE2_MODEL || 'claude-haiku-4-5';
 
 // ── Supabase helpers ─────────────────────────────────────────────────────────
 
