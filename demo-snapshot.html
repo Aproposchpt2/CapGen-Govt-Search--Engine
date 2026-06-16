@@ -353,7 +353,7 @@ async function load() {
     // Still generating — poll every 5 seconds
     if (res.status === 202) {
       document.getElementById('oppBody').innerHTML =
-        '<tr><td colspan="5" class="loading-state">Building your dashboard — pulling live contract data… this takes about 30 seconds.</td></tr>';
+        '<tr><td colspan="5" class="loading-state">Building your dashboard — pulling live contract data… this takes just seconds.</td></tr>';
       setTimeout(() => load(), 5000);
       return;
     }

@@ -494,7 +494,7 @@ async function load() {
       : '/.netlify/functions/demo-pipeline?t=' + encodeURIComponent(token) + '&days=90';
     var res = await fetch(pipelineUrl);
     if (res.status === 202) {
-      document.getElementById('loadingEl').textContent = 'Building your profile — this takes about 30 seconds…';
+      document.getElementById('loadingEl').textContent = 'Building your profile — this takes just seconds…';
       setTimeout(load, 5000);
       return;
     }
