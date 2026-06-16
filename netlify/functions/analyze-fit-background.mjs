@@ -37,7 +37,7 @@ async function sbPatch(filter, update) {
 async function callClaude(system, user, maxTokens, model) {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
-    signal: AbortSignal.timeout(90000), // never hang, but allow Stage 2 to finish its JSON
+    signal: AbortSignal.timeout(150000), // headroom for Stage 2's ~4k-token JSON; never hang
     headers: {
       'content-type': 'application/json',
       'x-api-key': ANTHROPIC_KEY,
@@ -302,7 +302,6 @@ export const handler = async (event) => {
     console.log('[bg] Running Stage 2…');
     const stage2User = `${profileBlock}\n\n${oppBlock}\n\nSTAGE 1 ANALYSIS:\n${JSON.stringify(stage1, null, 2)}\n\n${STAGE2_SCHEMA}`;
     let stage2, s2Usage = {};
-    const s2Start = Date.now();
     try {
       const r2 = await callClaudeWithRetry(STAGE2_SYSTEM, stage2User, 4096, STAGE2_MODEL);
       stage2   = r2.parsed;
@@ -313,7 +312,6 @@ export const handler = async (event) => {
       console.error('[bg] Stage 2 failed (non-fatal):', err.message || err);
       await sbPatch(markFilter, {
         status:        'complete',
-        stage2:        { _debug_error: String(err && (err.message || err)), _debug_raw: String((err && err.raw) || '').slice(0, 2000), _debug_secs: Math.round((Date.now() - s2Start) / 1000) },
         input_tokens:  (existingRow.input_tokens || s1Usage.input_tokens || 0),
         output_tokens: (existingRow.output_tokens || s1Usage.output_tokens || 0),
       });
