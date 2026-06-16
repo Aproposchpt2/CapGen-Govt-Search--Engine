@@ -144,32 +144,54 @@ async function getSnapshotByEmail(email) {
   } catch(e) { console.warn('[webhook] snapshot by email failed:', e.message); return null; }
 }
 
-// ── Entity sync (Commander Phase 1/2) ─────────────────────────────────────────
-// Ensure the account has a primary entity mirroring its profile. Single source
-// for entity creation — covers intake-first AND direct-pay flows. Entity 2 for
-// Commander is added later at onboarding (intake loop).
-async function ensurePrimaryEntity(accountEmail) {
+// ── Commander vouchers ────────────────────────────────────────────────────────
+// A Commander purchase grants 2 vouchers, each redeemable for a full Operator
+// subscription. Idempotent — re-firing the webhook never issues more than 2.
+function genVoucherCode() {
+  var h = crypto.randomBytes(6).toString('hex').toUpperCase();
+  return 'CG-' + h.slice(0, 4) + '-' + h.slice(4, 8) + '-' + h.slice(8, 12);
+}
+
+async function ensureCommanderVouchers(accountEmail, firstName) {
   try {
-    var subs = await sbGet('capgen_subscriptions?email=eq.' + encodeURIComponent(accountEmail)
-      + '&select=id,business_name,uei,cage,naics,set_asides,certifications,capabilities,'
-      + 'past_performance,keywords,sam_status,address,team_size,profile_version,onboarding_state,demo_snapshot_id&limit=1');
+    var subs = await sbGet('capgen_subscriptions?email=eq.' + encodeURIComponent(accountEmail) + '&select=id&limit=1');
     if (!subs.length) return;
-    var s = subs[0];
-    var existing = await sbGet('capgen_entities?account_id=eq.' + s.id + '&select=id&limit=1');
-    if (existing.length) return; // already has at least one entity
-    await sbInsert('capgen_entities', {
-      account_id: s.id, account_email: accountEmail,
-      label: s.business_name || 'Primary Entity', business_name: s.business_name,
-      uei: s.uei, cage: s.cage, naics: s.naics || [], set_asides: s.set_asides || [],
-      certifications: s.certifications || [], capabilities: s.capabilities,
-      past_performance: s.past_performance, keywords: s.keywords || [],
-      sam_status: s.sam_status, address: s.address, team_size: s.team_size,
-      profile_version: s.profile_version || 1,
-      onboarding_state: s.onboarding_state || 'entity_pending',
-      demo_snapshot_id: s.demo_snapshot_id, is_primary: true, entity_index: 1,
-    });
-    console.log('[webhook] primary entity created for ' + accountEmail);
-  } catch(e) { console.warn('[webhook] ensurePrimaryEntity failed:', e.message); }
+    var acctId = subs[0].id;
+    var existing = await sbGet('capgen_vouchers?parent_account_id=eq.' + acctId + '&select=code');
+    if (existing.length >= 2) return; // already issued
+    var newCodes = [];
+    for (var i = existing.length; i < 2; i++) newCodes.push(genVoucherCode());
+    for (var j = 0; j < newCodes.length; j++) {
+      await sbInsert('capgen_vouchers', {
+        code: newCodes[j], parent_account_id: acctId, parent_email: accountEmail,
+        tier_granted: 'operator', status: 'unredeemed',
+      });
+    }
+    var allCodes = existing.map(function(e) { return e.code; }).concat(newCodes);
+    await sendVoucherEmail(accountEmail, firstName, allCodes);
+    console.log('[webhook] issued ' + newCodes.length + ' commander voucher(s) for ' + accountEmail);
+  } catch(e) { console.warn('[webhook] ensureCommanderVouchers failed:', e.message); }
+}
+
+async function sendVoucherEmail(email, firstName, codes) {
+  if (!RESEND_KEY) return;
+  var redeemUrl = 'https://capgen.aproposgroupllc.com/redeem';
+  var rows = codes.map(function(c) {
+    return '<div style="font-family:monospace;font-size:18px;font-weight:700;color:#fff;background:#0F2A6A;border:1px solid rgba(255,255,255,.18);border-radius:10px;padding:14px 18px;margin:8px 0;letter-spacing:2px;text-align:center">' + c + '</div>';
+  }).join('');
+  var html = '<div style="font-family:Arial,sans-serif;background:#0A1A3A;padding:40px 20px"><div style="max-width:520px;margin:0 auto;background:#0f2244;border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:34px 30px">'
+    + '<p style="margin:0 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:#5BD3FF;font-weight:700">CapGen Commander</p>'
+    + '<h2 style="margin:0 0 14px;color:#fff;font-size:22px">Your 2 CapGen access codes, ' + (firstName || 'there') + '.</h2>'
+    + '<p style="margin:0 0 18px;font-size:14px;color:rgba(255,255,255,.7);line-height:1.7">Commander includes two full Operator subscriptions. Give a code to each business — each person redeems it for their own CapGen dashboard.</p>'
+    + rows
+    + '<table cellpadding="0" cellspacing="0" style="margin:22px 0 8px"><tr><td style="background:#5BD3FF;border-radius:10px;padding:13px 26px"><a href="' + redeemUrl + '" style="color:#0A1A3A;font-weight:700;font-size:15px;text-decoration:none">Redeem a code &rarr;</a></td></tr></table>'
+    + '<p style="margin:14px 0 0;font-size:11px;color:rgba(255,255,255,.3)">Each code activates one Operator subscription. They stay active while your Commander plan is active.</p>'
+    + '</div></div>';
+  await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + RESEND_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ from: FROM_EMAIL, to: [email], subject: 'Your CapGen Commander access codes', html: html }),
+  }).catch(function(e) { console.error('[webhook] voucher email error:', e.message); });
 }
 
 // ── Plan config ───────────────────────────────────────────────────────────────
@@ -373,8 +395,8 @@ async function handleCheckout(session, livemode) {
   console.log('[webhook] capgen_subscriptions upserted for ' + email
     + ' (' + (livemode ? 'LIVE' : 'TEST') + ') state=' + onboardingState);
 
-  // Commander Phase 2 — make sure the account has its primary entity.
-  await ensurePrimaryEntity(email);
+  // Commander — issue 2 vouchers (each redeemable for an Operator subscription).
+  if (tier === 'commander') await ensureCommanderVouchers(email, firstName);
 
   // ── Welcome email — CTA links to their dashboard via token ───────────────
   var dashboardUrl = viewToken
@@ -456,6 +478,7 @@ async function handleSubscriptionUpsert(subscription, livemode) {
     { method: 'PATCH', headers: sbH({ Prefer: 'return=minimal' }), body: JSON.stringify(patch) }
   );
   console.log('[webhook] tier synced ' + tier + ' for ' + email + ' (price ' + priceId + ')');
+  if (tier === 'commander') await ensureCommanderVouchers(email, null);
 }
 
 // ── customer.subscription.deleted ────────────────────────────────────────────
