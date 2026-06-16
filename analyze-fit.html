@@ -184,6 +184,7 @@ const token       = q.get('t') || localStorage.getItem('demo_view_token') || '';
 const sessionData = JSON.parse(sessionStorage.getItem('capgen_session') || 'null');
 const sessionTok  = sessionData ? sessionData.session_token : '';
 const betaToken   = (token && token.startsWith('beta_')) ? token : '';
+const isDemo      = (token === 'apex-demo'); // public live demo — sample analysis, no auth
 const opp         = JSON.parse(sessionStorage.getItem('analyze_opp') || 'null');
 
 document.getElementById('backBtn').href = token ? '/opportunity?t=' + encodeURIComponent(token) : '/opportunity';
@@ -197,7 +198,7 @@ if (sessionStorage.getItem('capgen_session')) {
   // Beta user — no Sign Out (no session to clear), show Home link instead
   const backBtn = document.getElementById('backBtn');
   if (backBtn) backBtn.textContent = '← Back to Best Match';
-} else {
+} else if (!isDemo) {
   window.location.href = '/onboarding';
 }
 
@@ -209,7 +210,7 @@ const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsI
 // Fetch opp metadata directly from sam_opportunities if title is missing
 var oppMeta = (opp && opp.title) ? opp : null;
 (async function fetchOppMeta() {
-  if (oppMeta) return;
+  if (oppMeta) { if (isDemo) renderDemoReport(); return; }
   try {
     var res  = await fetch(SUPA + '/rest/v1/sam_opportunities?notice_id=eq.' + encodeURIComponent(noticeId)
       + '&select=title,agency,naics_code,set_aside,response_deadline&limit=1',
@@ -221,6 +222,7 @@ var oppMeta = (opp && opp.title) ? opp : null;
       document.getElementById('bannerTitle').textContent = rows[0].title.slice(0, 70);
     }
   } catch(e) { /* non-fatal */ }
+  if (isDemo) renderDemoReport();
 })();
 
 const progressBar = document.getElementById('progress-bar');
@@ -426,6 +428,39 @@ function renderReport(row) {
   document.getElementById('reportEl').innerHTML = html;
   document.getElementById('reportEl').style.display = 'block';
   document.getElementById('loadingEl').style.display = 'none';
+}
+
+// Public demo — render a representative sample analysis (no backend, no auth).
+function renderDemoReport() {
+  renderReport({
+    fit_score: 91,
+    recommendation: 'BID',
+    stage1: {
+      opportunity_summary: 'This requirement maps directly to your registered capability profile. The scope, agency, and industry alignment make it a strong, realistic pursuit for a firm of your size and past performance.',
+      rationale: 'Primary NAICS alignment, clear capability fit, and a workable response window combine into a strong bid recommendation. Prioritize this opportunity in your pursuit pipeline.',
+      match: {
+        naics_detail: 'The solicitation falls squarely within your primary service line — a direct industry-code match, not an adjacent one.',
+        set_aside_eligible: true,
+        set_aside_detail: 'The set-aside terms align with your registered status and size standard, so you are eligible to compete.',
+        capability_alignment: 'HIGH',
+        capability_detail: 'Your past performance and core competencies cover the bulk of the stated requirements with minimal teaming needed.'
+      }
+    },
+    stage2: {
+      required_work: ['Core service delivery against the stated scope', 'Transition-in with continuity of operations', 'Ongoing performance to a measurable SLA framework'],
+      staffing_delivery: ['Qualified program/project manager', 'Appropriately cleared technical staff', 'Surge capacity for the transition period'],
+      documents_needed: ['Active SAM.gov registration', 'Three relevant past-performance references', 'Technical & management approach', 'Security/compliance plan'],
+      pricing_considerations: ['Map labor categories to your rates', 'Account for transition-in costs', 'Consider optional CLINs for surge support'],
+      draft_technical_approach: 'Lead with a low-risk phased transition that protects continuity of operations, then layer in proactive monitoring and a clear, measurable SLA framework that de-risks award for the agency.',
+      proposal_checklist: [
+        { item: 'Confirm size standard & set-aside eligibility', owner_hint: 'Capture lead' },
+        { item: 'Assemble three relevant past-performance references', owner_hint: 'Business development' },
+        { item: 'Draft technical & management volumes', owner_hint: 'Solutions team' },
+        { item: 'Price to the labor categories', owner_hint: 'Pricing' }
+      ],
+      questions_for_co: ['Is the incumbent expected to re-compete?', 'What is the anticipated period of performance and any surge ceiling?']
+    }
+  });
 }
 
 let pollTimer = null;
