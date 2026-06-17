@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CapGen Pro — User's Guide</title>
+<meta name="description" content="How CapGen works: the matching engine, every feature, and a step-by-step walkthrough — from setup to your first bid/no-bid decision."/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,700;0,800;1,400&family=Cormorant+Garamond:ital@1&family=Jost:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --sap:#0F2A6A;--sap2:#163472;--surface:#0f2244;--panel:rgba(255,255,255,.06);
+  --line:rgba(255,255,255,.12);--line2:rgba(91,175,255,.28);
+  --white:#fff;--off:#e8edf8;--muted:rgba(255,255,255,.58);--soft:rgba(255,255,255,.4);
+  --green:#6EE7A8;--cyan:#5BD3FF;--amber:#F59E0B;--red:#F87171;
+  font-family:'Jost',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--sap);color:var(--white);line-height:1.65;font-size:15px;
+  background-image:radial-gradient(circle at 12% -4%,rgba(91,211,255,.12),transparent 32%),radial-gradient(circle at 90% 4%,rgba(110,231,168,.08),transparent 30%);
+  background-attachment:fixed}
+a{color:var(--cyan);text-decoration:none}
+.wrap{max-width:840px;margin:0 auto;padding:0 22px 90px}
+
+/* Top bar */
+.topbar{position:sticky;top:0;z-index:20;background:rgba(15,42,106,.92);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;
+  gap:14px;padding:13px 22px;margin-bottom:0}
+.tb-inner{max-width:840px;margin:0 auto;width:100%;display:flex;align-items:center;justify-content:space-between;gap:14px}
+.brand{font-family:'Bodoni Moda',serif;font-weight:800;font-size:1.15rem;letter-spacing:.01em}
+.brand span{color:var(--cyan)}
+.tb-actions{display:flex;gap:9px;flex-wrap:wrap}
+.tb-btn{font-weight:700;font-size:.76rem;padding:8px 15px;border-radius:9px;cursor:pointer;border:1px solid var(--line2);
+  background:transparent;color:var(--white);transition:.15s;white-space:nowrap}
+.tb-btn:hover{background:rgba(91,211,255,.12);border-color:var(--cyan)}
+.tb-btn.solid{background:var(--cyan);color:#08203f;border-color:var(--cyan)}
+
+/* Hero */
+.hero{padding:54px 0 34px;text-align:center;border-bottom:1px solid var(--line)}
+.eyebrow{font-size:.7rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--green);margin-bottom:14px}
+.hero h1{font-family:'Bodoni Moda',serif;font-weight:800;font-size:clamp(2.1rem,6vw,3.2rem);line-height:1.08;margin-bottom:14px}
+.hero h1 em{font-family:'Cormorant Garamond',serif;font-style:italic;font-weight:400;color:var(--cyan)}
+.hero p{color:var(--muted);max-width:60ch;margin:0 auto;font-size:1.02rem}
+.rule{font-family:'Cormorant Garamond',serif;font-style:italic;color:var(--soft);font-size:.86rem;margin-top:18px}
+
+/* TOC */
+.toc{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:30px 0 8px}
+.toc a{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);
+  border-radius:11px;padding:11px 15px;color:var(--white);font-size:.86rem;font-weight:500;transition:.15s}
+.toc a:hover{border-color:var(--cyan);background:rgba(91,211,255,.08)}
+.toc .n{font-family:'Bodoni Moda',serif;font-weight:800;color:var(--cyan);font-size:.95rem;min-width:18px}
+
+/* Sections */
+section{padding:34px 0;border-bottom:1px solid var(--line)}
+.sec-eyebrow{font-size:.68rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--cyan);margin-bottom:10px;display:flex;align-items:center;gap:10px}
+.sec-eyebrow .num{background:rgba(91,211,255,.14);border:1px solid var(--line2);color:var(--cyan);
+  width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:800}
+h2{font-family:'Bodoni Moda',serif;font-weight:700;font-size:1.6rem;line-height:1.2;margin-bottom:14px}
+h3{font-size:1.02rem;font-weight:700;margin:20px 0 8px;color:var(--off)}
+p{color:rgba(255,255,255,.82);margin-bottom:12px}
+p.lead{font-size:1.05rem;color:var(--off)}
+strong{color:var(--white);font-weight:700}
+.muted{color:var(--muted)}
+
+/* Cards */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px 22px;margin:14px 0}
+.card.green{border-color:rgba(110,231,168,.3);background:rgba(110,231,168,.06)}
+.card.cyan{border-color:var(--line2);background:rgba(91,211,255,.06)}
+.card-title{font-weight:700;font-size:.95rem;margin-bottom:8px;display:flex;align-items:center;gap:9px}
+
+/* Steps */
+.steps{counter-reset:step;list-style:none;margin:8px 0}
+.steps li{position:relative;padding:14px 0 14px 50px;border-bottom:1px solid var(--line)}
+.steps li:last-child{border-bottom:none}
+.steps li::before{counter-increment:step;content:counter(step);position:absolute;left:0;top:13px;
+  width:32px;height:32px;border-radius:50%;background:rgba(91,211,255,.12);border:1px solid var(--line2);
+  color:var(--cyan);font-weight:800;display:flex;align-items:center;justify-content:center;font-size:.9rem}
+.steps li b{display:block;font-size:.98rem;margin-bottom:2px;color:var(--white)}
+.steps li span{font-size:.88rem;color:var(--muted)}
+
+/* Feature / nav grid */
+.feat{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:10px 0}
+.feat .item{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:16px 18px}
+.feat .ic{font-size:1.4rem;margin-bottom:8px}
+.feat h4{font-weight:700;font-size:.96rem;margin-bottom:4px}
+.feat p{font-size:.84rem;color:var(--muted);margin:0}
+
+/* Score legend */
+.legend{display:flex;flex-direction:column;gap:9px;margin:12px 0}
+.legend .row{display:flex;align-items:center;gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:12px 16px}
+.badge{font-weight:800;font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;padding:5px 12px;border-radius:7px;white-space:nowrap;min-width:140px;text-align:center}
+.badge.bid{background:rgba(110,231,168,.18);color:var(--green);border:1px solid rgba(110,231,168,.35)}
+.badge.cond{background:rgba(245,158,11,.16);color:var(--amber);border:1px solid rgba(245,158,11,.32)}
+.badge.watch{background:rgba(255,255,255,.08);color:var(--muted);border:1px solid rgba(255,255,255,.18)}
+.badge.no{background:rgba(248,113,113,.15);color:var(--red);border:1px solid rgba(248,113,113,.32)}
+.legend .row span{font-size:.88rem;color:rgba(255,255,255,.82)}
+
+/* Report sections list */
+.reportcols{display:grid;grid-template-columns:1fr 1fr;gap:8px 26px;margin:10px 0}
+.reportcols div{font-size:.86rem;color:rgba(255,255,255,.82);padding:5px 0;border-bottom:1px solid var(--line)}
+.reportcols b{color:var(--cyan);font-family:'Jost';font-weight:700;margin-right:7px}
+.tag{display:inline-block;font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:2px 7px;border-radius:5px;margin-left:6px;vertical-align:middle}
+.tag.s1{background:rgba(91,211,255,.14);color:var(--cyan)}
+.tag.s2{background:rgba(110,231,168,.14);color:var(--green)}
+
+/* Tiers */
+.tiers{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:14px 0}
+.tier{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;text-align:center}
+.tier.hl{border-color:var(--green);background:rgba(110,231,168,.07)}
+.tier .t-name{font-family:'Bodoni Moda',serif;font-weight:700;font-size:1.15rem;margin-bottom:4px}
+.tier .t-tag{font-size:.72rem;color:var(--muted);margin-bottom:10px;min-height:32px}
+.tier .t-feat{font-size:.8rem;color:rgba(255,255,255,.8);line-height:1.7;text-align:left;list-style:none}
+.tier .t-feat li{padding-left:18px;position:relative}
+.tier .t-feat li::before{content:'✓';position:absolute;left:0;color:var(--green);font-weight:800}
+
+/* FAQ */
+.faq{margin:6px 0}
+.faq .q{font-weight:700;color:var(--white);margin:16px 0 4px}
+.faq .a{color:var(--muted);font-size:.9rem}
+
+/* Footer */
+footer{text-align:center;padding:34px 0 0;color:var(--soft);font-size:.78rem;line-height:1.7}
+footer .disc{font-family:'Cormorant Garamond',serif;font-style:italic;margin-top:8px}
+
+@media(max-width:640px){
+  .toc,.feat,.reportcols,.tiers{grid-template-columns:1fr}
+  .badge{min-width:120px}
+  .tb-btn{font-size:.72rem;padding:7px 11px}
+}
+
+/* Print → clean PDF data sheet */
+@media print{
+  body{background:#fff;color:#111;font-size:11.5px}
+  .topbar,.tb-actions,.toc{display:none!important}
+  .wrap{max-width:100%;padding:0}
+  a{color:#0F2A6A}
+  .hero{padding:8px 0 16px}
+  .hero h1{color:#0F2A6A}.hero h1 em{color:#163472}
+  h2{color:#0F2A6A}h3{color:#111}
+  p,.legend .row span,.feat p,.reportcols div,.tier .t-feat li,.faq .a{color:#222}
+  .card,.feat .item,.legend .row,.tier,.steps li::before{background:#f4f6fb;border-color:#cdd6ea}
+  section{padding:16px 0;break-inside:avoid;border-color:#dde3f0}
+  .eyebrow,.sec-eyebrow,.muted{color:#3a5fb0!important}
+  .rule,footer{color:#666}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="tb-inner">
+    <div class="brand">CapGen <span>Pro</span> · User's Guide</div>
+    <div class="tb-actions">
+      <button class="tb-btn" onclick="window.print()">↓ Save as PDF</button>
+      <a class="tb-btn solid" href="/member-home">Open Dashboard →</a>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="hero">
+    <div class="eyebrow">Beta Edition · User's Guide</div>
+    <h1>Find the right federal contracts — <em>and know which ones to bid.</em></h1>
+    <p>CapGen reads your business profile, matches it against live government opportunities, and tells you — in plain language — whether each one is worth pursuing. This guide covers the engine, every feature, and exactly how to navigate it.</p>
+    <p class="rule">Sourced from official public records.</p>
+  </div>
+
+  <nav class="toc">
+    <a href="#what"><span class="n">1</span> What CapGen Does</a>
+    <a href="#engine"><span class="n">2</span> The Matching Engine</a>
+    <a href="#start"><span class="n">3</span> Getting Started</a>
+    <a href="#navigate"><span class="n">4</span> Navigating the Dashboard</a>
+    <a href="#report"><span class="n">5</span> Reading a Fit Report</a>
+    <a href="#tiers"><span class="n">6</span> Plans &amp; What's Included</a>
+    <a href="#faq"><span class="n">7</span> FAQ &amp; Beta Notes</a>
+    <a href="#support"><span class="n">8</span> Help &amp; Feedback</a>
+  </nav>
+
+  <!-- 1 -->
+  <section id="what">
+    <div class="sec-eyebrow"><span class="num">1</span> What CapGen Does</div>
+    <h2>Your federal pipeline, pre-qualified.</h2>
+    <p class="lead">Government posts thousands of new contract opportunities every week. Most never match what your business actually does — and reading each solicitation to find out takes hours.</p>
+    <p>CapGen closes that gap in three moves:</p>
+    <div class="feat">
+      <div class="item"><div class="ic">🔎</div><h4>Matches</h4><p>Pulls live opportunities from official public records and matches them to your NAICS codes, certifications, and capabilities.</p></div>
+      <div class="item"><div class="ic">🎯</div><h4>Ranks</h4><p>Surfaces your strongest fits first, so you spend time on contracts you can realistically win — not on noise.</p></div>
+      <div class="item"><div class="ic">🧠</div><h4>Analyzes</h4><p>Gives each opportunity a clear <strong>bid / no-bid</strong> verdict with the reasons behind it, plus a pursuit plan.</p></div>
+    </div>
+    <p class="muted">Everything is built on official public data — registration status, NAICS codes, set-aside terms, and the live solicitation record — combined with the capability details only you can provide.</p>
+  </section>
+
+  <!-- 2 -->
+  <section id="engine">
+    <div class="sec-eyebrow"><span class="num">2</span> The Matching Engine</div>
+    <h2>How CapGen decides what fits.</h2>
+    <p>When you run <strong>Analyze Fit</strong> on an opportunity, the engine scores it against your registered profile and returns a <strong>Fit Score from 0–100</strong> plus a recommendation. It evaluates three core factors:</p>
+    <div class="card cyan">
+      <div class="card-title">⚖️ The three match factors</div>
+      <p><strong>1. Industry-code alignment (NAICS).</strong> Is this a direct match to your primary service line, or an adjacent one? Direct matches score highest.</p>
+      <p><strong>2. Eligibility.</strong> Do the set-aside terms (WOSB, SDVOSB, 8(a), HUBZone, small-business size standard) match your registered status? If you can't compete, you'll know immediately.</p>
+      <p><strong>3. Capability alignment.</strong> Do your stated capabilities and past performance cover the actual scope of work — High, Medium, or Low?</p>
+    </div>
+    <h3>Two stages, fast then deep</h3>
+    <p>CapGen splits the analysis so you get the verdict instantly, then the detail:</p>
+    <div class="card">
+      <p><strong class="badge s1" style="background:rgba(91,211,255,.14);color:var(--cyan);min-width:auto">Stage 1 — The Verdict</strong> &nbsp;Appears in seconds: Fit Score, bid/no-bid recommendation, opportunity summary, eligibility review, capability match, and the rationale.</p>
+      <p style="margin-bottom:0"><strong class="badge s2" style="background:rgba(110,231,168,.14);color:var(--green);min-width:auto">Stage 2 — The Pursuit Package</strong> &nbsp;Builds behind the verdict (or on demand): performance requirements, staffing &amp; delivery, compliance items, deadline risk, pricing considerations, a draft technical approach, a proposal checklist, and questions to ask the contracting officer.</p>
+    </div>
+    <p class="muted">Every analysis is grounded in the actual solicitation and your profile — never generic boilerplate. If there isn't enough information to judge a factor, CapGen says so rather than guessing.</p>
+  </section>
+
+  <!-- 3 -->
+  <section id="start">
+    <div class="sec-eyebrow"><span class="num">3</span> Getting Started</div>
+    <h2>From invite to first match in about two minutes.</h2>
+    <ol class="steps">
+      <li><b>Open your access link</b><span>Beta testers: claim free full access at <a href="/beta">/beta</a>, then use the personal dashboard link on the welcome screen (tap <em>Copy Dashboard Link</em> to save it). Subscribers sign in at <a href="/onboarding">/onboarding</a>.</span></li>
+      <li><b>Step 1 — Find your business</b><span>Type your company name. CapGen pulls your profile from official public records — registration status, NAICS codes, and certifications. Pick your business from the list to confirm it. Not registered yet? Choose "enter NAICS codes manually."</span></li>
+      <li><b>Step 2 — Tell us about your work</b><span>Add your core capabilities, past performance, team size, and set-aside certifications. These power your match accuracy and Analyze Fit scores. You can skip and complete this later — but the more you add, the sharper your results.</span></li>
+      <li><b>You're set</b><span>CapGen opens your pipeline — opportunities matched to your profile, refreshed daily.</span></li>
+    </ol>
+    <div class="card green"><div class="card-title">💡 Tip</div><p style="margin:0">Spend an extra minute on the <strong>Core Capabilities</strong> field in Step 2. It's the single biggest driver of how accurately Analyze Fit reads each opportunity.</p></div>
+  </section>
+
+  <!-- 4 -->
+  <section id="navigate">
+    <div class="sec-eyebrow"><span class="num">4</span> Navigating the Dashboard</div>
+    <h2>Four places to know.</h2>
+    <p>Your home screen has four tiles. Here's what each one is for:</p>
+    <div class="feat">
+      <div class="item"><div class="ic">📋</div><h4>All Contracts</h4><p>The full opportunity pipeline. Browse and filter every matched contract by NAICS code — your complete working list.</p></div>
+      <div class="item"><div class="ic">🎯</div><h4>Best Match</h4><p>The top 5 contracts curated for your profile right now. Start here each day — it's the shortlist worth your attention.</p></div>
+      <div class="item"><div class="ic">📊</div><h4>Marketing</h4><p>Pipeline metrics and warm leads — a higher-level read on activity and where to focus outreach.</p></div>
+      <div class="item"><div class="ic">⚙️</div><h4>My Profile</h4><p>Edit your capabilities and certifications anytime. Update this whenever your business changes — matches adjust accordingly.</p></div>
+    </div>
+    <h3>Opening an opportunity</h3>
+    <p>From <strong>Best Match</strong> or <strong>All Contracts</strong>, select any contract to view its details, then hit <strong>Analyze Fit</strong> to run the engine. Within the report you can jump straight to the live posting via <strong>View on SAM.gov</strong>, or save the analysis with <strong>Export as PDF</strong>.</p>
+  </section>
+
+  <!-- 5 -->
+  <section id="report">
+    <div class="sec-eyebrow"><span class="num">5</span> Reading a Fit Report</div>
+    <h2>The verdict, at a glance.</h2>
+    <p>Every report leads with a <strong>Fit Score</strong> and a color-coded recommendation. Read it like a traffic light:</p>
+    <div class="legend">
+      <div class="row"><span class="badge bid">Pursue</span><span>Strong fit — direct NAICS match, eligible, and your capabilities cover the scope. Prioritize it.</span></div>
+      <div class="row"><span class="badge cond">Pursue with Caution</span><span>Worth a look, but there's a gap to close — eligibility, capability, or timeline. Read the rationale before committing resources.</span></div>
+      <div class="row"><span class="badge watch">Watchlist</span><span>Not enough alignment to commit now, but worth keeping an eye on.</span></div>
+      <div class="row"><span class="badge no">Do Not Pursue</span><span>Clear mismatch — wrong industry code, ineligible, or capability gap too wide. Skip it and save the hours.</span></div>
+    </div>
+    <h3>What's in the report</h3>
+    <div class="reportcols">
+      <div><b>1</b>Opportunity Summary<span class="tag s1">Verdict</span></div>
+      <div><b>8</b>Compliance Requirements<span class="tag s2">Full</span></div>
+      <div><b>2</b>Why CapGen Matched It<span class="tag s1">Verdict</span></div>
+      <div><b>9</b>Deadline Risk<span class="tag s2">Full</span></div>
+      <div><b>3</b>Eligibility Review<span class="tag s1">Verdict</span></div>
+      <div><b>10</b>Pricing Considerations<span class="tag s2">Full</span></div>
+      <div><b>4</b>Capability Match<span class="tag s1">Verdict</span></div>
+      <div><b>11</b>Draft Technical Approach<span class="tag s2">Full</span></div>
+      <div><b>5</b>Bid / No-Bid Rationale<span class="tag s1">Verdict</span></div>
+      <div><b>12</b>Proposal Checklist<span class="tag s2">Full</span></div>
+      <div><b>6</b>Performance Requirements<span class="tag s2">Full</span></div>
+      <div><b>13</b>Questions for the CO<span class="tag s2">Full</span></div>
+      <div><b>7</b>Staffing &amp; Delivery<span class="tag s2">Full</span></div>
+      <div><b>14</b>Recommended Next Step<span class="tag s2">Full</span></div>
+    </div>
+    <p class="muted" style="margin-top:14px"><span class="tag s1">Verdict</span> sections land in seconds. <span class="tag s2">Full</span> sections make up the pursuit package — they build automatically on strong matches, or on demand via <strong>Run Full Analysis</strong>.</p>
+  </section>
+
+  <!-- 6 -->
+  <section id="tiers">
+    <div class="sec-eyebrow"><span class="num">6</span> Plans &amp; What's Included</div>
+    <h2>Three tiers.</h2>
+    <div class="tiers">
+      <div class="tier">
+        <div class="t-name">Scout</div>
+        <div class="t-tag">See your matched pipeline</div>
+        <ul class="t-feat"><li>Full matched pipeline</li><li>Best Match shortlist</li><li>NAICS filtering</li><li>Daily refresh</li></ul>
+      </div>
+      <div class="tier hl">
+        <div class="t-name">Operator</div>
+        <div class="t-tag">Pipeline + the full Analyze Fit engine</div>
+        <ul class="t-feat"><li>Everything in Scout</li><li><strong>Analyze Fit</strong> on any opportunity</li><li>Bid/no-bid verdicts</li><li>Full pursuit packages</li></ul>
+      </div>
+      <div class="tier">
+        <div class="t-name">Commander</div>
+        <div class="t-tag">For teams running volume</div>
+        <ul class="t-feat"><li>Everything in Operator</li><li>Higher analysis volume</li><li>Priority support</li></ul>
+      </div>
+    </div>
+    <div class="card green"><div class="card-title">🎟️ Beta testers</div><p style="margin:0">Your beta access includes the <strong>full Operator experience</strong> — Analyze Fit and complete pursuit packages unlocked — free, for the duration of the beta. Put it through its paces.</p></div>
+  </section>
+
+  <!-- 7 -->
+  <section id="faq">
+    <div class="sec-eyebrow"><span class="num">7</span> FAQ &amp; Beta Notes</div>
+    <h2>Good to know.</h2>
+    <div class="faq">
+      <div class="q">Where does the data come from?</div>
+      <div class="a">Official public records — the same federal sources contracting officers post to. CapGen organizes and analyzes it; it doesn't invent opportunities.</div>
+      <div class="q">My business isn't registered yet. Can I still use it?</div>
+      <div class="a">Yes. In Step 1, choose "enter NAICS codes manually" and CapGen will match on those.</div>
+      <div class="q">How often does the pipeline update?</div>
+      <div class="a">Daily. New matched opportunities appear automatically — no manual refresh needed.</div>
+      <div class="q">Can I save or share an analysis?</div>
+      <div class="a">Yes. Open any Fit Report and use <strong>Export as PDF</strong>. <strong>View on SAM.gov</strong> takes you straight to the official posting.</div>
+      <div class="q">Is the Fit Score a guarantee?</div>
+      <div class="a">No — it's a decision aid that weighs eligibility, fit, and scope to help you prioritize. Always confirm the official solicitation before you bid.</div>
+      <div class="q">What should beta testers focus on?</div>
+      <div class="a">Run Analyze Fit on a handful of real opportunities and tell us whether the verdict matches your own judgment. That feedback is exactly what shapes the release.</div>
+    </div>
+  </section>
+
+  <!-- 8 -->
+  <section id="support">
+    <div class="sec-eyebrow"><span class="num">8</span> Help &amp; Feedback</div>
+    <h2>We want your read on it.</h2>
+    <p>You're an early hand on CapGen, and your feedback directly shapes where it goes. Tell us what felt sharp, what felt off, and which verdict surprised you.</p>
+    <div class="card cyan" style="text-align:center">
+      <p style="margin-bottom:6px"><strong>Questions or feedback?</strong></p>
+      <p style="margin:0"><a href="mailto:jmitchell@aproposgroupllc.com">jmitchell@aproposgroupllc.com</a></p>
+    </div>
+  </section>
+
+  <footer>
+    <div>CapGen Pro — a service of Apropos Group LLC · Las Vegas, NV</div>
+    <div class="disc">Sourced from official public records. CapGen is a decision-support tool, not a guarantee of award. Always confirm the official solicitation before submitting a bid.</div>
+  </footer>
+
+</div>
+</body>
+</html>

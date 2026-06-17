@@ -131,6 +131,11 @@
   status = 200
 
 [[redirects]]
+  from = "/guide"
+  to = "/guide.html"
+  status = 200
+
+[[redirects]]
   from = "/beta"
   to = "/beta.html"
   status = 200
