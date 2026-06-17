@@ -8,6 +8,7 @@ const SERVICE_KEY  = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SE
 const RESEND_KEY   = process.env.RESEND_API_KEY;
 const FROM_EMAIL   = process.env.RESEND_FROM_EMAIL || 'CapGen <jmitchell@ai4websitedesign.com>';
 const SITE_URL     = 'https://capgen.aproposgroupllc.com';
+const BETA_CAP     = parseInt(process.env.BETA_SIGNUP_CAP || '20', 10); // max NEW beta testers
 
 const CORS = {
   'Content-Type': 'application/json',
@@ -79,6 +80,24 @@ exports.handler = async (event) => {
       statusCode: 200,
       headers: CORS,
       body: JSON.stringify({ ok: true, access_token: existingToken, existing: true }),
+    };
+  }
+
+  // Cap NEW signups — existing testers above already got their link back and bypass this.
+  const countRes = await fetch(
+    `${SUPABASE_URL}/rest/v1/beta_testers?select=email`,
+    { headers: sbH({ Prefer: 'count=exact', Range: '0-0' }) }
+  );
+  const range = countRes.headers.get('content-range') || '';      // e.g. "0-0/14"
+  const total = parseInt((range.split('/')[1] || '0'), 10);
+  if (Number.isFinite(total) && total >= BETA_CAP) {
+    return {
+      statusCode: 403,
+      headers: CORS,
+      body: JSON.stringify({
+        error: 'The CapGen beta is currently full. Thanks for your interest — email jmitchell@aproposgroupllc.com to join the waitlist.',
+        beta_full: true,
+      }),
     };
   }
 
