@@ -360,6 +360,18 @@ async function load() {
       setTimeout(() => load(), 5000);
       return;
     }
+    // 30-day beta expiry — show a clean end-of-beta state with a clear next step
+    if (res.status === 403 && data && /expired/i.test(data.error || '')) {
+      document.body.innerHTML =
+        '<div style="max-width:480px;margin:12vh auto;text-align:center;padding:40px 32px;border:1px solid rgba(255,255,255,.14);border-radius:20px;background:rgba(255,255,255,.05);font-family:Jost,sans-serif;color:#f0f6ff">'
+        + '<div style="font-size:2.6rem;margin-bottom:14px">⏳</div>'
+        + '<h1 style="font-family:\'Bodoni Moda\',serif;font-size:1.6rem;margin-bottom:12px">Your 30-day beta has ended.</h1>'
+        + '<p style="color:#8facd0;font-size:.95rem;line-height:1.7;margin-bottom:24px">Thanks for testing CapGen — your feedback genuinely shaped it. Ready to keep your pipeline running? Let\'s get you set up on a full plan.</p>'
+        + '<a href="https://ai4-product-purchasing.ai4businesses.org/capgen-offer.html" style="display:inline-block;background:#6EE7A8;color:#06210f;font-weight:800;text-decoration:none;padding:14px 28px;border-radius:11px;margin-bottom:14px">Continue with CapGen &rarr;</a>'
+        + '<p style="font-size:.82rem;color:#5a7899">Questions? <a href="mailto:jmitchell@aproposgroupllc.com" style="color:#5BD3FF;text-decoration:none">jmitchell@aproposgroupllc.com</a></p>'
+        + '</div>';
+      return;
+    }
     if (!res.ok) throw new Error(data.error || 'Load failed');
     clientData = data.client;
     allOpps    = data.opportunities || [];

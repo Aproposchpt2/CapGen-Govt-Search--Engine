@@ -170,6 +170,10 @@ exports.handler = async function(event) {
 
   var tester = testers[0];
 
+  // Enforce 30-day beta expiry
+  if (tester.token_expires_at && new Date(tester.token_expires_at) < new Date())
+    return { statusCode: 403, headers: CORS, body: JSON.stringify({ error: 'Beta access has expired' }) };
+
   // Try SAM.gov lookup by CAGE if available
   var entity = null;
   if (tester.cage_code && SAM_API_KEY) {
