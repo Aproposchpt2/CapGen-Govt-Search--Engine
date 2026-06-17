@@ -70,6 +70,7 @@ select option{background:#0F2A6A;color:var(--white)}
 </div>
 
 <div class="form-wrap">
+  <div id="slotsBanner" style="display:none;align-items:center;justify-content:center;gap:10px;text-align:center;font-weight:700;font-size:.92rem;padding:13px 18px;border-radius:13px;margin-bottom:16px;line-height:1.5"></div>
   <div class="form-card">
     <div class="form-row">
       <div>
@@ -140,6 +141,28 @@ select option{background:#0F2A6A;color:var(--white)}
 'use strict';
 function v(id){ return (document.getElementById(id)||{value:''}).value.trim(); }
 function setErr(msg){ document.getElementById('errMsg').textContent = msg || ''; }
+
+// Live availability — scarcity prompt
+(async function loadSlots(){
+  const b = document.getElementById('slotsBanner');
+  try {
+    const res  = await fetch('/.netlify/functions/beta-signup', { method: 'GET' });
+    const data = await res.json();
+    if (typeof data.remaining !== 'number') return;
+    b.style.display = 'flex';
+    if (data.full) {
+      b.style.background = 'rgba(248,113,113,.12)'; b.style.border = '1px solid rgba(248,113,113,.32)'; b.style.color = '#F87171';
+      b.innerHTML = '🚫 The beta cohort is full — all spots are taken. Email <a href="mailto:jmitchell@aproposgroupllc.com" style="color:#F87171;font-weight:700">jmitchell@aproposgroupllc.com</a> to join the waitlist.';
+      const sb = document.getElementById('submitBtn'); sb.disabled = true; sb.textContent = 'Beta Full — Join the Waitlist';
+    } else if (data.remaining <= 5) {
+      b.style.background = 'rgba(245,158,11,.12)'; b.style.border = '1px solid rgba(245,158,11,.34)'; b.style.color = '#F59E0B';
+      b.innerHTML = '🔥 Almost full — only <strong>' + data.remaining + '</strong> of ' + data.cap + ' beta spots left. Claim yours now.';
+    } else {
+      b.style.background = 'rgba(110,231,168,.1)'; b.style.border = '1px solid rgba(110,231,168,.3)'; b.style.color = '#6EE7A8';
+      b.innerHTML = '✅ <strong>' + data.remaining + '</strong> of ' + data.cap + ' free beta spots remaining — sign up before they\'re gone.';
+    }
+  } catch(e) { /* non-fatal — banner stays hidden */ }
+})();
 
 async function submitBeta() {
   setErr('');

@@ -23,8 +23,30 @@ function sbH(extra = {}) {
 
 function validNaics(code) { return /^\d{6}$/.test((code || '').trim()); }
 
+async function betaCount() {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/beta_testers?select=email`,
+    { headers: sbH({ Prefer: 'count=exact', Range: '0-0' }) }
+  );
+  const range = res.headers.get('content-range') || '';   // e.g. "0-0/14"
+  const total = parseInt((range.split('/')[1] || '0'), 10);
+  return Number.isFinite(total) ? total : 0;
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: CORS, body: '' };
+
+  // GET → live availability for the signup page (no PII exposed)
+  if (event.httpMethod === 'GET') {
+    const total = await betaCount();
+    const remaining = Math.max(0, BETA_CAP - total);
+    return {
+      statusCode: 200,
+      headers: { ...CORS, 'Cache-Control': 'no-store' },
+      body: JSON.stringify({ cap: BETA_CAP, remaining, full: remaining <= 0 }),
+    };
+  }
+
   if (event.httpMethod !== 'POST')    return { statusCode: 405, headers: CORS, body: JSON.stringify({ error: 'POST only' }) };
 
   let body;
@@ -84,13 +106,8 @@ exports.handler = async (event) => {
   }
 
   // Cap NEW signups — existing testers above already got their link back and bypass this.
-  const countRes = await fetch(
-    `${SUPABASE_URL}/rest/v1/beta_testers?select=email`,
-    { headers: sbH({ Prefer: 'count=exact', Range: '0-0' }) }
-  );
-  const range = countRes.headers.get('content-range') || '';      // e.g. "0-0/14"
-  const total = parseInt((range.split('/')[1] || '0'), 10);
-  if (Number.isFinite(total) && total >= BETA_CAP) {
+  const total = await betaCount();
+  if (total >= BETA_CAP) {
     return {
       statusCode: 403,
       headers: CORS,
