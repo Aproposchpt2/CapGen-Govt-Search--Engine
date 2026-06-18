@@ -23,7 +23,7 @@ body{background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line
   display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .demo-biz{font-size:.9rem;font-weight:700;color:var(--text)}
 .demo-rule{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:.8rem;color:rgba(255,255,255,.38)}
-.demo-nav{display:flex;align-items:center;gap:10px}
+.demo-nav{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .btn-opp{background:var(--cyan);color:#0A1A3A;font-family:'Jost',sans-serif;font-weight:700;
   font-size:.78rem;padding:7px 16px;border-radius:8px;text-decoration:none;white-space:nowrap;
   border:none;cursor:pointer;transition:.15s}
@@ -121,6 +121,8 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:14p
 
 @media(max-width:700px){
   .demo-banner{flex-direction:column;align-items:flex-start;padding:10px 14px}
+  .demo-nav{width:100%}
+  .demo-nav .btn-opp{flex:1 1 100%;text-align:center;order:-1}
   .page{padding:14px 12px 100px}
   .stat-bar{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .opp-table th:nth-child(3),.opp-table td:nth-child(3),
