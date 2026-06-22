@@ -590,6 +590,25 @@ footer span{color:rgba(255,255,255,.55)}
 </style>
 </head>
 <body>
+<style>
+.famribbon{background:#081634;border-bottom:1px solid rgba(255,255,255,.08);font-family:'Jost',sans-serif;position:relative;z-index:60}
+.famribbon-in{max-width:1180px;margin:0 auto;padding:7px clamp(16px,5vw,3rem);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.fam-label{font-size:.56rem;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.4);font-weight:600}
+.fam-links{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.fam-links a,.fam-links .current{font-size:.62rem;letter-spacing:.13em;text-transform:uppercase;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;color:rgba(255,255,255,.55)}
+.fam-links a:hover{color:#fff}
+.fam-links .current{color:#fff;cursor:default}
+.fam-links .current::before{content:"";width:5px;height:5px;border-radius:50%;background:#34d399;display:inline-block}
+@media(max-width:600px){.fam-label{display:none}.famribbon-in{justify-content:center}.fam-links{justify-content:center}}
+</style>
+<div class="famribbon"><div class="famribbon-in">
+<span class="fam-label">Apropos Group · Government Contract Engines</span>
+<nav class="fam-links" aria-label="Apropos contract sites">
+<span class="current">CapGen · Federal</span>
+<a href="https://nevadastategen.aproposgroupllc.com">NevadaStateGen</a>
+<a href="https://calstategen.aproposgroupllc.com">CalStateGen</a>
+</nav>
+</div></div>
 
 <!-- ══════════════════════════════════
      HERO
