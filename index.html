@@ -595,8 +595,10 @@ footer span{color:rgba(255,255,255,.55)}
 .famribbon-in{max-width:1180px;margin:0 auto;padding:7px clamp(16px,5vw,3rem);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .fam-label{font-size:.56rem;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.4);font-weight:600}
 .fam-links{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
-.fam-links a,.fam-links .current{font-size:.62rem;letter-spacing:.13em;text-transform:uppercase;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;color:rgba(255,255,255,.55)}
-.fam-links a:hover{color:#fff}
+.fam-links a,.fam-links .current{font-size:.62rem;letter-spacing:.13em;text-transform:uppercase;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;color:#fff}
+.fam-links a{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.34);border-radius:999px;padding:4px 13px;color:rgba(255,255,255,.92)}
+.fam-links a::after{content:"→";margin-left:7px;opacity:.6;font-weight:400}
+.fam-links a:hover{background:rgba(255,255,255,.18);border-color:#fff;color:#fff}
 .fam-links .current{color:#fff;cursor:default}
 .fam-links .current::before{content:"";width:5px;height:5px;border-radius:50%;background:#34d399;display:inline-block}
 @media(max-width:600px){.fam-label{display:none}.famribbon-in{justify-content:center}.fam-links{justify-content:center}}
