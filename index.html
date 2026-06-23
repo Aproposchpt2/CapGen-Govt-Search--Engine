@@ -591,26 +591,49 @@ footer span{color:rgba(255,255,255,.55)}
 </head>
 <body>
 <style>
-.famribbon{background:#081634;border-bottom:1px solid rgba(255,255,255,.08);font-family:'Jost',sans-serif;position:relative;z-index:60}
-.famribbon-in{max-width:1180px;margin:0 auto;padding:7px clamp(16px,5vw,3rem);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.fam-label{font-size:.56rem;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.4);font-weight:600}
-.fam-links{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
-.fam-links a,.fam-links .current{font-size:.62rem;letter-spacing:.13em;text-transform:uppercase;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;color:#fff}
-.fam-links a{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.34);border-radius:999px;padding:4px 13px;color:rgba(255,255,255,.92)}
-.fam-links a::after{content:"→";margin-left:7px;opacity:.6;font-weight:400}
-.fam-links a:hover{background:rgba(255,255,255,.18);border-color:#fff;color:#fff}
-.fam-links .current{color:#fff;cursor:default}
-.fam-links .current::before{content:"";width:5px;height:5px;border-radius:50%;background:#34d399;display:inline-block}
-@media(max-width:600px){.fam-label{display:none}.famribbon-in{justify-content:center}.fam-links{justify-content:center}}
+.cgbar{position:sticky;top:0;z-index:50;background:rgba(15,42,106,.92);backdrop-filter:blur(18px);border-bottom:1px solid rgba(255,255,255,.12);font-family:'Jost',sans-serif}
+.cgbar-in{max-width:1180px;margin:0 auto;padding:.7rem clamp(1.2rem,4vw,2.4rem);display:flex;align-items:center;justify-content:space-between;gap:18px}
+.cgbrand{display:flex;align-items:center;gap:12px;text-decoration:none}
+.cgmark{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;font-weight:600;font-size:.85rem;background:#fff;color:#0F2A6A}
+.cgname{font-family:'Bodoni Moda',serif;font-size:1.28rem;font-weight:400;color:#fff;line-height:1;letter-spacing:-.01em}
+.cgsub{font-size:.54rem;font-weight:500;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.42)}
+.cglinks{display:flex;gap:22px;align-items:center}
+.cglinks a{font-size:.72rem;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.6);text-decoration:none}
+.cglinks a:hover{color:#fff}
+.cgcta{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:flex-end}
+.cgfam{display:flex;align-items:center;gap:8px}
+.cgbtn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;border-radius:4px;transition:.2s;cursor:pointer}
+.cgbtn.fam{background:rgba(255,255,255,.06);color:rgba(255,255,255,.88);border:1px solid rgba(255,255,255,.32);font-weight:600;font-size:.6rem;letter-spacing:.09em;text-transform:uppercase;padding:.55rem .95rem;white-space:nowrap}
+.cgbtn.fam::after{content:"↗";margin-left:6px;opacity:.55;font-weight:400}
+.cgbtn.fam:hover{border-color:#fff;color:#fff;background:rgba(255,255,255,.14)}
+.cgbtn.outline{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4);font-weight:600;font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;padding:.58rem 1.25rem}
+.cgbtn.outline:hover{border-color:#fff;background:rgba(255,255,255,.08)}
+.cgbtn.primary{background:#fff;color:#0F2A6A;font-weight:600;font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;padding:.62rem 1.3rem}
+.cgbtn.primary:hover{background:#EEF3FF}
+@media(max-width:1240px){.cgfam{display:none}}
+@media(max-width:880px){.cglinks{display:none}}
 </style>
-<div class="famribbon"><div class="famribbon-in">
-<span class="fam-label">Apropos Group · Government Contract Engines</span>
-<nav class="fam-links" aria-label="Apropos contract sites">
-<span class="current">Federal Govt. Contracts</span>
-<a href="https://nevadastategen.aproposgroupllc.com">Nevada State Contracts</a>
-<a href="https://calstategen.aproposgroupllc.com">California State Contracts</a>
+<header class="cgbar">
+<div class="cgbar-in">
+<a class="cgbrand" href="/">
+<span class="cgmark">CG</span>
+<span><span class="cgname">CapGen</span><br><span class="cgsub">Federal Procurement · Apropos Group LLC</span></span>
+</a>
+<nav class="cglinks">
+<a href="#how">How It Works</a>
+<a href="#why">Why CapGen</a>
+<a href="/demo">Demo</a>
 </nav>
-</div></div>
+<div class="cgcta">
+<div class="cgfam">
+<a class="cgbtn fam" href="https://nevadastategen.aproposgroupllc.com">Nevada State Contracts</a>
+<a class="cgbtn fam" href="https://calstategen.aproposgroupllc.com">California State Contracts</a>
+</div>
+<a class="cgbtn outline" href="/onboarding">Member Login</a>
+<a class="cgbtn primary" href="https://ai4-product-purchasing.ai4businesses.org/capgen-offer.html">Get Started</a>
+</div>
+</div>
+</header>
 
 <!-- ══════════════════════════════════
      HERO
