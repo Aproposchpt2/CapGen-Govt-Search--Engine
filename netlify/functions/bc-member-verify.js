@@ -4,6 +4,8 @@
 // Set BC_SUPA_URL and BC_SUPA_KEY in Netlify env vars for this site
 // pointing to the APROPOS-BIZPLAN Supabase project.
 
+const DEFAULT_BC_SUPABASE_URL = 'https://judislfknmhofcgzyozc.supabase.co';
+
 exports.handler = async (event) => {
   const headers = {
     'Content-Type': 'application/json',
@@ -23,8 +25,13 @@ exports.handler = async (event) => {
     body: JSON.stringify({ error: 'Email and access code required' }),
   };
 
-  const SUPA = process.env.BC_SUPA_URL || process.env.SUPABASE_URL;
+  const SUPA = process.env.BC_SUPA_URL || process.env.SUPABASE_URL || DEFAULT_BC_SUPABASE_URL;
   const SKEY = process.env.BC_SUPA_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+
+  if (!SUPA || !SKEY) return {
+    statusCode: 500, headers,
+    body: JSON.stringify({ ok: false, error: 'Business Center member verification is not configured.' }),
+  };
 
   const r = await fetch(
     `${SUPA}/rest/v1/biz_center_members?email=eq.${encodeURIComponent(email.toLowerCase().trim())}&select=id,full_name,email,business_name,industry,city,state,business_stage,readiness_score,subscription_status,trial_end,capgen_access_code`,
@@ -39,7 +46,7 @@ exports.handler = async (event) => {
     body: JSON.stringify({ ok: false, error: 'No Business Center membership found for this email. Join at aibizcenter.aproposgroupllc.com' }),
   };
 
-  if (member.capgen_access_code !== accessCode.toUpperCase().trim()) {
+  if ((member.capgen_access_code || '').toUpperCase().trim() !== accessCode.toUpperCase().trim()) {
     return {
       statusCode: 200, headers,
       body: JSON.stringify({ ok: false, error: 'Invalid access code. Check your Business Center welcome email.' }),
@@ -62,8 +69,8 @@ exports.handler = async (event) => {
     body: JSON.stringify({
       ok: true, member: {
         email: member.email,
-        fullName: member.full_name,
-        businessName: member.business_name,
+        fullName: member.full_name || fullName || '',
+        businessName: member.business_name || businessName || '',
         industry: member.industry,
         city: member.city,
         state: member.state,
