@@ -630,6 +630,7 @@ footer span{color:rgba(255,255,255,.55)}
 <a class="cgbtn fam" href="https://calstategen.aproposgroupllc.com">California State Contracts</a>
 </div>
 <a class="cgbtn outline" href="/onboarding">Member Login</a>
+<button class="cgbtn" onclick="document.getElementById('bcModal').style.display='flex'" style="background:#C9A84C;color:#0F2A6A;font-weight:800;font-size:.68rem;letter-spacing:.13em;text-transform:uppercase;padding:.62rem 1.3rem;border:none;border-radius:999px;cursor:pointer;white-space:nowrap">BC Members Login</button>
 <a class="cgbtn primary" href="https://ai4-product-purchasing.ai4businesses.org/capgen-offer.html">Get Started</a>
 </div>
 </div>
@@ -1059,6 +1060,79 @@ footer span{color:rgba(255,255,255,.55)}
   <a href="https://stategen.aproposgroupllc.com" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">StateGen — State &amp; Local</a>
  </p>
 </footer>
+
+<!-- BC MEMBER MODAL -->
+<div id="bcModal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(2,4,10,.84);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:18px;max-width:480px;width:100%;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.5)">
+    <div style="background:#0F2A6A;padding:22px 28px">
+      <div style="font-family:'Bodoni Moda',Georgia,serif;font-size:1.05rem;color:#C9A84C;font-weight:400;letter-spacing:.04em">APROPOS BUSINESS CENTER&#8482; &mdash; Member Access</div>
+      <div style="font-size:.72rem;color:rgba(255,255,255,.55);margin-top:4px;font-family:'Jost',sans-serif;letter-spacing:.1em;text-transform:uppercase">Federal Contract Intelligence</div>
+    </div>
+    <div style="padding:24px 28px">
+      <div id="bcWelcomeBanner" style="display:none;background:#0F2A6A;border-radius:10px;padding:14px 16px;margin-bottom:16px;color:#C9A84C;font-weight:800;font-size:.9rem;text-align:center;line-height:1.5"></div>
+      <div id="bcFormWrap">
+        <div style="display:grid;gap:12px;margin-bottom:16px">
+          <input id="bcName" type="text" placeholder="Your full name" style="font-family:'Jost',sans-serif;width:100%;padding:11px 14px;border:1px solid #dde3f0;border-radius:9px;font-size:.95rem;color:#0F2A6A;outline:none">
+          <input id="bcBiz" type="text" placeholder="Your business name" style="font-family:'Jost',sans-serif;width:100%;padding:11px 14px;border:1px solid #dde3f0;border-radius:9px;font-size:.95rem;color:#0F2A6A;outline:none">
+          <input id="bcEmail" type="email" placeholder="Your Business Center email" style="font-family:'Jost',sans-serif;width:100%;padding:11px 14px;border:1px solid #dde3f0;border-radius:9px;font-size:.95rem;color:#0F2A6A;outline:none">
+          <input id="bcCode" type="text" placeholder="From your welcome email (e.g. A3F8B2C1)" maxlength="8" style="font-family:'Jost',sans-serif;width:100%;padding:11px 14px;border:1px solid #dde3f0;border-radius:9px;font-size:.95rem;color:#0F2A6A;letter-spacing:.1em;text-transform:uppercase;outline:none">
+        </div>
+        <div id="bcErr" style="display:none;color:#c0392b;font-size:.84rem;margin-bottom:10px;padding:10px;background:#fff5f5;border-radius:8px"></div>
+        <button id="bcSubmit" onclick="bcVerify()" style="width:100%;background:#C9A84C;color:#0F2A6A;font-weight:800;font-size:.82rem;letter-spacing:.12em;text-transform:uppercase;padding:14px;border:none;border-radius:999px;cursor:pointer;font-family:'Jost',sans-serif">Access My Contract Dashboard &rarr;</button>
+        <div style="text-align:center;margin-top:12px;font-size:.78rem;color:#888">Not a BC member? <a href="https://aibizcenter.aproposgroupllc.com" style="color:#0F2A6A;font-weight:700">Join the Business Center &rarr;</a></div>
+      </div>
+    </div>
+    <button onclick="document.getElementById('bcModal').style.display='none'" style="position:absolute;top:14px;right:18px;background:none;border:none;color:rgba(255,255,255,.6);font-size:1.3rem;cursor:pointer;line-height:1">&times;</button>
+  </div>
+</div>
+
+<script>
+document.getElementById('bcCode').addEventListener('input', function(){ this.value = this.value.toUpperCase(); });
+
+async function bcVerify() {
+  const email = document.getElementById('bcEmail').value.trim();
+  const accessCode = document.getElementById('bcCode').value.trim().toUpperCase();
+  const fullName = document.getElementById('bcName').value.trim();
+  const businessName = document.getElementById('bcBiz').value.trim();
+  const errEl = document.getElementById('bcErr');
+  const btn = document.getElementById('bcSubmit');
+
+  errEl.style.display = 'none';
+  if (!email || !accessCode) { errEl.textContent = 'Email and access code are required.'; errEl.style.display = 'block'; return; }
+
+  btn.textContent = 'Verifying…'; btn.disabled = true;
+  try {
+    const res = await fetch('/.netlify/functions/bc-member-verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fullName, businessName, email, accessCode }),
+    });
+    const data = await res.json();
+    if (!data.ok) { errEl.textContent = data.error || 'Verification failed.'; errEl.style.display = 'block'; btn.textContent = 'Access My Contract Dashboard →'; btn.disabled = false; return; }
+
+    const member = data.member;
+    sessionStorage.setItem('capgen_bc_session', JSON.stringify(member));
+    // Set capgen_session so member-home.html recognizes the login
+    sessionStorage.setItem('capgen_session', JSON.stringify({
+      email: member.email,
+      business_name: member.businessName || member.business_name || '',
+      uei: '',
+      onboarding_state: 'complete',
+      account_type: 'bc_member',
+      session_token: 'bc_' + Date.now(),
+    }));
+
+    document.getElementById('bcModal').style.display = 'none';
+    const firstName = (member.fullName || '').split(' ')[0] || 'Member';
+    const banner = document.getElementById('bcWelcomeBanner');
+    banner.innerHTML = 'Welcome ' + firstName + ' — your Business Center membership includes full access to CapGen. Your personalized contract dashboard is ready.';
+    banner.style.display = 'block';
+    document.getElementById('bcFormWrap').style.display = 'none';
+
+    setTimeout(() => { window.location.href = '/member-home'; }, 1800);
+  } catch(e) { errEl.textContent = 'Network error. Please try again.'; errEl.style.display = 'block'; btn.textContent = 'Access My Contract Dashboard →'; btn.disabled = false; }
+}
+</script>
 
 </body>
 </html>
