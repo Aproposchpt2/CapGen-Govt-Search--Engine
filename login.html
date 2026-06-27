@@ -41,35 +41,46 @@
 'use strict';
 const $ = id => document.getElementById(id);
 let theEmail = '';
+
+async function fetchWithTimeout(url, options, ms){
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms || 15000);
+  try { return await fetch(url, {...options, signal: ctrl.signal}); }
+  finally { clearTimeout(t); }
+}
+
 $('sendBtn').addEventListener('click', async () => {
   const m = $('msg1'); m.className='msg'; m.style.display='none'; m.textContent='';
   const email = $('email').value.trim().toLowerCase();
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ m.className='msg err'; m.textContent='Please enter a valid email.'; return; }
   const b = $('sendBtn'); b.disabled=true; b.textContent='Sending…';
   try{
-    const res = await fetch('/.netlify/functions/send-member-login-code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+    const res = await fetchWithTimeout('/.netlify/functions/send-member-login-code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})},15000);
     const d = await res.json().catch(()=>({}));
     if(!res.ok) throw new Error(d.error || 'Could not send code.');
     if(!d.found){ m.className='msg err'; m.innerHTML='No activated Business Center access was found for that email. Activate first at <a style="color:#fff" href="https://aibizcenter.aproposgroupllc.com/activate.html">AIBizCenter</a>.'; b.disabled=false; b.textContent='Send my login code →'; return; }
     theEmail=email; $('emailEcho').textContent=email; $('emailStep').style.display='none'; $('codeStep').style.display='block'; $('code').focus();
-  }catch(e){ m.className='msg err'; m.textContent=e.message; b.disabled=false; b.textContent='Send my login code →'; }
+  }catch(e){ m.className='msg err'; m.textContent=e.name === 'AbortError' ? 'The login code request timed out. Please try again.' : e.message; b.disabled=false; b.textContent='Send my login code →'; }
 });
+
 $('verifyBtn').addEventListener('click', async () => {
   const m = $('msg2'); m.className='msg'; m.style.display='none'; m.textContent='';
   const code = $('code').value.trim();
   if(!/^\d{6}$/.test(code)){ m.className='msg err'; m.textContent='Enter the 6-digit code.'; return; }
   const b = $('verifyBtn'); b.disabled=true; b.textContent='Signing in…';
   try{
-    const res = await fetch('/.netlify/functions/verify-member-login-code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:theEmail,code})});
+    const res = await fetchWithTimeout('/.netlify/functions/verify-member-login-code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:theEmail,code})},15000);
     const d = await res.json().catch(()=>({}));
     if(!res.ok || !d.ok) throw new Error(d.error || 'Could not verify code.');
-    sessionStorage.setItem('capgen_session', JSON.stringify(d.session));
-    sessionStorage.setItem('capgen_bc_session', JSON.stringify(d.member));
-    sessionStorage.setItem('pipeline_session', btoa(JSON.stringify({ email: d.member.email, ts: Date.now(), memberType: 'bc_member' })));
-    sessionStorage.setItem('capgen_uei', 'bc:' + d.member.email);
+    const member = d.member || {};
+    const session = d.session || { email: member.email || theEmail, business_name: member.business_name || member.businessName || '', account_type: 'bc_member' };
+    sessionStorage.setItem('capgen_session', JSON.stringify(session));
+    sessionStorage.setItem('capgen_bc_session', JSON.stringify(member));
+    sessionStorage.setItem('pipeline_session', btoa(JSON.stringify({ email: member.email || theEmail, ts: Date.now(), memberType: 'bc_member' })));
+    sessionStorage.setItem('capgen_uei', 'bc:' + (member.email || theEmail));
     m.className='msg ok'; m.textContent='Signed in — opening your dashboard…';
-    location.href='/member-home';
-  }catch(e){ m.className='msg err'; m.textContent=e.message; b.disabled=false; b.textContent='Sign in →'; }
+    setTimeout(() => { window.location.assign('/member-home'); }, 250);
+  }catch(e){ m.className='msg err'; m.textContent=e.name === 'AbortError' ? 'Sign-in timed out before the dashboard opened. Please request a new code and try again.' : e.message; b.disabled=false; b.textContent='Sign in →'; }
 });
 $('back').addEventListener('click', () => { $('codeStep').style.display='none'; $('emailStep').style.display='block'; });
 $('email').addEventListener('keydown', e => { if(e.key==='Enter') $('sendBtn').click(); });
