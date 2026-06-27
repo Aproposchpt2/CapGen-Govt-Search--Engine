@@ -1,9 +1,9 @@
 // client-pipeline.js
-// Pulls live SAM.gov contract opportunities for a client's NAICS codes.
-// GET ?uei=C13JZV6AY6L4&days=90
-// BC members may also pass ?uei=bc:member@email.com or ?bc_email=member@email.com.
-// NAICS derived dynamically from capgen_subscriptions; hardcoded and BC-derived maps are fallbacks.
-// Returns opportunities sorted by response deadline ascending.
+// Pulls live SAM.gov contract opportunities for a client's profile NAICS codes.
+// Supported identifiers:
+//   ?uei=bc:email@example.com  -> Business Center member
+//   ?uei=cg:email@example.com  -> Direct CapGen customer
+//   ?uei=UEI123             -> CapGen subscription / known UEI profile
 'use strict';
 
 const OPP_URL      = 'https://api.sam.gov/opportunities/v2/search';
@@ -11,14 +11,15 @@ const PAGE_LIMIT   = 100;
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://judislfknmhofcgzyozc.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '';
 
-// Fallback map — used when a UEI is not in capgen_subscriptions
+// Known UEI profile fallback is only allowed when a UEI is explicitly requested.
+// It is never used as a default new-user dashboard.
 const CLIENT_NAICS = {
-  'C13JZV6AY6L4': {              // Custom IT Services LLC
+  'C13JZV6AY6L4': {
     name: 'CUSTOM IT SERVICES LLC',
     naics: ['541519','541511','541512','541513','541990','541690','541370','541330','517919','238210'],
     psc:   ['DB10','DF10','DG10','DG11','DJ10','R499','R799'],
   },
-  'YVNXN3XBUSD5': {              // Apropos Group LLC — updated per SAM.gov submission June 2026
+  'YVNXN3XBUSD5': {
     name: 'Apropos Group LLC',
     naics: ['541512','541511','541519','541330','541370','541611','541618','561210'],
   },
@@ -38,35 +39,101 @@ const BC_INDUSTRY_RULES = [
   { terms: ['food','restaurant','catering','meal'], naics: ['722310','722320','311991'] },
 ];
 
+function sbHeaders() {
+  return { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY };
+}
+
+function uniq(arr) {
+  return [...new Set((arr || []).map(String).map(s => s.trim()).filter(Boolean))];
+}
+
 function naicsFromIndustry(industry) {
   const hay = String(industry || '').toLowerCase();
   const out = [];
   for (const rule of BC_INDUSTRY_RULES) {
     if (rule.terms.some(t => hay.includes(t))) out.push(...rule.naics);
   }
-  const unique = [...new Set(out.length ? out : BC_DEFAULT_NAICS)];
+  const unique = uniq(out.length ? out : BC_DEFAULT_NAICS);
   return unique.slice(0, 8);
 }
 
+function normalizeNaics(value) {
+  if (Array.isArray(value)) return uniq(value);
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) return uniq(parsed);
+    } catch (_) {}
+    return uniq(value.split(/[\s,;|]+/));
+  }
+  return [];
+}
+
 async function fetchClientFromDB(uei) {
-  if (!SUPABASE_URL || !SUPABASE_KEY) return null;
+  if (!SUPABASE_URL || !SUPABASE_KEY || !uei) return null;
   try {
     const res = await fetch(
       SUPABASE_URL + '/rest/v1/capgen_subscriptions?uei=eq.' + encodeURIComponent(uei) + '&status=eq.active&limit=1',
-      { headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY } }
+      { headers: sbHeaders() }
     );
     if (!res.ok) return null;
     const rows = await res.json();
-    if (!rows.length || !(rows[0].naics || []).length) return null;
+    if (!rows.length) return null;
     const sub = rows[0];
+    const naics = normalizeNaics(sub.naics);
+    if (!naics.length) return null;
     return {
       name:  sub.business_name || uei,
-      naics: sub.naics,
+      business_name: sub.business_name || uei,
+      naics,
       cage:  sub.cage || null,
       city:  sub.address ? sub.address.split(',')[0].trim() : null,
       state: sub.address ? (sub.address.split(',')[1] || '').trim() : null,
       psc:   (CLIENT_NAICS[uei] || {}).psc || [],
       member_type: 'capgen_subscriber',
+      source: 'capgen_subscriptions',
+      uei,
+    };
+  } catch { return null; }
+}
+
+async function fetchDirectCapGenCustomer(email) {
+  if (!SUPABASE_URL || !SUPABASE_KEY || !email) return null;
+  try {
+    const cleanEmail = String(email).trim().toLowerCase();
+    const select = 'email,full_name,business_name,uei,cage,city,state,naics,capabilities,certifications,set_asides,status,current_period_end,subscription_tier,profile_complete,source';
+    const res = await fetch(
+      SUPABASE_URL + '/rest/v1/capgen_customers?email=eq.' + encodeURIComponent(cleanEmail) + '&access_activated=eq.true&select=' + encodeURIComponent(select) + '&limit=1',
+      { headers: sbHeaders() }
+    );
+    if (!res.ok) return null;
+    const rows = await res.json();
+    if (!Array.isArray(rows) || !rows.length) return null;
+    const c = rows[0];
+    const active = ['active','trial'].includes(String(c.status || '').toLowerCase()) || (c.current_period_end && new Date(c.current_period_end) > new Date());
+    if (!active) return null;
+
+    let naics = normalizeNaics(c.naics);
+
+    // First-login automation placeholder: use explicit customer NAICS first.
+    // If no NAICS exists yet but an explicit UEI is present and known, bootstrap from the UEI profile once,
+    // then the profile can be enriched/stored for revisits.
+    if (!naics.length && c.uei && CLIENT_NAICS[c.uei]) naics = CLIENT_NAICS[c.uei].naics;
+
+    return {
+      name: c.business_name || c.full_name || cleanEmail,
+      business_name: c.business_name || c.full_name || cleanEmail,
+      naics,
+      cage: c.cage || null,
+      city: c.city || null,
+      state: c.state || null,
+      psc: [],
+      member_type: 'capgen_direct',
+      source: 'capgen_customers',
+      email: cleanEmail,
+      uei: c.uei || 'cg:' + cleanEmail,
+      subscription_tier: c.subscription_tier || null,
+      profile_complete: !!c.profile_complete,
     };
   } catch { return null; }
 }
@@ -77,7 +144,7 @@ async function fetchBCMemberClient(email) {
     const cleanEmail = String(email).trim().toLowerCase();
     const res = await fetch(
       SUPABASE_URL + '/rest/v1/biz_center_members?email=eq.' + encodeURIComponent(cleanEmail) + '&select=email,full_name,business_name,industry,city,state,business_stage,subscription_status,trial_end&limit=1',
-      { headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY } }
+      { headers: sbHeaders() }
     );
     if (!res.ok) return null;
     const rows = await res.json();
@@ -89,6 +156,7 @@ async function fetchBCMemberClient(email) {
     if (!active) return null;
     return {
       name: member.business_name || member.full_name || cleanEmail,
+      business_name: member.business_name || member.full_name || cleanEmail,
       naics: naicsFromIndustry(member.industry),
       cage: null,
       city: member.city || null,
@@ -97,6 +165,8 @@ async function fetchBCMemberClient(email) {
       member_type: 'bc_member',
       business_stage: member.business_stage || null,
       email: cleanEmail,
+      source: 'biz_center_members',
+      uei: 'bc:' + cleanEmail,
     };
   } catch { return null; }
 }
@@ -110,7 +180,6 @@ function mmddyyyy(d) {
 function daysUntil(deadline) {
   if (!deadline) return null;
   const ms = new Date(deadline) - new Date();
-  // Use floor so a deadline expiring today at 8am (negative ms by afternoon) returns 0 or negative
   return Math.floor(ms / (1000 * 60 * 60 * 24));
 }
 
@@ -129,13 +198,11 @@ async function fetchOpps(naics, postedFrom, postedTo) {
   url.searchParams.set('ncode', naics);
   url.searchParams.set('limit', String(PAGE_LIMIT));
   url.searchParams.set('offset', '0');
-
   const res = await fetch(url, { headers: { Accept: 'application/json' } });
   if (!res.ok) throw new Error(`SAM opp ${res.status} (${naics})`);
   const data = await res.json();
   return data.opportunitiesData || [];
 }
-
 
 async function fetchOppsByPSC(psc, postedFrom, postedTo) {
   const url = new URL(OPP_URL);
@@ -145,84 +212,80 @@ async function fetchOppsByPSC(psc, postedFrom, postedTo) {
   url.searchParams.set('psc', psc);
   url.searchParams.set('limit', String(PAGE_LIMIT));
   url.searchParams.set('offset', '0');
-
   const res = await fetch(url, { headers: { Accept: 'application/json' } });
   if (!res.ok) throw new Error(`SAM opp PSC ${res.status} (${psc})`);
   const data = await res.json();
   return data.opportunitiesData || [];
 }
-exports.handler = async (event) => {
-  const headers = {
-    'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
-  };
 
-  const qs            = event.queryStringParameters || {};
-  const requestedUei  = qs.uei || 'C13JZV6AY6L4';
-  const bcEmail       = qs.bc_email || (String(requestedUei).startsWith('bc:') ? String(requestedUei).slice(3) : '');
-  const uei           = bcEmail ? 'BC_MEMBER' : requestedUei;
+exports.handler = async (event) => {
+  const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
+  const qs = event.queryStringParameters || {};
+  const requested = String(qs.uei || qs.client || '').trim();
+  const bcEmail = qs.bc_email || (requested.startsWith('bc:') ? requested.slice(3) : '');
+  const cgEmail = qs.cg_email || (requested.startsWith('cg:') ? requested.slice(3) : '');
   const includeClosed = qs.include_closed === '1';
-  // Default 60 days. Options: 60, 30, 7. SAM.gov caps at ~90 days.
   const days = Math.min(90, Math.max(1, parseInt(qs.days || '60', 10)));
 
-  // Try BC member profile, then live subscription profile, then hardcoded map.
-  const client = bcEmail
-    ? await fetchBCMemberClient(bcEmail)
-    : ((await fetchClientFromDB(uei)) || CLIENT_NAICS[uei]);
-  if (!client) return { statusCode: 404, headers, body: JSON.stringify({ error: 'Client not found' }) };
-  console.log('[pipeline] client:', uei, '| naics:', client.naics.join(','));
+  if (!requested && !bcEmail && !cgEmail) {
+    return { statusCode: 400, headers, body: JSON.stringify({ error: 'No client identifier supplied. First-login automation requires a Business Center email, direct CapGen email, or explicit UEI.' }) };
+  }
 
+  let client = null;
+  let resolvedId = requested;
+
+  if (cgEmail) {
+    resolvedId = 'cg:' + cgEmail;
+    client = await fetchDirectCapGenCustomer(cgEmail);
+  } else if (bcEmail) {
+    resolvedId = 'bc:' + bcEmail;
+    client = await fetchBCMemberClient(bcEmail);
+  } else {
+    client = (await fetchClientFromDB(requested)) || CLIENT_NAICS[requested] || null;
+    if (client && !client.uei) client.uei = requested;
+  }
+
+  if (!client) return { statusCode: 404, headers, body: JSON.stringify({ error: 'Client profile not found. Complete first-login onboarding before opening the dashboard.' }) };
+  if (!client.naics || !client.naics.length) return { statusCode: 409, headers, body: JSON.stringify({ error: 'Client profile found, but no NAICS codes are available yet. First-login automation must scan or enrich the capability profile before creating the dashboard.', client }) };
   if (!process.env.SAM_API_KEY) return { statusCode: 500, headers, body: JSON.stringify({ error: 'SAM_API_KEY not set' }) };
 
   const now  = new Date();
   const from = new Date(now); from.setDate(from.getDate() - days);
   const postedFrom = mmddyyyy(from);
   const postedTo   = mmddyyyy(now);
-
-  // Fetch across all client NAICS codes
   const seen = new Map();
+
   for (const naics of client.naics) {
     try {
       const opps = await fetchOpps(naics, postedFrom, postedTo);
-      for (const o of opps) {
-        if (o.noticeId && !seen.has(o.noticeId)) seen.set(o.noticeId, o);
-      }
-    } catch (e) {
-      console.error(e.message);
-    }
+      for (const o of opps) if (o.noticeId && !seen.has(o.noticeId)) seen.set(o.noticeId, o);
+    } catch (e) { console.error(e.message); }
   }
 
-  // Fetch across PSC codes (if defined for this client)
   for (const psc of (client.psc || [])) {
     try {
       const opps = await fetchOppsByPSC(psc, postedFrom, postedTo);
-      for (const o of opps) {
-        if (o.noticeId && !seen.has(o.noticeId)) seen.set(o.noticeId, o);
-      }
-    } catch (e) {
-      console.error(e.message);
-    }
+      for (const o of opps) if (o.noticeId && !seen.has(o.noticeId)) seen.set(o.noticeId, o);
+    } catch (e) { console.error(e.message); }
   }
 
   const mapped = [...seen.values()].map(o => {
     const days_left = daysUntil(o.responseDeadLine);
     return {
-      notice_id:    o.noticeId,
-      title:        o.title,
-      agency:       o.fullParentPathName,
-      type:         o.type,
-      naics:        o.naicsCode,
-      set_aside:    o.typeOfSetAsideDescription || o.setAside || 'None',
-      posted_date:  o.postedDate,
-      deadline:     o.responseDeadLine,
+      notice_id: o.noticeId,
+      title: o.title,
+      agency: o.fullParentPathName,
+      type: o.type,
+      naics: o.naicsCode,
+      set_aside: o.typeOfSetAsideDescription || o.setAside || 'None',
+      posted_date: o.postedDate,
+      deadline: o.responseDeadLine,
       days_left,
-      urgency:      urgencyClass(days_left),
-      url:          o.uiLink || `https://sam.gov/opp/${o.noticeId}/view`,
+      urgency: urgencyClass(days_left),
+      url: o.uiLink || `https://sam.gov/opp/${o.noticeId}/view`,
     };
   });
 
-  // Active = has a deadline with at least 1 full day remaining.
-  // Pass ?include_closed=1 to see everything.
   const results = mapped
     .filter(o => includeClosed || (o.days_left !== null && o.days_left >= 1))
     .sort((a, b) => {
@@ -237,12 +300,16 @@ exports.handler = async (event) => {
     headers,
     body: JSON.stringify({
       client: {
-        uei,
+        uei: client.uei || resolvedId,
         name: client.name,
+        business_name: client.business_name || client.name,
         naics: client.naics,
         city: client.city || null,
         state: client.state || null,
+        cage: client.cage || null,
         member_type: client.member_type || 'capgen_subscriber',
+        source: client.source || null,
+        profile_complete: !!client.profile_complete,
       },
       window_days: days,
       total: results.length,
