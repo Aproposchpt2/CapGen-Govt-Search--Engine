@@ -158,3 +158,11 @@
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
+
+[[edge_functions]]
+  path = "/"
+  function = "capgen-nav-login-cta"
+
+[[edge_functions]]
+  path = "/index.html"
+  function = "capgen-nav-login-cta"
