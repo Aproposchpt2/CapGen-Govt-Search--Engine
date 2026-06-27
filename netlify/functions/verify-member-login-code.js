@@ -31,6 +31,13 @@ async function getMember(email) {
   return memberIsActive(rows[0]) ? rows[0] : null;
 }
 
+function cleanupCodes(email) {
+  fetch(`${SUPABASE_URL}/rest/v1/capgen_member_login_codes?email=eq.${encodeURIComponent(email)}`, {
+    method: 'DELETE',
+    headers: sbH({ Prefer: 'return=minimal' }),
+  }).catch(err => console.error('[verify-member-login-code cleanup]', err.message));
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: CORS, body: '' };
   if (event.httpMethod !== 'POST') return j(405, { error: 'POST only' });
@@ -53,11 +60,6 @@ exports.handler = async (event) => {
   const member = await getMember(email);
   if (!member) return j(403, { error: 'No activated Business Center access found for that email.' });
 
-  await fetch(`${SUPABASE_URL}/rest/v1/capgen_member_login_codes?email=eq.${encodeURIComponent(email)}`, {
-    method: 'DELETE',
-    headers: sbH({ Prefer: 'return=minimal' }),
-  }).catch(() => null);
-
   const token = 'bc_' + crypto.randomUUID().replace(/-/g, '');
   const session = {
     email: member.email,
@@ -68,7 +70,7 @@ exports.handler = async (event) => {
     session_token: token,
   };
 
-  return j(200, {
+  const response = j(200, {
     ok: true,
     token,
     session,
@@ -84,4 +86,7 @@ exports.handler = async (event) => {
       memberType: 'bc_member',
     },
   });
+
+  cleanupCodes(email);
+  return response;
 };
