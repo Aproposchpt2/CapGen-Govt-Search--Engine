@@ -1,5 +1,5 @@
 'use strict';
-// Federal CapGen member login step 1 — send OTP to activated Business Center members.
+// Federal CapGen login step 1 — send OTP to activated Business Center members or direct CapGen customers.
 
 const DEFAULT_SUPABASE_URL = 'https://judislfknmhofcgzyozc.supabase.co';
 const SUPABASE_URL = (process.env.SUPABASE_URL || process.env.BC_SUPA_URL || DEFAULT_SUPABASE_URL).replace(/\/$/, '');
@@ -23,6 +23,13 @@ function memberIsActive(member) {
   return Number.isFinite(trialEnd) && trialEnd > Date.now();
 }
 
+function customerIsActive(customer) {
+  const status = String(customer.status || '').toLowerCase();
+  if (['active', 'trial'].includes(status)) return true;
+  const end = customer.current_period_end ? Date.parse(customer.current_period_end) : 0;
+  return Number.isFinite(end) && end > Date.now();
+}
+
 async function findActivatedMember(email) {
   const select = 'email,full_name,business_name,industry,city,state,subscription_status,trial_end,bc_access_activated';
   const url = `${SUPABASE_URL}/rest/v1/biz_center_members?email=eq.${encodeURIComponent(email)}&bc_access_activated=eq.true&select=${encodeURIComponent(select)}&limit=1`;
@@ -30,6 +37,15 @@ async function findActivatedMember(email) {
   const rows = await r.json().catch(() => []);
   if (!r.ok || !Array.isArray(rows) || !rows.length) return null;
   return memberIsActive(rows[0]) ? rows[0] : null;
+}
+
+async function findDirectCustomer(email) {
+  const select = 'email,full_name,business_name,subscription_tier,status,current_period_end,access_activated';
+  const url = `${SUPABASE_URL}/rest/v1/capgen_customers?email=eq.${encodeURIComponent(email)}&access_activated=eq.true&select=${encodeURIComponent(select)}&limit=1`;
+  const r = await fetch(url, { headers: sbH() });
+  const rows = await r.json().catch(() => []);
+  if (!r.ok || !Array.isArray(rows) || !rows.length) return null;
+  return customerIsActive(rows[0]) ? rows[0] : null;
 }
 
 exports.handler = async (event) => {
@@ -45,7 +61,8 @@ exports.handler = async (event) => {
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return j(400, { error: 'A valid email is required.' });
 
   const member = await findActivatedMember(email);
-  if (!member) return j(200, { ok: true, found: false });
+  const customer = member ? null : await findDirectCustomer(email);
+  if (!member && !customer) return j(200, { ok: true, found: false });
 
   const code = String(Math.floor(100000 + Math.random() * 900000));
   const expires_at = new Date(Date.now() + 10 * 60000).toISOString();
@@ -72,5 +89,5 @@ exports.handler = async (event) => {
     } catch (e) { console.error('[send-member-login-code]', e.message); }
   }
 
-  return j(200, { ok: true, found: true });
+  return j(200, { ok: true, found: true, account_type: member ? 'bc_member' : 'capgen_direct' });
 };
