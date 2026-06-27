@@ -66,8 +66,9 @@
 
 [[redirects]]
   from = "/onboarding"
-  to = "/onboarding.html"
-  status = 200
+  to = "https://capgen.aproposgroupllc.com/login"
+  status = 301
+  force = true
 
 [[redirects]]
   from = "/redeem"
@@ -76,8 +77,9 @@
 
 [[redirects]]
   from = "/signin"
-  to = "/onboarding.html"
-  status = 200
+  to = "https://capgen.aproposgroupllc.com/login"
+  status = 301
+  force = true
 
 [[redirects]]
   from = "/signup"
