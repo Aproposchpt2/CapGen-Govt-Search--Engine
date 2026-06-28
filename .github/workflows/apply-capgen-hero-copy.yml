@@ -1,3 +1,4 @@
+# Triggered once to apply approved CapGen homepage hero copy
 name: Apply CapGen Hero Copy
 
 on:
