@@ -165,6 +165,12 @@ footer span{color:rgba(255,255,255,.45)}
   .path-btn{width:100%;justify-content:center}
 }
 
+/* ── Hero left-lock (keeps text away from the building) ── */
+@media(min-width:900px){
+  .hero .wrap{max-width:none;margin:0;padding-left:clamp(40px,6vw,110px);padding-right:40px}
+  .hero-content{max-width:560px}
+}
+
 /* ── ANIMATIONS ── */
 @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
 .hero-eye{animation:fadeUp .5s .1s both}
