@@ -13,6 +13,10 @@
 [functions."generate-capability-background"]
   external_node_modules = ["adm-zip"]
 
+[[edge_functions]]
+  path = "/"
+  function = "capgen-hero-rewrite"
+
 [[redirects]]
   from = "/privacy"
   to = "/privacy.html"
@@ -66,8 +70,9 @@
 
 [[redirects]]
   from = "/onboarding"
-  to = "/onboarding.html"
-  status = 200
+  to = "https://capgen.aproposgroupllc.com/login"
+  status = 301
+  force = true
 
 [[redirects]]
   from = "/redeem"
@@ -76,83 +81,6 @@
 
 [[redirects]]
   from = "/signin"
-  to = "/onboarding.html"
-  status = 200
-
-[[redirects]]
-  from = "/signup"
-  to = "https://ai4-product-purchasing.ai4businesses.org/capgen-offer.html"
+  to = "https://capgen.aproposgroupllc.com/login"
   status = 301
   force = true
-
-[[redirects]]
-  from = "/demo"
-  to = "/demo.html"
-  status = 200
-
-[[redirects]]
-  from = "/demo/snapshot"
-  to = "/demo-snapshot.html"
-  status = 200
-
-[[redirects]]
-  from = "/capgen-onboarding"
-  to = "/capgen-onboarding.html"
-  status = 200
-
-[[redirects]]
-  from = "/profile"
-  to = "/capgen-profile.html"
-  status = 200
-
-[[redirects]]
-  from = "/opportunity"
-  to = "/opportunity.html"
-  status = 200
-
-[[redirects]]
-  from = "/marketing-dashboard"
-  to = "/marketing-dashboard.html"
-  status = 200
-
-[[redirects]]
-  from = "/demo/report"
-  to = "/demo-report.html"
-  status = 200
-
-[[redirects]]
-  from = "/member-home"
-  to = "/member-home.html"
-  status = 200
-
-[[redirects]]
-  from = "/analyze-fit"
-  to = "/analyze-fit.html"
-  status = 200
-
-[[redirects]]
-  from = "/guide"
-  to = "/guide.html"
-  status = 200
-
-[[redirects]]
-  from = "/beta"
-  to = "/beta.html"
-  status = 200
-
-[[redirects]]
-  from = "/beta/welcome"
-  to = "/beta-welcome.html"
-  status = 200
-
-[[redirects]]
-  from = "/admin/leads"
-  to = "/admin-leads.html"
-  status = 200
-
-[[headers]]
-  for = "/*"
-  [headers.values]
-    X-Frame-Options = "DENY"
-    X-Content-Type-Options = "nosniff"
-    Referrer-Policy = "strict-origin-when-cross-origin"

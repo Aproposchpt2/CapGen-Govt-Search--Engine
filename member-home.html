@@ -80,6 +80,15 @@ if (!sessionRaw) { window.location.href = '/onboarding'; }
 const session   = JSON.parse(sessionRaw || '{}');
 const demoToken = localStorage.getItem('demo_view_token') || '';
 
+// BC member compatibility: federal pipeline and Analyze Fit expect pipeline_session.
+// Store the BC member email in the existing pipeline token format and pass it as the
+// pipeline client identifier so client-pipeline can build a Business Center profile.
+if (session.account_type === 'bc_member' && session.email) {
+  const pipelinePayload = { email: session.email, ts: Date.now(), memberType: 'bc_member' };
+  sessionStorage.setItem('pipeline_session', btoa(JSON.stringify(pipelinePayload)));
+  sessionStorage.setItem('capgen_uei', 'bc:' + session.email);
+}
+
 // Wire nav buttons to token-based URLs
 if (demoToken) {
   const contractsLink = document.querySelector('a[href="/apropos"]');

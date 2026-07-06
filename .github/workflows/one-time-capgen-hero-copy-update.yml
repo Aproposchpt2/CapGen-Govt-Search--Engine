@@ -1,0 +1,96 @@
+name: One-time CapGen hero copy update
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/one-time-capgen-hero-copy-update.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-hero-copy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Update CapGen hero copy
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('index.html')
+          text = path.read_text()
+
+          old = '''    <div class="hero-eyebrow">
+     <div class="eyebrow-line"></div>
+     <span class="eyebrow-text">Apropos Group LLC &nbsp;·&nbsp; CapGen</span>
+    </div>
+
+    <h1 class="hero-h1">
+     Every contract
+     <em>built for your business.</em>
+    </h1>
+
+    <div class="hero-system">
+     Contract Intelligence &nbsp;|&nbsp; NAICS Filtering &nbsp;|&nbsp; Live Opportunity Dashboard
+    </div>
+
+    <p class="hero-copy">
+     CapGen is a <strong>fully managed government contract intelligence service.</strong>
+     We tune our search engine to your exact NAICS codes, filter the federal marketplace
+     in real time, and deliver a personalized opportunity dashboard — so you only ever
+     see the contracts your business can actually win.
+    </p>
+
+    <div class="hero-pills">
+     <span class="pill"><span class="pill-dot"></span>NAICS-Matched Opportunities</span>
+     <span class="pill"><span class="pill-dot"></span>Live Federal Marketplace</span>
+     <span class="pill"><span class="pill-dot"></span>Done-For-You Service</span>
+     <span class="pill"><span class="pill-dot"></span>Custom Dashboard</span>
+    </div>'''
+
+          new = '''    <div class="hero-eyebrow">
+     <div class="eyebrow-line"></div>
+     <span class="eyebrow-text">CapGen Intelligent Pro Scanner</span>
+    </div>
+
+    <h1 class="hero-h1">
+     APROPOS
+     <em>GROUP LLC</em>
+    </h1>
+
+    <div class="hero-system">
+     Official Government Public Records &nbsp;|&nbsp; Capability Profile Matching &nbsp;|&nbsp; Personalized Contract Dashboard
+    </div>
+
+    <p class="hero-copy">
+     Our <strong>CapGen Intelligent Pro Scanner</strong> searches official government public records to bring open contract opportunities directly to you. We create a personalized dashboard with open contracts that match your Capability Profile, identify the best-fit candidates, and provide an analysis report for each open opportunity. Custom filters give you control over state selection, days to close, and specific NAICS choices.
+    </p>
+
+    <div class="hero-pills">
+     <span class="pill"><span class="pill-dot"></span>Capability Profile Matching</span>
+     <span class="pill"><span class="pill-dot"></span>Best-Fit Analysis Reports</span>
+     <span class="pill"><span class="pill-dot"></span>State &amp; NAICS Filters</span>
+     <span class="pill"><span class="pill-dot"></span>Days-to-Close Control</span>
+    </div>'''
+
+          if old not in text:
+              raise SystemExit('Expected hero block was not found. No changes made.')
+
+          path.write_text(text.replace(old, new))
+          PY
+
+      - name: Remove one-time workflow
+        run: rm -f .github/workflows/one-time-capgen-hero-copy-update.yml
+
+      - name: Commit hero copy update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html .github/workflows/one-time-capgen-hero-copy-update.yml
+          git commit -m "Update CapGen homepage hero copy" || echo "No changes to commit"
+          git push
