@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
@@ -215,6 +215,53 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:14p
 @keyframes spin{to{transform:rotate(360deg)}}
 .fit-spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.18);border-top-color:#6EE7A8;border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-right:6px}
 @media(max-width:700px){#fit-drawer{width:100vw}.fit-match-grid{grid-template-columns:1fr 1fr}}
+
+/* ── Market Tabs ── */
+.mkt-tabs{display:flex;gap:0;border-bottom:2px solid rgba(91,175,255,.15);margin-bottom:0;padding:0 28px;background:var(--surface)}
+.mkt-tab{display:flex;align-items:center;gap:8px;padding:13px 22px;font-family:'Jost',sans-serif;font-size:.78rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--soft);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:.18s}
+.mkt-tab:hover{color:var(--text)}
+.mkt-tab.mt-active{color:var(--cyan);border-bottom-color:var(--cyan)}
+.mkt-tab .mt-dot{width:7px;height:7px;border-radius:50%}
+.mt-dot-fed{background:var(--cyan)}
+.mt-dot-nv{background:#34d399}
+.mt-dot-ca{background:#f59e0b}
+.mkt-tab .mt-count{font-size:.58rem;background:rgba(255,255,255,.1);border-radius:999px;padding:2px 7px;font-weight:700}
+.mt-active .mt-count{background:rgba(91,211,255,.2);color:var(--cyan)}
+
+/* ── Nevada Dashboard ── */
+.nv-stat-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.nv-stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 14px;min-width:88px;flex:1}
+.nv-stat-val{font-size:1.4rem;font-weight:900;line-height:1;color:var(--text)}
+.nv-stat-val.red{color:var(--red)}.nv-stat-val.amber{color:var(--amber)}.nv-stat-val.green{color:var(--green)}
+.nv-stat-label{font-size:.58rem;text-transform:uppercase;letter-spacing:.07em;color:var(--soft);margin-top:4px}
+.nv-controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
+.nv-search{flex:1;min-width:160px;background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:8px;color:var(--text);padding:8px 12px;font-size:.84rem;outline:none}
+.nv-search:focus{border-color:var(--cyan)}
+.nv-select{background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:8px;color:var(--muted);padding:8px 10px;font-size:.8rem}
+.nv-count{font-size:.72rem;color:var(--soft);margin-left:4px}
+.nv-card{border:1px solid var(--line);border-radius:10px;padding:14px 16px;background:var(--surface);margin-bottom:8px;transition:.16s}
+.nv-card:hover{background:rgba(255,255,255,.06);border-color:var(--line2)}
+.nv-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:8px}
+.nv-card-title{font-size:.9rem;font-weight:700;color:var(--text);line-height:1.4;flex:1}
+.nv-card-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.nv-chip{font-size:.64rem;letter-spacing:.06em;border-radius:999px;padding:3px 9px;border:1px solid;white-space:nowrap}
+.nv-chip-agency{color:var(--muted);border-color:var(--line)}
+.nv-chip-type-rfp{color:#82b8ff;border-color:rgba(91,175,255,.3);background:rgba(91,175,255,.08)}
+.nv-chip-type-bid{color:#90ee90;border-color:rgba(144,238,144,.3);background:rgba(144,238,144,.08)}
+.nv-chip-hot{color:var(--red);border-color:rgba(224,85,85,.3);background:rgba(224,85,85,.08)}
+.nv-chip-warm{color:var(--amber);border-color:rgba(240,165,0,.3);background:rgba(240,165,0,.08)}
+.nv-chip-ok{color:var(--green);border-color:rgba(46,204,138,.3);background:rgba(46,204,138,.08)}
+.nv-card-actions{display:flex;align-items:center;gap:8px;margin-top:8px}
+.nv-sol{font-size:.7rem;color:var(--soft);margin-right:auto}
+.nv-btn-view{font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;font-weight:700;border:1px solid var(--line);border-radius:6px;padding:5px 12px;background:rgba(255,255,255,.04);color:var(--muted);cursor:pointer;text-decoration:none;display:inline-block;transition:.15s}
+.nv-btn-view:hover{border-color:var(--line2);color:var(--text)}
+.nv-empty{text-align:center;padding:52px;color:var(--soft)}
+
+/* ── California Coming Soon ── */
+.ca-coming{border:1px solid rgba(245,158,11,.2);border-radius:16px;padding:52px 32px;background:linear-gradient(135deg,rgba(245,158,11,.04),rgba(255,255,255,.02));display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;max-width:520px;margin:40px auto}
+.ca-tag{font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;color:#f59e0b;font-weight:600;border:1px solid rgba(245,158,11,.3);border-radius:999px;padding:4px 14px}
+.ca-coming h3{font-family:'Bodoni Moda',serif;font-size:1.8rem;color:var(--text);font-weight:400}
+.ca-coming p{color:var(--muted);font-size:.9rem;line-height:1.7;max-width:360px}
 </style>
 </head>
 <body>
@@ -259,6 +306,25 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:14p
   <a href="/marketing-dashboard" style="color:var(--cyan);font-size:.8rem;font-weight:700;text-decoration:none">View Marketing Dashboard →</a>
 </div>
 
+
+<!-- Market Tabs -->
+<nav class="mkt-tabs">
+  <button class="mkt-tab mt-active" onclick="switchMkt('federal')">
+    <span class="mt-dot mt-dot-fed"></span>🇺🇸 Federal
+    <span class="mt-count" id="mktFedCount">SAM.gov</span>
+  </button>
+  <button class="mkt-tab" onclick="switchMkt('nevada')">
+    <span class="mt-dot mt-dot-nv"></span>◆ Nevada State
+    <span class="mt-count" id="mktNvCount">—</span>
+  </button>
+  <button class="mkt-tab" onclick="switchMkt('california')">
+    <span class="mt-dot mt-dot-ca"></span>☀ California
+    <span class="mt-count">Soon</span>
+  </button>
+</nav>
+
+<!-- FEDERAL PANEL -->
+<div id="panel-federal">
 <header>
   <div class="brand">
     <div class="brand-mark">AG</div>
@@ -975,8 +1041,147 @@ document.getElementById('auth-verify-btn').addEventListener('click', async funct
 document.getElementById('auth-code').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') document.getElementById('auth-verify-btn').click();
 });
+
+// ── Market Tab Switching ──────────────────────────────────────
+var mktLoaded = { federal: true, nevada: false, california: false };
+
+window.switchMkt = function(name) {
+  ['federal','nevada','california'].forEach(function(p){
+    var el = document.getElementById('panel-' + p);
+    if(el) el.style.display = (p === name ? '' : 'none');
+  });
+  document.querySelectorAll('.mkt-tab').forEach(function(btn){
+    btn.classList.toggle('mt-active', btn.getAttribute('onclick').indexOf("'" + name + "'") >= 0);
+  });
+  if(!mktLoaded[name]){
+    mktLoaded[name] = true;
+    if(name === 'nevada') loadNevada();
+  }
+};
+
+// ── Nevada Dashboard ──────────────────────────────────────────
+var nvAll = [], nvFiltered = [];
+
+function nvDeadlineChip(dateStr){
+  if(!dateStr) return '<span class="nv-chip nv-chip-agency">TBD</span>';
+  var d = new Date(dateStr), now = new Date();
+  var days = Math.ceil((d - now) / 864e5);
+  if(days < 0) return '';
+  var cls = days <= 7 ? 'nv-chip-hot' : days <= 14 ? 'nv-chip-warm' : 'nv-chip-ok';
+  var lbl = days <= 7 ? '🔥 ' : days <= 14 ? '⚡ ' : '';
+  return '<span class="nv-chip ' + cls + '">' + lbl + 'Closes ' + d.toLocaleDateString([],{month:'short',day:'numeric'}) + '</span>';
+}
+
+function nvEsc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function renderNvCard(r){
+  var typeClass = (r.type||'').toUpperCase() === 'RFP' ? 'nv-chip-type-rfp' : 'nv-chip-type-bid';
+  return '<div class="nv-card">' +
+    '<div class="nv-card-top"><div class="nv-card-title">' + nvEsc(r.title) + '</div>' + nvDeadlineChip(r.close_date) + '</div>' +
+    '<div class="nv-card-meta">' +
+      '<span class="nv-chip nv-chip-agency">' + nvEsc(r.agency) + '</span>' +
+      '<span class="nv-chip ' + typeClass + '">' + nvEsc(r.type||'BID') + '</span>' +
+    '</div>' +
+    '<div class="nv-card-actions">' +
+      '<span class="nv-sol">' + nvEsc(r.solicitation_no||r.id||'') + '</span>' +
+      '<a class="nv-btn-view" href="' + nvEsc(r.url||'https://nevada.ionwave.net') + '" target="_blank" rel="noopener">View Bid ↗</a>' +
+    '</div>' +
+  '</div>';
+}
+
+function applyNvFilters(){
+  var q  = (document.getElementById('nvSearch').value||'').toLowerCase();
+  var tp = document.getElementById('nvType').value;
+  var dl = parseInt(document.getElementById('nvDeadline').value)||0;
+  nvFiltered = nvAll.filter(function(r){
+    if(q && !((r.title||'').toLowerCase().includes(q)||(r.agency||'').toLowerCase().includes(q))) return false;
+    if(tp && (r.type||'').toUpperCase() !== tp) return false;
+    if(dl && r.close_date){
+      var days = Math.ceil((new Date(r.close_date)-new Date())/864e5);
+      if(days < 0 || days > dl) return false;
+    }
+    return true;
+  });
+  document.getElementById('nvCount').textContent = nvFiltered.length + ' bids';
+  document.getElementById('mktNvCount').textContent = nvFiltered.length;
+  // Stat bar
+  var hot=0,warm=0,avail=0;
+  nvFiltered.forEach(function(r){
+    if(!r.close_date){ avail++; return; }
+    var d = Math.ceil((new Date(r.close_date)-new Date())/864e5);
+    if(d<=7) hot++; else if(d<=14) warm++; else avail++;
+  });
+  document.getElementById('nvHot').textContent   = hot;
+  document.getElementById('nvWarm').textContent  = warm;
+  document.getElementById('nvAvail').textContent = avail;
+  document.getElementById('nvTotal').textContent = nvFiltered.length;
+  var box = document.getElementById('nvCards');
+  box.innerHTML = nvFiltered.length
+    ? nvFiltered.map(renderNvCard).join('')
+    : '<div class="nv-empty">No Nevada bids matched your filters.</div>';
+}
+
+['nvSearch','nvType','nvDeadline'].forEach(function(id){
+  document.getElementById(id).addEventListener('input', applyNvFilters);
+});
+
+function loadNevada(){
+  document.getElementById('nvCards').innerHTML = '<div class="nv-empty">Loading Nevada bids…</div>';
+  fetch('/.netlify/functions/ngem-pipeline')
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    nvAll = Array.isArray(d.bids) ? d.bids : (Array.isArray(d.results) ? d.results : []);
+    applyNvFilters();
+  })
+  .catch(function(){
+    document.getElementById('nvCards').innerHTML = '<div class="nv-empty">Could not load Nevada bids. Try again shortly.</div>';
+  });
+}
 </script>
 <!-- Analyze Fit — slide-in drawer -->
+
+</div><!-- /panel-federal -->
+
+<!-- NEVADA PANEL -->
+<div id="panel-nevada" style="display:none">
+<div class="page">
+  <p style="font-family:'Cormorant Garamond',serif;font-style:italic;font-size:.82rem;color:rgba(255,255,255,.3);margin-bottom:14px">Nevada state solicitations sourced from official public records — NGEM &amp; Ionwave.</p>
+  <div class="nv-stat-bar">
+    <div class="nv-stat"><div class="nv-stat-val red" id="nvHot">—</div><div class="nv-stat-label">🔥 Closing ≤ 7d</div></div>
+    <div class="nv-stat"><div class="nv-stat-val amber" id="nvWarm">—</div><div class="nv-stat-label">⚡ Closing ≤ 14d</div></div>
+    <div class="nv-stat"><div class="nv-stat-val green" id="nvAvail">—</div><div class="nv-stat-label">Active</div></div>
+    <div class="nv-stat"><div class="nv-stat-val" id="nvTotal">—</div><div class="nv-stat-label">Total bids</div></div>
+  </div>
+  <div class="nv-controls">
+    <input class="nv-search" id="nvSearch" placeholder="Search Nevada bids by title, agency…" type="text"/>
+    <select class="nv-select" id="nvType">
+      <option value="">All Types</option>
+      <option value="RFP">RFP</option>
+      <option value="BID">Bid / IFB</option>
+    </select>
+    <select class="nv-select" id="nvDeadline">
+      <option value="0">Any Deadline</option>
+      <option value="7">Closing ≤ 7 days</option>
+      <option value="14">Closing ≤ 14 days</option>
+      <option value="30">Closing ≤ 30 days</option>
+    </select>
+    <span class="nv-count" id="nvCount"></span>
+  </div>
+  <div id="nvCards"><div class="nv-empty">Loading Nevada bids…</div></div>
+</div>
+</div><!-- /panel-nevada -->
+
+<!-- CALIFORNIA PANEL -->
+<div id="panel-california" style="display:none">
+<div class="page">
+  <div class="ca-coming">
+    <span class="ca-tag">Coming Soon</span>
+    <h3>California State Contracts</h3>
+    <p>Open state, county, city, and school district solicitations across California — matched to your business profile. No SAM.gov required. Launching as part of the CapGen unified dashboard.</p>
+    <a href="https://calstategen.aproposgroupllc.com" target="_blank" rel="noopener" style="display:inline-block;background:linear-gradient(135deg,#fff,#f59e0b 55%,#d97706);color:#1a0a00;font-family:'Jost',sans-serif;font-weight:800;font-size:.82rem;padding:11px 24px;border-radius:8px;text-decoration:none;margin-top:4px">Preview CalStateGen →</a>
+  </div>
+</div>
+</div><!-- /panel-california -->
 <div id="fit-overlay" onclick="closeFitDrawer()"></div>
 <div id="fit-drawer">
   <div class="fit-drawer-inner">
