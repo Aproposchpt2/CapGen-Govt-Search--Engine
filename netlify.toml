@@ -13,10 +13,6 @@
 [functions."generate-capability-background"]
   external_node_modules = ["adm-zip"]
 
-[[edge_functions]]
-  path = "/"
-  function = "capgen-hero-rewrite"
-
 [[redirects]]
   from = "/privacy"
   to = "/privacy.html"
@@ -70,9 +66,8 @@
 
 [[redirects]]
   from = "/onboarding"
-  to = "https://capgen.aproposgroupllc.com/login"
-  status = 301
-  force = true
+  to = "/onboarding.html"
+  status = 200
 
 [[redirects]]
   from = "/redeem"
@@ -81,6 +76,10 @@
 
 [[redirects]]
   from = "/signin"
-  to = "https://capgen.aproposgroupllc.com/login"
-  status = 301
-  force = true
+  to = "/onboarding.html"
+  status = 200
+
+[[redirects]]
+  from = "/login"
+  to = "/onboarding.html"
+  status = 200
