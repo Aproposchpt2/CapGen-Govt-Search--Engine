@@ -567,7 +567,7 @@ function loadFederal() {
   var tok = getToken();
   if (!tok) return;
   document.getElementById('fed-tbody').innerHTML = '<tr><td colspan="7" class="empty-row">Loading pipeline…</td></tr>';
-  fetch('/.netlify/functions/client-pipeline', { headers: { Authorization: 'Bearer ' + tok } })
+  fetch('/.netlify/functions/client-pipeline?bc_email=' + encodeURIComponent(getEmail()), { headers: { Authorization: 'Bearer ' + tok } })
     .then(function(r) {
       if (r.status === 401) { signOut(); return null; }
       return r.json();
