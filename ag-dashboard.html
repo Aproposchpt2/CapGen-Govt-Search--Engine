@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
@@ -802,8 +802,12 @@ function pollAnalysis(id, opp, tok) {
   document.getElementById('fit-body').innerHTML = '<div class="fit-loading"><span class="fit-spinner"></span>Running analysis…</div>';
   pollTimer = setInterval(function() {
     fetch('/.netlify/functions/get-analysis?id=' + encodeURIComponent(id), { headers: { Authorization: 'Bearer ' + tok } })
-      .then(function(r) { return r.json(); })
+      .then(function(r) {
+        if (r.status === 401) { clearPoll(); document.getElementById('fit-body').innerHTML = '<div class="fit-error">Session expired. Please <a href="/onboarding" style="color:var(--cyan)">sign in again</a>.</div>'; return null; }
+        return r.json();
+      })
       .then(function(d) {
+        if (!d) return;
         if (d.status === 'complete' || d.status === 'stage1_complete') { clearPoll(); renderFitResult(d, opp); }
         else if (d.status === 'failed') { clearPoll(); document.getElementById('fit-body').innerHTML = '<div class="fit-error">Analysis failed. Please try again.</div>'; }
       })
