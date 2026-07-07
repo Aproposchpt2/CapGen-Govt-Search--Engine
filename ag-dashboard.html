@@ -988,6 +988,15 @@ document.addEventListener('keydown', function(e) {
 (function() {
   const stored = sessionStorage.getItem('pipeline_session') || localStorage.getItem('pipeline_session');
   if (stored) {
+    // UUID from client_sessions (new flow)
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(stored)) {
+      try {
+        const cs = JSON.parse(sessionStorage.getItem('capgen_session') || localStorage.getItem('capgen_session') || '{}' );
+        const email = cs.email || '';
+        if (email) { showApp(email); load(); return; }
+      } catch(_) {}
+    }
+    // Legacy base64 JSON token
     try {
       const s = JSON.parse(atob(stored));
       if (s.email && (Date.now() - s.ts) < 8 * 60 * 60 * 1000) {
