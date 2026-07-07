@@ -692,11 +692,11 @@ let analysisCache = {}; // noticeId → row (pre-loaded badges)
 
 function getSessionToken() {
   try {
-    const raw = sessionStorage.getItem('pipeline_session');
+    const raw = sessionStorage.getItem('pipeline_session') || localStorage.getItem('pipeline_session');
     if (!raw) return null;
     const s = JSON.parse(atob(raw));
     if (!s.email || (Date.now() - s.ts) > 8 * 60 * 60 * 1000) return null;
-    return raw; // the base64 string itself is the bearer token
+    return raw;
   } catch { return null; }
 }
 
@@ -957,11 +957,13 @@ document.addEventListener('keydown', function(e) {
 <script>
 // Check existing session
 (function() {
-  const stored = sessionStorage.getItem('pipeline_session');
+  const stored = sessionStorage.getItem('pipeline_session') || localStorage.getItem('pipeline_session');
   if (stored) {
     try {
       const s = JSON.parse(atob(stored));
       if (s.email && (Date.now() - s.ts) < 8 * 60 * 60 * 1000) {
+        sessionStorage.setItem('pipeline_session', stored);
+        localStorage.setItem('pipeline_session', stored);
         showApp(s.email);
         load();
         return;
@@ -1029,6 +1031,7 @@ document.getElementById('auth-verify-btn').addEventListener('click', async funct
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Invalid code.');
     sessionStorage.setItem('pipeline_session', data.token);
+    localStorage.setItem('pipeline_session', data.token);
     showApp(data.email);
     load();
   } catch(e) {
