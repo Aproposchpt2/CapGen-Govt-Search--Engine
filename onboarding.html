@@ -94,6 +94,7 @@ $('verifyBtn').addEventListener('click', async () => {
     sessionStorage.setItem('capgen_session',JSON.stringify(data.session||{email:theEmail}));
     var pTok=data.session_token||'';
     if(pTok){sessionStorage.setItem('pipeline_session',pTok);localStorage.setItem('pipeline_session',pTok);}
+    localStorage.setItem('capgen_email',theEmail);
     m.className='msg ok';m.textContent='Verified — opening your dashboard…';
     setTimeout(()=>{window.location.assign('/apropos');},400);
   }catch(e){m.className='msg err';m.textContent='Connection error. Please try again.';b.disabled=false;b.textContent='Open My Dashboard →';}

@@ -992,9 +992,10 @@ document.addEventListener('keydown', function(e) {
     if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(stored)) {
       try {
         const cs = JSON.parse(sessionStorage.getItem('capgen_session') || localStorage.getItem('capgen_session') || '{}' );
-        const email = cs.email || '';
+        const email = cs.email || localStorage.getItem('capgen_email') || '';
         if (email) { showApp(email); load(); return; }
-      } catch(_) {}
+        window.location.href = '/onboarding'; return;
+      } catch(_) { window.location.href = '/onboarding'; return; }
     }
     // Legacy base64 JSON token
     try {
