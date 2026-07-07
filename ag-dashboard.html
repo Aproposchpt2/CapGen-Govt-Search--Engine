@@ -721,10 +721,12 @@ function getSessionToken() {
   try {
     const raw = sessionStorage.getItem('pipeline_session') || localStorage.getItem('pipeline_session');
     if (!raw) return null;
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raw)) return raw;
     const s = JSON.parse(atob(raw));
     if (!s.email || (Date.now() - s.ts) > 8 * 60 * 60 * 1000) return null;
     return raw;
   } catch { return null; }
+} catch { return null; }
 }
 
 // Load analysis badges for the current opportunity list (one query)
