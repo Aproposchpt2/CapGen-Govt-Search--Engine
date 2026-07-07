@@ -83,3 +83,15 @@
   from = "/login"
   to = "/onboarding.html"
   status = 200
+
+[[redirects]]
+  from = "/login.html"
+  to = "/onboarding.html"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/member-login"
+  to = "/onboarding.html"
+  status = 301
+  force = true
