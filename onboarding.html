@@ -44,6 +44,7 @@ input:focus{border-color:var(--gold)}
     <p class="sub">Enter your registered business email and we will send a secure one-time access code.</p>
     <label for="email">Business Email</label>
     <input id="email" type="email" autocomplete="email" placeholder="you@yourbusiness.com">
+    <p style="font-size:.72rem;color:rgba(255,255,255,.38);margin:-8px 0 12px;line-height:1.5">⌨ Please <strong style="color:rgba(255,255,255,.55)">type</strong> your email address — do not paste.</p>
     <button id="sendBtn" class="btn">Send My Access Code →</button>
     <div id="msg1" class="msg"></div>
   </section>
@@ -53,6 +54,7 @@ input:focus{border-color:var(--gold)}
     <p class="sub">A 6-digit code was sent to <strong style="color:#fff" id="emailEcho"></strong>. It expires in 15 minutes.</p>
     <label for="code">6-digit code</label>
     <input id="code" type="text" inputmode="numeric" maxlength="6" placeholder="· · · · · ·">
+    <p style="font-size:.72rem;color:rgba(255,255,255,.38);margin:-8px 0 12px;line-height:1.5">⌨ Please <strong style="color:rgba(255,255,255,.55)">type</strong> the 6-digit code — do not paste.</p>
     <button id="verifyBtn" class="btn">Open My Dashboard →</button>
     <div id="msg2" class="msg"></div>
     <button id="back" class="back">← Use a different email</button>
