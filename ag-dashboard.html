@@ -262,7 +262,34 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:14p
 .ca-tag{font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;color:#f59e0b;font-weight:600;border:1px solid rgba(245,158,11,.3);border-radius:999px;padding:4px 14px}
 .ca-coming h3{font-family:'Bodoni Moda',serif;font-size:1.8rem;color:var(--text);font-weight:400}
 .ca-coming p{color:var(--muted);font-size:.9rem;line-height:1.7;max-width:360px}
-</style>
+
+/* ── Contract Detail Drawer ── */
+#cd-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.52);z-index:800}
+#cd-overlay.open{display:block}
+#cd-drawer{position:fixed;top:0;right:0;width:min(560px,100vw);height:100vh;background:#071e38;color:#fff;z-index:801;transform:translateX(110%);transition:transform .32s cubic-bezier(.4,0,.2,1);overflow-y:auto;box-shadow:-6px 0 40px rgba(0,0,0,.5)}
+#cd-drawer.open{transform:translateX(0)}
+.cd-inner{padding:22px 26px 60px}
+.cd-close{position:fixed;top:14px;right:14px;z-index:802;background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.22);border-radius:8px;color:#fff;font-size:1.1rem;cursor:pointer;padding:5px 11px;font-family:'Jost',sans-serif;font-weight:700;transition:.15s}
+.cd-close:hover{background:rgba(255,255,255,.22)}
+.cd-eyebrow{font-size:.6rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:rgba(91,211,255,.6);margin-bottom:8px}
+.cd-title{font-family:'Bodoni Moda',serif;font-size:1.15rem;color:#fff;font-weight:600;line-height:1.3;margin-bottom:6px;padding-right:52px}
+.cd-agency{font-size:.8rem;color:rgba(255,255,255,.5);margin-bottom:18px}
+.cd-chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:18px}
+.cd-meta{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+.cd-meta-item{background:rgba(255,255,255,.06);border-radius:10px;padding:12px 14px;border:1px solid rgba(255,255,255,.08)}
+.cd-meta-label{font-size:.58rem;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.38);margin-bottom:4px}
+.cd-meta-val{font-size:.88rem;color:#fff;font-weight:600}
+.cd-desc-head{font-size:.62rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.38);margin-bottom:8px}
+.cd-desc{font-size:.86rem;color:rgba(255,255,255,.65);line-height:1.75;margin-bottom:28px;border-left:2px solid rgba(91,211,255,.3);padding-left:14px}
+.cd-cta-wrap{background:linear-gradient(135deg,rgba(201,168,76,.15),rgba(201,168,76,.06));border:1px solid rgba(201,168,76,.4);border-radius:14px;padding:20px 22px;text-align:center}
+.cd-cta-label{font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:rgba(201,168,76,.7);font-weight:700;margin-bottom:6px}
+.cd-cta-desc{font-size:.8rem;color:rgba(255,255,255,.5);margin-bottom:16px;line-height:1.55}
+.cd-cta-btn{background:linear-gradient(135deg,#C9A84C,#e8c96a);color:#0F2A6A;border:none;border-radius:999px;font-family:'Jost',sans-serif;font-size:.8rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;padding:14px 32px;width:100%;cursor:pointer;transition:.2s}
+.cd-cta-btn:hover{filter:brightness(1.08);transform:translateY(-2px);box-shadow:0 8px 24px rgba(201,168,76,.3)}
+.title-cell button{background:none;border:none;color:var(--text);text-align:left;font-weight:600;font-size:.88rem;line-height:1.35;display:block;cursor:pointer;padding:0;font-family:'Jost',sans-serif;width:100%}
+.title-cell button:hover{color:var(--cyan);text-decoration:underline;text-underline-offset:3px}
+.opp-card-title button{background:none;border:none;color:var(--text);text-align:left;font-weight:700;font-size:.92rem;line-height:1.35;cursor:pointer;padding:0;font-family:'Jost',sans-serif;width:100%}
+.opp-card-title button:hover{color:var(--cyan)}</style>
 </head>
 <body>
 
@@ -457,7 +484,7 @@ function render(opps) {
     const daysCls = o.urgency === 'hot' ? 'days-hot' : o.urgency === 'warm' ? 'days-warm' : o.urgency === 'ok' ? 'days-ok' : 'days-none';
     const daysLabel = o.days_left !== null ? (o.days_left < 1 ? 'Closed' : o.days_left + 'd left') : 'No deadline';
     return `<tr>
-      <td class="title-cell"><a href="${o.url}" target="_blank" rel="noopener">${o.title || 'Untitled'}</a>${(() => { const b = analysisCache[o.notice_id]; return b ? `<span class="fit-list-badge ${(b.recommendation||'').toLowerCase().replace(/ /g,'_')}">${b.recommendation} ${b.fit_score}</span>` : ''; })()}</td>
+      <td class="title-cell"><button onclick="openContractDrawer('${idx}')" data-idx="${idx}">${o.title || 'Untitled'}</button>${(() => { const b = analysisCache[o.notice_id]; return b ? `<span class="fit-list-badge ${(b.recommendation||'').toLowerCase().replace(/ /g,'_')}">${b.recommendation} ${b.fit_score}</span>` : ''; })()}</td>
       <td class="agency-cell">${o.agency || '—'}</td>
       <td><span class="type-chip ${typeClass(o.type)}">${o.type || '—'}</span></td>
       <td class="setaside-cell">${o.set_aside || 'Unrestricted'}</td>
@@ -476,7 +503,7 @@ function render(opps) {
     const daysLabel = o.days_left !== null ? (o.days_left < 1 ? 'Closed' : o.days_left + 'd left') : 'No deadline';
     return `<div class="opp-card">
       <div class="opp-card-title">
-        <a href="${o.url}" target="_blank" rel="noopener">${o.title || 'Untitled'}</a>
+        <button onclick="openContractDrawer('${idx}')" data-idx="${idx}">${o.title || 'Untitled'}</button>
         <div class="opp-card-agency">${o.agency || '—'}</div>
       </div>
       <div class="opp-card-row">
@@ -1140,6 +1167,50 @@ function loadNevada(){
     document.getElementById('nvCards').innerHTML = '<div class="nv-empty">Could not load Nevada bids. Try again shortly.</div>';
   });
 }
+
+// ── Contract Detail Drawer ─────────────────────────────────────────────────
+function openContractDrawer(idx) {
+  var o = renderedOpps[parseInt(idx, 10)];
+  if (!o) return;
+
+  document.getElementById('cd-title').textContent = o.title || 'Untitled Opportunity';
+  document.getElementById('cd-agency').textContent = o.agency || '';
+
+  // Chips
+  var chips = [];
+  if (o.type) chips.push('<span class="type-chip ' + typeClass(o.type) + '">' + o.type + '</span>');
+  if (o.naics) chips.push('<span class="naics-chip">NAICS ' + o.naics + '</span>');
+  if (o.set_aside && o.set_aside !== 'None') chips.push('<span class="naics-chip">' + o.set_aside + '</span>');
+  var urgCls = o.urgency === 'hot' ? 'days-hot' : o.urgency === 'warm' ? 'days-warm' : 'days-ok';
+  var urgLbl = o.days_left !== null ? (o.days_left < 1 ? 'Closed' : o.days_left + ' days left') : 'No deadline';
+  chips.push('<span class="days-badge ' + urgCls + '">' + urgLbl + '</span>');
+  document.getElementById('cd-chips').innerHTML = chips.join('');
+
+  // Meta grid
+  document.getElementById('cd-meta').innerHTML =
+    '<div class="cd-meta-item"><div class="cd-meta-label">Deadline</div><div class="cd-meta-val">' + (fmtDeadline(o.deadline) || '—') + '</div></div>' +
+    '<div class="cd-meta-item"><div class="cd-meta-label">Notice ID</div><div class="cd-meta-val" style="font-size:.72rem;word-break:break-all">' + (o.notice_id || '—') + '</div></div>' +
+    '<div class="cd-meta-item"><div class="cd-meta-label">Contract Type</div><div class="cd-meta-val">' + (o.type || '—') + '</div></div>' +
+    '<div class="cd-meta-item"><div class="cd-meta-label">Set-Aside</div><div class="cd-meta-val">' + (o.set_aside || 'Unrestricted') + '</div></div>';
+
+  // Description
+  document.getElementById('cd-desc').textContent = o.description ||
+    'Full scope details are embedded in the solicitation. Run Analyze Fit below — our AI extracts the requirements, evaluates your capability match, and gives you a bid/no-bid decision in seconds.';
+
+  // Wire analyze button
+  document.getElementById('cd-analyze-btn').onclick = function() {
+    closeContractDrawer();
+    openFitDrawer(o);
+  };
+
+  document.getElementById('cd-overlay').classList.add('open');
+  document.getElementById('cd-drawer').classList.add('open');
+}
+
+function closeContractDrawer() {
+  document.getElementById('cd-overlay').classList.remove('open');
+  document.getElementById('cd-drawer').classList.remove('open');
+}
 </script>
 <!-- Analyze Fit — slide-in drawer -->
 
@@ -1185,6 +1256,26 @@ function loadNevada(){
   </div>
 </div>
 </div><!-- /panel-california -->
+
+<!-- Contract Detail Drawer -->
+<div id="cd-overlay" onclick="closeContractDrawer()"></div>
+<div id="cd-drawer">
+  <div class="cd-inner">
+    <button class="cd-close" onclick="closeContractDrawer()">&#xD7;</button>
+    <div class="cd-eyebrow">Contract Opportunity</div>
+    <div class="cd-title" id="cd-title"></div>
+    <div class="cd-agency" id="cd-agency"></div>
+    <div class="cd-chips" id="cd-chips"></div>
+    <div class="cd-meta" id="cd-meta"></div>
+    <div class="cd-desc-head">Description</div>
+    <div class="cd-desc" id="cd-desc">Loading details…</div>
+    <div class="cd-cta-wrap">
+      <div class="cd-cta-label">AI Fit Analysis</div>
+      <div class="cd-cta-desc">Get your personalized fit score, bid/no-bid rationale, pricing guidance, and a step-by-step proposal checklist for this contract.</div>
+      <button class="cd-cta-btn" id="cd-analyze-btn">★ Analyze This Contract →</button>
+    </div>
+  </div>
+</div>
 <div id="fit-overlay" onclick="closeFitDrawer()"></div>
 <div id="fit-drawer">
   <div class="fit-drawer-inner">
