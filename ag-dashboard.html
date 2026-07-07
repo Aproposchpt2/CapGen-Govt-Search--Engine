@@ -987,28 +987,29 @@ document.addEventListener('keydown', function(e) {
 // Check existing session
 (function() {
   const stored = sessionStorage.getItem('pipeline_session') || localStorage.getItem('pipeline_session');
-  if (stored) {
-    // UUID from client_sessions (new flow)
-    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(stored)) {
-      try {
-        const cs = JSON.parse(sessionStorage.getItem('capgen_session') || localStorage.getItem('capgen_session') || '{}' );
-        const email = cs.email || localStorage.getItem('capgen_email') || '';
-        if (email) { showApp(email); load(); return; }
-        window.location.href = '/onboarding'; return;
-      } catch(_) { window.location.href = '/onboarding'; return; }
-    }
-    // Legacy base64 JSON token
-    try {
-      const s = JSON.parse(atob(stored));
-      if (s.email && (Date.now() - s.ts) < 8 * 60 * 60 * 1000) {
-        sessionStorage.setItem('pipeline_session', stored);
-        localStorage.setItem('pipeline_session', stored);
-        showApp(s.email);
-        load();
-        return;
-      }
-    } catch(_) {}
+  if (!stored) { document.getElementById('auth-gate').style.display = 'flex'; return; }
+
+  // UUID from client_sessions (new login flow) — no need to decode, load() fetches real profile
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(stored)) {
+    const emailHint = localStorage.getItem('capgen_email') || '';
+    showApp(emailHint);
+    load();
+    return;
   }
+
+  // Legacy base64 JSON token
+  try {
+    const s = JSON.parse(atob(stored));
+    if (s.email && (Date.now() - s.ts) < 8 * 60 * 60 * 1000) {
+      sessionStorage.setItem('pipeline_session', stored);
+      localStorage.setItem('pipeline_session', stored);
+      showApp(s.email);
+      load();
+      return;
+    }
+  } catch(_) {}
+
+  // Invalid session — show login
   document.getElementById('auth-gate').style.display = 'flex';
 })();
 
