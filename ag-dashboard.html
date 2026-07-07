@@ -727,9 +727,6 @@ function getSessionToken() {
     return raw;
   } catch { return null; }
 }
-} catch { return null; }
-}
-
 // Load analysis badges for the current opportunity list (one query)
 async function loadAnalysisBadges(noticeIds) {
   if (!noticeIds || !noticeIds.length) return;
