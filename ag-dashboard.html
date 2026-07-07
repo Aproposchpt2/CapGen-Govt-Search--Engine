@@ -726,6 +726,7 @@ function getSessionToken() {
     if (!s.email || (Date.now() - s.ts) > 8 * 60 * 60 * 1000) return null;
     return raw;
   } catch { return null; }
+}
 } catch { return null; }
 }
 
