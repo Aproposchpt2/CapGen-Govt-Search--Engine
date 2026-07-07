@@ -26,11 +26,33 @@ async function sbGet(path) {
   return res.json();
 }
 
-function verifyToken(authHeader) {
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+async function verifyToken(authHeader) {
   if (!authHeader?.startsWith('Bearer ')) return null;
+  const raw = authHeader.slice(7).trim();
+  if (!raw) return null;
+
+  // Path 1: UUID session token stored in client_sessions
+  if (UUID_RE.test(raw)) {
+    try {
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/client_sessions?session_token=eq.${encodeURIComponent(raw)}&select=email,expires_at&limit=1`,
+        { headers: sbH() }
+      );
+      if (res.ok) {
+        const rows = await res.json();
+        if (rows.length && new Date(rows[0].expires_at) > new Date()) {
+          return rows[0].email.toLowerCase().trim();
+        }
+      }
+    } catch { /* fall through */ }
+    return null;
+  }
+
+  // Path 2: legacy HMAC-signed base64 token
   if (!AUTH_SECRET) return null;
   try {
-    const raw  = authHeader.slice(7);
     const data = JSON.parse(Buffer.from(raw, 'base64').toString('utf8'));
     if (!data.email || !data.ts || !data.sig) return null;
     if (Date.now() - data.ts > 7 * 24 * 60 * 60 * 1000) return null;
@@ -47,7 +69,7 @@ export const handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: CORS, body: '' };
   if (event.httpMethod !== 'GET')     return { statusCode: 405, headers: CORS, body: JSON.stringify({ error: 'GET only' }) };
 
-  const accountEmail = verifyToken(event.headers?.authorization || event.headers?.Authorization || '');
+  const accountEmail = await verifyToken(event.headers?.authorization || event.headers?.Authorization || '');
   if (!accountEmail) return { statusCode: 401, headers: CORS, body: JSON.stringify({ error: 'UNAUTHORIZED' }) };
 
   const q = event.queryStringParameters || {};

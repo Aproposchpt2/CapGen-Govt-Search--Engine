@@ -574,17 +574,18 @@ function loadFederal() {
     })
     .then(function(d) {
       if (!d) return;
-      // Update entity card
-      var biz = d.business_name || d.businessName || getEmail();
+      // Update entity card — response nests client data under d.client
+      var cl = d.client || d;
+      var biz = cl.business_name || cl.businessName || getEmail();
       document.getElementById('hdr-biz').textContent = biz;
       document.getElementById('ec-biz').textContent = biz;
-      document.getElementById('ec-uei').textContent = d.uei || '—';
-      document.getElementById('hdr-uei').textContent = d.uei ? 'UEI: ' + d.uei : '';
-      document.getElementById('ec-naics-count').textContent = (d.naics || []).length + ' codes';
+      document.getElementById('ec-uei').textContent = cl.uei || d.uei || '—';
+      document.getElementById('hdr-uei').textContent = (cl.uei || d.uei) ? 'UEI: ' + (cl.uei || d.uei) : '';
+      document.getElementById('ec-naics-count').textContent = (cl.naics || d.naics || []).length + ' codes';
       document.getElementById('ec-refresh').textContent = 'Today';
       // Build NAICS ribbon
-      activeNaics = (d.naics || []).slice();
-      buildNaicsRibbon(d.naics || []);
+      activeNaics = (cl.naics || d.naics || []).slice();
+      buildNaicsRibbon(cl.naics || d.naics || []);
       // Store opps
       allOpps = d.opportunities || [];
       document.getElementById('ec-refresh').textContent = fmtDate(new Date().toISOString());
