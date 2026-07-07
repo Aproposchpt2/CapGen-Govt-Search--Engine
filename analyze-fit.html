@@ -417,6 +417,7 @@ function renderReport(row) {
 
   // ── Action bar ──────────────────────────────────────────────────────────────
   html += `<div class="action-bar">
+    <a href="https://gcpdc.aproposgroupllc.com/develop-proposal.html?opportunity_id=${encodeURIComponent(noticeId)}" style="background:linear-gradient(135deg,#C9A84C,#e8c96a);color:#0F2A6A;font-family:'Jost',sans-serif;font-weight:800;font-size:.82rem;padding:11px 24px;border-radius:8px;text-decoration:none;letter-spacing:.02em">Develop My Proposal →</a>
     <a href="https://sam.gov/opp/${esc(noticeId)}/view" target="_blank" rel="noopener" style="background:var(--cyan);color:#0A1A3A;font-family:'Jost',sans-serif;font-weight:700;font-size:.82rem;padding:10px 22px;border-radius:8px;text-decoration:none">View on SAM.gov →</a>
     <button class="btn-export" onclick="window.print()">Export as PDF ↓</button>
     ${!s2 && (rec === 'BID' || rec === 'CONDITIONAL') ? '' :
