@@ -92,6 +92,8 @@ $('verifyBtn').addEventListener('click', async () => {
     const {ok,data} = await post('/.netlify/functions/pipeline-otp-verify',{email:theEmail,code});
     if(!ok||!data.ok){m.className='msg err';m.textContent=data.error||'Invalid or expired code. Request a new one.';b.disabled=false;b.textContent='Open My Dashboard →';return;}
     sessionStorage.setItem('capgen_session',JSON.stringify(data.session||{email:theEmail}));
+    var pTok=btoa(JSON.stringify({email:theEmail,ts:Date.now(),memberType:'pipeline'}));
+    sessionStorage.setItem('pipeline_session',pTok);localStorage.setItem('pipeline_session',pTok);
     m.className='msg ok';m.textContent='Verified — opening your dashboard…';
     setTimeout(()=>{window.location.assign('/apropos');},400);
   }catch(e){m.className='msg err';m.textContent='Connection error. Please try again.';b.disabled=false;b.textContent='Open My Dashboard →';}
