@@ -10,6 +10,9 @@
 [functions]
   node_bundler = "esbuild"
 
+[functions."send-contractor-outreach"]
+  timeout = 30
+
 [functions."generate-capability-background"]
   external_node_modules = ["adm-zip"]
 
