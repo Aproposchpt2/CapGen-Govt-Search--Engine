@@ -428,7 +428,11 @@ tr:hover td{background:rgba(91,175,255,.04)}
       <div><div class="nvd-label">Close Date</div><div class="nvd-value" id="nvd-close"></div></div>
     </div>
     <hr class="nvd-divider">
-    <div class="nvd-label" style="margin-bottom:10px">View full bid details on the Nevada Procurement Portal</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px">
+      <button onclick="analyzeNvBid()" style="flex:1;background:linear-gradient(135deg,#0F2A6A,#1a3a7a);color:#fff;border:1px solid rgba(91,211,255,.35);border-radius:10px;padding:12px 18px;font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:.15s" onmouseover="this.style.borderColor='var(--cyan)'" onmouseout="this.style.borderColor='rgba(91,211,255,.35)'">⚡ Analyze Fit</button>
+      <button onclick="proposeNvBid()" style="flex:1;background:linear-gradient(135deg,#d5aa4d,#e8c982);color:#061b3a;border:none;border-radius:10px;padding:12px 18px;font-size:.78rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:.15s">✍ Develop Proposal</button>
+    </div>
+    <div class="nvd-label" style="margin-bottom:10px">View full solicitation on the Nevada Procurement Portal</div>
     <a class="nvd-portal-btn" id="nvd-portal-link" href="#" target="_blank" rel="noopener">Open Nevada Portal ↗</a>
   </div>
 </div>
@@ -1158,8 +1162,10 @@ function applyNvFilters() {
 }
 
 // ── Nevada bid drawer ────────────────────────────────────────────────────────
+var currentNvBid = null;
 function openNvDrawer(b) {
   if (!b) return;
+  currentNvBid = b;
   var u = urgency(b.close_date);
   var urgCls = u==='hot'?'urgent':u==='warm'?'soon':'ok';
   var urgLabel = u==='hot'?'Closing Soon!':u==='warm'?'Closing This Week':'Open';
@@ -1190,6 +1196,68 @@ function closeNvDrawer() {
   document.getElementById('nvd-overlay').classList.remove('open');
   document.getElementById('nvd-drawer').classList.remove('open');
   document.body.style.overflow = '';
+}
+
+function nvBidAsOpp(b) {
+  // Map Nevada bid fields to the opportunity format the federal drawer expects
+  return {
+    notice_id:   b.bid_id || b.id || b.solicitation_no || 'nv-' + (b.title||'').slice(0,20).replace(/\s+/g,'-').toLowerCase(),
+    noticeId:    b.bid_id || b.id || b.solicitation_no || '',
+    title:       b.title || 'Nevada Procurement Opportunity',
+    agency:      b.agency || 'Nevada State Agency',
+    naics:       '',
+    set_aside:   b.type || '',
+    deadline:    b.close_date || '',
+    responseDeadline: b.close_date || '',
+    url:         b.url || 'https://nevada.ionwave.net',
+    solicitation_no: b.solicitation_no || b.id || '',
+    source:      'nevada_ngem'
+  };
+}
+
+function analyzeNvBid() {
+  var b = currentNvBid;
+  if (!b) return;
+  closeNvDrawer();
+  var opp = nvBidAsOpp(b);
+  currentOpp = opp;
+  currentAnalysisOpp = opp;
+  // Reset proposal panel
+  document.getElementById('proposal-panel').classList.remove('open');
+  document.getElementById('prop-messages').innerHTML = '';
+  proposalMessages = []; proposalOpp = null;
+  // Open the fit drawer
+  document.getElementById('fit-opp-title').textContent = opp.title;
+  document.getElementById('fit-opp-agency').textContent = opp.agency;
+  document.getElementById('fit-body').innerHTML = '<div class="fit-loading"><span class="fit-spinner"></span>Analyzing with AI…</div>';
+  document.getElementById('fit-overlay').classList.add('open');
+  document.getElementById('fit-drawer').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  // Switch to Federal tab so the fit drawer context is correct
+  runAnalysis(opp, false);
+}
+
+function proposeNvBid() {
+  var b = currentNvBid;
+  if (!b) return;
+  closeNvDrawer();
+  var opp = nvBidAsOpp(b);
+  currentAnalysisOpp = opp;
+  proposalOpp = opp;
+  proposalMessages = [];
+  document.getElementById('prop-messages').innerHTML = '';
+  // Open the fit drawer with proposal panel
+  document.getElementById('fit-opp-title').textContent = opp.title;
+  document.getElementById('fit-opp-agency').textContent = opp.agency;
+  document.getElementById('fit-body').innerHTML = '<div class="fit-loading"><span class="fit-spinner"></span>Loading proposal agent…</div>';
+  document.getElementById('fit-overlay').classList.add('open');
+  document.getElementById('fit-drawer').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  // Short delay then open proposal panel directly
+  setTimeout(function() {
+    document.getElementById('fit-body').innerHTML = '';
+    openProposalPanel();
+  }, 400);
 }
 document.getElementById('nvd-close-btn').addEventListener('click', closeNvDrawer);
 document.getElementById('nvd-overlay').addEventListener('click', closeNvDrawer);
