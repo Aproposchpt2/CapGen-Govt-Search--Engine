@@ -11,7 +11,7 @@
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const RESEND_KEY   = process.env.RESEND_API_KEY;
-const FROM_EMAIL   = process.env.RESEND_FROM_EMAIL || 'jeff@aproposgroupllc.com';
+const FROM_EMAIL   = process.env.RESEND_FROM_EMAIL || 'outreach@aproposcontracts.com';
 const FROM_NAME    = 'Jeff Mitchell — Apropos Group LLC';
 const NGCC_URL     = 'https://ngcc.aproposgroupllc.com';
 
