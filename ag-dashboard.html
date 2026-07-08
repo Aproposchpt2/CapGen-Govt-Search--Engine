@@ -390,6 +390,26 @@ tr:hover td{background:rgba(91,175,255,.04)}
 <!-- Nevada panel -->
 <div id="panel-nevada" style="display:none">
 <div class="page">
+
+  <!-- SERVICE SELECTOR -->
+  <div id="nv-service-panel" style="background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;margin-bottom:18px;overflow:hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;cursor:pointer;user-select:none" onclick="toggleNvServicePanel()">
+      <div>
+        <div style="font-size:.62rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--cyan);margin-bottom:3px">My Services</div>
+        <div style="font-size:.88rem;color:var(--text)" id="nv-svc-summary">Select the services your business provides to match Nevada bids</div>
+      </div>
+      <span id="nv-svc-chevron" style="color:var(--muted);font-size:1.1rem;transition:.2s">▸</span>
+    </div>
+    <div id="nv-svc-body" style="display:none;padding:0 18px 18px;border-top:1px solid var(--line)">
+      <div id="nv-categories" style="margin-top:14px"></div>
+      <div style="margin-top:14px;display:flex;gap:10px;align-items:center">
+        <button onclick="applyNvServices()" style="background:var(--cyan);color:#020816;border:none;border-radius:8px;padding:9px 20px;font-size:.78rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;cursor:pointer">Find My Matches</button>
+        <button onclick="clearNvServices()" style="background:rgba(255,255,255,.06);color:var(--muted);border:1px solid var(--line);border-radius:8px;padding:9px 16px;font-size:.78rem;font-weight:600;cursor:pointer">Clear All</button>
+        <span id="nv-svc-save-msg" style="font-size:.78rem;color:var(--green)"></span>
+      </div>
+    </div>
+  </div>
+
   <div class="controls">
     <input class="ctrl-input" id="nv-search" type="text" placeholder="Search Nevada bids by title or agency…">
     <select class="ctrl-select" id="nv-type"><option value="">All Types</option><option value="RFP">RFP</option><option value="BID">Bid / IFB</option></select>
@@ -1118,8 +1138,154 @@ function buildStage2(s2) {
     + '</div>';
 }
 
+// ── Nevada Service Taxonomy ───────────────────────────────────────────────────
+var NV_TAXONOMY = [
+  { cat:'Information Technology', icon:'💻', services:[
+    { id:'sw_dev',    label:'Software Development',          kw:['software','development','programming','application','app','coding','system','database'] },
+    { id:'network',   label:'Network Infrastructure',        kw:['network','infrastructure','cisco','routing','switching','wireless','fiber','cabling','lan','wan'] },
+    { id:'security',  label:'Cybersecurity',                 kw:['security','cyber','firewall','vulnerability','intrusion','siem','compliance','risk'] },
+    { id:'cloud',     label:'Cloud Services',                kw:['cloud','azure','aws','saas','hosting','migration','virtual'] },
+    { id:'it_support',label:'IT Support & Help Desk',        kw:['support','help desk','helpdesk','technical','desktop','maintenance','service desk'] },
+    { id:'data',      label:'Data Management & Analytics',   kw:['data','analytics','reporting','dashboard','bi','database','warehouse','management'] },
+    { id:'web',       label:'Website & Web Applications',    kw:['website','web','portal','digital','online','cms','e-government'] },
+    { id:'av_telecom',label:'Audio/Visual & Telecom',        kw:['audio','visual','telecom','telephone','voip','video','conference','communication'] }
+  ]},
+  { cat:'Construction & Trades', icon:'🏗️', services:[
+    { id:'general',   label:'General Construction',          kw:['construction','building','renovation','remodel','facility','structure'] },
+    { id:'electrical',label:'Electrical',                    kw:['electrical','electric','wiring','panel','generator','lighting','power'] },
+    { id:'plumbing',  label:'Plumbing & HVAC',               kw:['plumbing','hvac','heating','cooling','air conditioning','ventilation','mechanical'] },
+    { id:'roofing',   label:'Roofing',                       kw:['roof','roofing','waterproof'] },
+    { id:'flooring',  label:'Flooring',                      kw:['flooring','floor','carpet','tile','vinyl'] },
+    { id:'painting',  label:'Painting',                      kw:['paint','coating','finishing'] },
+    { id:'concrete',  label:'Concrete & Masonry',            kw:['concrete','masonry','asphalt','paving','sidewalk','curb'] }
+  ]},
+  { cat:'Professional Services', icon:'📋', services:[
+    { id:'consulting',label:'Management Consulting',         kw:['consulting','management','advisory','strategy','assessment','planning'] },
+    { id:'finance',   label:'Financial & Accounting',        kw:['financial','accounting','audit','fiscal','budget','cpa'] },
+    { id:'legal',     label:'Legal Services',                kw:['legal','attorney','law','counsel','compliance'] },
+    { id:'training',  label:'Training & Education',          kw:['training','education','workforce','learning','instruction','course'] },
+    { id:'marketing', label:'Marketing & Communications',    kw:['marketing','communications','outreach','media','public relations','graphic'] },
+    { id:'research',  label:'Research & Studies',            kw:['research','study','survey','analysis','assessment','evaluation'] }
+  ]},
+  { cat:'Facilities & Operations', icon:'🏢', services:[
+    { id:'janitorial',label:'Janitorial & Cleaning',         kw:['janitorial','cleaning','custodial','sanitation','housekeeping'] },
+    { id:'landscape', label:'Landscaping & Grounds',         kw:['landscaping','grounds','lawn','tree','irrigation','mowing'] },
+    { id:'secguard',  label:'Security Services',             kw:['security guard','patrol','access control','surveillance','armed','unarmed'] },
+    { id:'maint',     label:'Building Maintenance',          kw:['maintenance','repair','facility management','operations'] },
+    { id:'waste',     label:'Waste & Recycling',             kw:['waste','recycling','disposal','trash','refuse'] },
+    { id:'moving',    label:'Moving & Logistics',            kw:['moving','relocation','logistics','transport','storage'] }
+  ]},
+  { cat:'Engineering & Architecture', icon:'⚙️', services:[
+    { id:'civil',     label:'Civil Engineering',             kw:['civil','engineering','infrastructure','road','drainage','utilities'] },
+    { id:'arch',      label:'Architecture & Design',         kw:['architecture','design','architectural','blueprint','plans','drawings'] },
+    { id:'env',       label:'Environmental Services',        kw:['environmental','remediation','hazmat','asbestos','testing','assessment'] },
+    { id:'survey',    label:'Surveying & Mapping',           kw:['survey','surveying','mapping','gis','land','topographic'] }
+  ]},
+  { cat:'Supplies & Equipment', icon:'📦', services:[
+    { id:'office_sup',label:'Office Supplies',               kw:['office supplies','furniture','equipment','supplies'] },
+    { id:'tech_hw',   label:'Technology Hardware',           kw:['hardware','computer','laptop','server','printer','scanner','equipment'] },
+    { id:'vehicles',  label:'Vehicles & Fleet',              kw:['vehicle','fleet','truck','automobile','car','equipment'] },
+    { id:'medical',   label:'Medical Supplies',              kw:['medical','health','supplies','equipment','ppe','pharmacy'] },
+    { id:'safety',    label:'Safety Equipment',              kw:['safety','ppe','protective','gear','equipment'] }
+  ]}
+];
+
+var nvSelectedServices = new Set();
+var nvServicePanelOpen = false;
+
+function toggleNvServicePanel() {
+  nvServicePanelOpen = !nvServicePanelOpen;
+  document.getElementById('nv-svc-body').style.display = nvServicePanelOpen ? 'block' : 'none';
+  document.getElementById('nv-svc-chevron').style.transform = nvServicePanelOpen ? 'rotate(90deg)' : '';
+  if (nvServicePanelOpen && !document.getElementById('nv-categories').children.length) renderNvTaxonomy();
+}
+
+function renderNvTaxonomy() {
+  var box = document.getElementById('nv-categories');
+  box.innerHTML = NV_TAXONOMY.map(function(cat) {
+    var catId = 'nvc_' + cat.services[0].id.split('_')[0];
+    return '<div style="margin-bottom:14px">'
+      + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
+      + '<span style="font-size:1rem">' + cat.icon + '</span>'
+      + '<span style="font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#fff">' + cat.cat + '</span>'
+      + '<button onclick="toggleCatAll(\''+cat.cat+'\')" style="margin-left:auto;font-size:.62rem;color:var(--muted);background:none;border:1px solid var(--line);border-radius:6px;padding:2px 8px;cursor:pointer">All/None</button>'
+      + '</div>'
+      + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:6px">'
+      + cat.services.map(function(svc) {
+          var checked = nvSelectedServices.has(svc.id);
+          return '<label style="display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid '+(checked?'var(--cyan)':'var(--line)')+';border-radius:8px;cursor:pointer;background:'+(checked?'rgba(91,211,255,.08)':'rgba(255,255,255,.03)')+';transition:.15s;font-size:.82rem;color:'+(checked?'#fff':'var(--muted)'+';')+'">'
+            + '<input type="checkbox" data-svc="'+svc.id+'" '+(checked?'checked':'')+' style="accent-color:var(--cyan);width:14px;height:14px;flex-shrink:0" onchange="toggleNvService(\''+svc.id+'\')">'
+            + svc.label + '</label>';
+        }).join('')
+      + '</div></div>';
+  }).join('');
+}
+
+function toggleNvService(id) {
+  if (nvSelectedServices.has(id)) nvSelectedServices.delete(id);
+  else nvSelectedServices.add(id);
+  saveNvServicesToStorage();
+  renderNvTaxonomy(); // re-render to update styles
+  updateNvSvcSummary();
+}
+
+function toggleCatAll(catName) {
+  var cat = NV_TAXONOMY.find(function(c){ return c.cat === catName; });
+  if (!cat) return;
+  var allOn = cat.services.every(function(s){ return nvSelectedServices.has(s.id); });
+  cat.services.forEach(function(s){ allOn ? nvSelectedServices.delete(s.id) : nvSelectedServices.add(s.id); });
+  saveNvServicesToStorage();
+  renderNvTaxonomy();
+  updateNvSvcSummary();
+}
+
+function clearNvServices() {
+  nvSelectedServices.clear();
+  saveNvServicesToStorage();
+  renderNvTaxonomy();
+  updateNvSvcSummary();
+  applyNvFilters();
+}
+
+function updateNvSvcSummary() {
+  var n = nvSelectedServices.size;
+  document.getElementById('nv-svc-summary').textContent = n
+    ? n + ' service' + (n===1?'':'s') + ' selected — click "Find My Matches" to filter bids'
+    : 'Select the services your business provides to match Nevada bids';
+}
+
+function saveNvServicesToStorage() {
+  try { localStorage.setItem('nv_services_' + (authEmail||''), JSON.stringify([...nvSelectedServices])); } catch(e){}
+}
+
+function loadNvServicesFromStorage() {
+  try {
+    var saved = localStorage.getItem('nv_services_' + (authEmail||''));
+    if (saved) { nvSelectedServices = new Set(JSON.parse(saved)); updateNvSvcSummary(); }
+  } catch(e){}
+}
+
+function applyNvServices() {
+  saveNvServicesToStorage();
+  document.getElementById('nv-svc-save-msg').textContent = '✓ Saved';
+  setTimeout(function(){ document.getElementById('nv-svc-save-msg').textContent=''; }, 2000);
+  toggleNvServicePanel(); // collapse panel
+  applyNvFilters(); // re-filter with service keywords
+}
+
+function getNvServiceKeywords() {
+  var kw = [];
+  NV_TAXONOMY.forEach(function(cat) {
+    cat.services.forEach(function(svc) {
+      if (nvSelectedServices.has(svc.id)) kw = kw.concat(svc.kw);
+    });
+  });
+  return kw;
+}
+
 // ── Nevada pipeline ───────────────────────────────────────────────────────────
 function loadNevada() {
+  loadNvServicesFromStorage(); // restore saved service selections
   fetch('/.netlify/functions/ngem-pipeline')
     .then(function(r) { return r.json(); })
     .then(function(d) {
@@ -1136,9 +1302,16 @@ document.getElementById('nv-type').addEventListener('change', applyNvFilters);
 function applyNvFilters() {
   var q  = (document.getElementById('nv-search').value||'').toLowerCase();
   var tp = document.getElementById('nv-type').value;
+  var svcKw = getNvServiceKeywords(); // from selected service checkboxes
   nvFiltered = nvAll.filter(function(b) {
-    if (q && !(String(b.title||'').toLowerCase().includes(q)||String(b.agency||'').toLowerCase().includes(q))) return false;
-    if (tp && (b.type||'').toUpperCase() !== tp) return false;
+    var hay = (String(b.title||'') + ' ' + String(b.agency||'')).toLowerCase();
+    if (q && !hay.includes(q)) return false;
+    if (tp && (b.type||b.bid_type||'').toUpperCase() !== tp) return false;
+    // If services selected, only show bids that match at least one keyword
+    if (svcKw.length > 0) {
+      var matched = svcKw.some(function(k){ return hay.includes(k.toLowerCase()); });
+      if (!matched) return false;
+    }
     return true;
   });
   document.getElementById('nv-count-lbl').textContent = nvFiltered.length + ' bids';
