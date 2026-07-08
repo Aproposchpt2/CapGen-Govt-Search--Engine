@@ -229,14 +229,37 @@ tr:hover td{background:rgba(91,175,255,.04)}
 .auth-fine{font-size:.72rem;color:rgba(255,255,255,.28);text-align:center;margin-top:18px;line-height:1.5;font-style:italic;font-family:'Cormorant Garamond',serif}
 
 /* ── Nevada bids ── */
-.nv-card{border:1px solid var(--line);border-radius:10px;padding:14px 16px;background:var(--surface);margin-bottom:8px;transition:.16s}
-.nv-card:hover{background:rgba(255,255,255,.06);border-color:var(--line2)}
+.nv-card{border:1px solid var(--line);border-radius:10px;padding:14px 16px;background:var(--surface);margin-bottom:8px;transition:.16s;cursor:pointer}
+.nv-card:hover{background:rgba(255,255,255,.06);border-color:var(--cyan)}
 .nv-title{font-size:.9rem;font-weight:700;color:var(--text);margin-bottom:4px;background:none;border:none;cursor:pointer;text-align:left;padding:0;font-family:Arial,sans-serif;width:100%}
 .nv-title:hover{color:var(--cyan)}
 .nv-meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px;font-size:.76rem;color:var(--muted)}
 .nv-actions{display:flex;justify-content:space-between;align-items:center}
 .nv-view{font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;font-weight:700;border:1px solid var(--line);border-radius:6px;padding:5px 12px;background:rgba(255,255,255,.04);color:var(--muted);text-decoration:none;transition:.15s}
 .nv-view:hover{border-color:var(--line2);color:var(--text)}
+/* ── Nevada bid drawer ── */
+#nvd-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.52);z-index:900}
+#nvd-overlay.open{display:block}
+#nvd-drawer{position:fixed;top:0;right:0;width:min(520px,100vw);height:100vh;background:#071e38;color:#fff;z-index:901;transform:translateX(110%);transition:transform .3s cubic-bezier(.4,0,.2,1);overflow-y:auto;box-shadow:-6px 0 40px rgba(0,0,0,.5)}
+#nvd-drawer.open{transform:translateX(0)}
+.nvd-inner{padding:28px 26px 40px}
+.nvd-close{position:absolute;top:18px;right:20px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);width:32px;height:32px;border-radius:50%;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s}
+.nvd-close:hover{background:rgba(255,255,255,.18);color:#fff}
+.nvd-eyebrow{font-size:.62rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#34d399;margin-bottom:10px}
+.nvd-title{font-family:'Bodoni Moda',Georgia,serif;font-size:1.25rem;font-weight:600;color:#fff;line-height:1.3;margin-bottom:16px}
+.nvd-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.nvd-chip{font-size:.72rem;font-weight:700;padding:4px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:rgba(255,255,255,.8)}
+.nvd-chip.type-rfp{border-color:rgba(91,211,255,.4);background:rgba(91,211,255,.1);color:#5bd3ff}
+.nvd-chip.type-bid{border-color:rgba(245,195,107,.4);background:rgba(245,195,107,.1);color:#f5c36b}
+.nvd-chip.urgent{border-color:rgba(248,113,113,.4);background:rgba(248,113,113,.1);color:#f87171}
+.nvd-chip.soon{border-color:rgba(245,195,107,.4);background:rgba(245,195,107,.1);color:#f5c36b}
+.nvd-chip.ok{border-color:rgba(52,211,153,.4);background:rgba(52,211,153,.1);color:#34d399}
+.nvd-section{margin-bottom:18px}
+.nvd-label{font-size:.6rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:6px}
+.nvd-value{font-size:.92rem;color:rgba(255,255,255,.85);line-height:1.5}
+.nvd-divider{border:none;border-top:1px solid rgba(255,255,255,.08);margin:18px 0}
+.nvd-portal-btn{display:inline-flex;align-items:center;gap:7px;font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:9px 18px;text-decoration:none;transition:.15s;background:rgba(255,255,255,.04)}
+.nvd-portal-btn:hover{border-color:rgba(255,255,255,.4);color:#fff;background:rgba(255,255,255,.08)}
 
 /* ── Responsive ── */
 @media(max-width:700px){.tbl-wrap table{display:none}.cards{display:flex}header{flex-direction:column;align-items:flex-start;padding:12px 16px}.page{padding:14px}.stat-bar{grid-template-columns:1fr 1fr;display:grid}header .brand-sub{display:none}}
@@ -389,6 +412,26 @@ tr:hover td{background:rgba(91,175,255,.04)}
 </div>
 
 </div><!-- /app -->
+
+<!-- Nevada bid drawer -->
+<div id="nvd-overlay"></div>
+<div id="nvd-drawer">
+  <div class="nvd-inner">
+    <button class="nvd-close" id="nvd-close-btn">✕</button>
+    <div class="nvd-eyebrow">◆ Nevada State Procurement</div>
+    <div class="nvd-title" id="nvd-title"></div>
+    <div class="nvd-row" id="nvd-chips"></div>
+    <div class="nvd-section"><div class="nvd-label">Agency</div><div class="nvd-value" id="nvd-agency"></div></div>
+    <div class="nvd-section"><div class="nvd-label">Solicitation #</div><div class="nvd-value" id="nvd-sol"></div></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px">
+      <div><div class="nvd-label">Issue Date</div><div class="nvd-value" id="nvd-issue"></div></div>
+      <div><div class="nvd-label">Close Date</div><div class="nvd-value" id="nvd-close"></div></div>
+    </div>
+    <hr class="nvd-divider">
+    <div class="nvd-label" style="margin-bottom:10px">View full bid details on the Nevada Procurement Portal</div>
+    <a class="nvd-portal-btn" id="nvd-portal-link" href="#" target="_blank" rel="noopener">Open Nevada Portal ↗</a>
+  </div>
+</div>
 
 <!-- Contract detail drawer -->
 <div id="cd-overlay"></div>
@@ -1098,20 +1141,61 @@ function applyNvFilters() {
   document.getElementById('tab-nv-count').textContent = nvFiltered.length;
   var box = document.getElementById('nv-cards');
   if (!nvFiltered.length) { box.innerHTML = '<div class="empty-row">No Nevada bids matched your filters.</div>'; return; }
-  box.innerHTML = nvFiltered.map(function(b) {
+  box.innerHTML = nvFiltered.map(function(b, i) {
     var u = urgency(b.close_date);
     var cls = u==='hot'?'badge-hot':u==='warm'?'badge-warm':'badge-ok';
-    return '<div class="nv-card">'
-      + '<button class="nv-title">' + esc(b.title||'Untitled') + '</button>'
+    var typeChip = b.type ? '<span class="chip chip-rfp">'+esc(b.type)+'</span>' : '';
+    return '<div class="nv-card" onclick="openNvDrawer(nvFiltered['+i+'])">'
+      + '<div class="nv-title">' + esc(b.title||'Untitled') + '</div>'
       + '<div class="nv-meta"><span>' + esc(b.agency||'—') + '</span>'
-      + (b.type?'<span class="chip chip-rfp">'+esc(b.type)+'</span>':'')
+      + typeChip
       + (b.close_date?'<span class="badge '+cls+'">'+esc(b.close_date)+'</span>':'')
       + '</div>'
       + '<div class="nv-actions"><span style="font-size:.7rem;color:var(--soft)">' + esc(b.solicitation_no||b.id||'') + '</span>'
-      + '<a class="nv-view" href="' + esc(b.url||'https://nevada.ionwave.net') + '" target="_blank" rel="noopener">View Bid ↗</a></div>'
+      + '<span style="font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--cyan)">View Details →</span></div>'
       + '</div>';
   }).join('');
 }
+
+// ── Nevada bid drawer ────────────────────────────────────────────────────────
+function openNvDrawer(b) {
+  if (!b) return;
+  var u = urgency(b.close_date);
+  var urgCls = u==='hot'?'urgent':u==='warm'?'soon':'ok';
+  var urgLabel = u==='hot'?'Closing Soon!':u==='warm'?'Closing This Week':'Open';
+
+  document.getElementById('nvd-title').textContent = b.title || 'Untitled Bid';
+  document.getElementById('nvd-agency').textContent = b.agency || '—';
+  document.getElementById('nvd-sol').textContent = b.solicitation_no || b.bid_id || b.id || '—';
+  document.getElementById('nvd-issue').textContent = b.issue_date || '—';
+  document.getElementById('nvd-close').textContent = b.close_date || '—';
+  document.getElementById('nvd-portal-link').href = b.url || 'https://nevada.ionwave.net';
+
+  var chips = '';
+  if (b.type) {
+    var tCls = (b.type||'').toUpperCase().includes('RFP') ? 'type-rfp' : 'type-bid';
+    chips += '<span class="nvd-chip '+tCls+'">'+esc(b.type)+'</span>';
+  }
+  chips += '<span class="nvd-chip '+urgCls+'">'+esc(urgLabel)+'</span>';
+  if (b.due_in_days != null && b.due_in_days >= 0) {
+    chips += '<span class="nvd-chip">'+esc(b.due_in_days === 0 ? 'Closes today' : b.due_in_days + ' days left')+'</span>';
+  }
+  document.getElementById('nvd-chips').innerHTML = chips;
+
+  document.getElementById('nvd-overlay').classList.add('open');
+  document.getElementById('nvd-drawer').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeNvDrawer() {
+  document.getElementById('nvd-overlay').classList.remove('open');
+  document.getElementById('nvd-drawer').classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.getElementById('nvd-close-btn').addEventListener('click', closeNvDrawer);
+document.getElementById('nvd-overlay').addEventListener('click', closeNvDrawer);
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') { closeNvDrawer(); }
+});
 
 // ── Three-tab nav: Marketing Dashboard link ───────────────────────────────────
 var mktBar = document.querySelector('[href="/marketing-dashboard"]');
