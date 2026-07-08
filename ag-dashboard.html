@@ -416,9 +416,12 @@ tr:hover td{background:rgba(91,175,255,.04)}
     <div class="fit-opp-agency" id="fit-opp-agency"></div>
     <div id="fit-body"><div class="fit-loading"><span class="fit-spinner"></span>Analyzing with AI…</div></div>
     <div id="proposal-panel">
-      <div class="prop-header">
-        <div class="prop-title">Proposal Development Agent</div>
-        <div class="prop-sub">Stage 3 · AI-Powered Proposal Writing</div>
+      <div class="prop-header" style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div>
+          <div class="prop-title">Proposal Development Agent</div>
+          <div class="prop-sub">Stage 3 · AI-Powered Proposal Writing</div>
+        </div>
+        <a id="generatePackageBtn" href="#" onclick="launchGeneratePackage(event)" style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#d5aa4d,#e8c982);color:#061b3a;font-size:.72rem;font-weight:800;padding:8px 16px;border-radius:999px;text-decoration:none;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;transition:.2s" title="Run the full 4-agent pipeline to generate all 8 proposal sections">⚡ Generate Complete Package</a>
       </div>
       <div class="prop-messages" id="prop-messages"></div>
       <div class="prop-input-row">
@@ -907,6 +910,28 @@ document.getElementById('proposal-send').addEventListener('click', function() {
   var text = (input.value || '').trim();
   if (text) sendProposalMessage(text);
 });
+
+function launchGeneratePackage(e) {
+  e.preventDefault();
+  var tok = getToken();
+  if (!tok) { addProposalMessage('ai', 'Session expired. Please sign in again.'); return; }
+  if (!proposalOpp) { addProposalMessage('ai', 'No contract selected. Please select a contract and run Analyze Fit first.'); return; }
+  var opp = proposalOpp;
+  var oppParam = encodeURIComponent(JSON.stringify({
+    notice_id: opp.notice_id || opp.noticeId || '',
+    title: opp.title || '',
+    agency: opp.agency || '',
+    naics: opp.naics || '',
+    set_aside: opp.set_aside || opp.setAside || '',
+    deadline: opp.deadline || opp.responseDeadline || '',
+    url: opp.url || ''
+  }));
+  var url = 'https://gcpdc.aproposgroupllc.com/generate-package.html'
+    + '?session_token=' + encodeURIComponent(tok)
+    + '&opportunity_id=' + encodeURIComponent(opp.notice_id || opp.noticeId || '')
+    + '&opp=' + oppParam;
+  window.open(url, '_blank');
+}
 
 document.getElementById('proposal-input').addEventListener('keydown', function(e) {
   if (e.key === 'Enter' && !e.shiftKey) {
