@@ -90,25 +90,35 @@ exports.handler = async (event) => {
     return { statusCode: 500, headers, body: JSON.stringify({ error: 'RESEND_API_KEY not set' }) };
   }
 
-  // Load queued contacts with their contractor record
-  const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/contractor_contacts?select=id,email,first_name,last_name,confidence_score,contractor_id,contractors(id,legal_name,naics_codes,primary_naics,address_state,outreach_status)&contractors.outreach_status=in.(queued,pending)&confidence_score=gte.70&order=confidence_score.desc&limit=${limit}`,
+  // Step 1: Load contractors that are queued/pending
+  const cRes = await fetch(
+    `${SUPABASE_URL}/rest/v1/contractors?select=id,legal_name,naics_codes,primary_naics,address_state,outreach_status&outreach_status=in.(queued,pending)&limit=${limit}`,
     { headers: sbH() }
   );
-  const contacts = await res.json();
+  const contractors = await cRes.json();
 
-  if (!Array.isArray(contacts) || !contacts.length) {
-    return { statusCode: 200, headers, body: JSON.stringify({ ok: true, sent: 0, message: 'No contacts available to send.' }) };
+  if (!Array.isArray(contractors) || !contractors.length) {
+    return { statusCode: 200, headers, body: JSON.stringify({ ok: true, sent: 0, message: 'No contractors queued for outreach.' }) };
   }
 
-  // Deduplicate: one email per contractor (take highest confidence)
+  // Step 2: For each contractor, get their best contact (highest confidence)
+  const contractorMap = Object.fromEntries(contractors.map(c => [c.id, c]));
+  const ids = contractors.map(c => `"${c.id}"`).join(',');
+
+  const ccRes = await fetch(
+    `${SUPABASE_URL}/rest/v1/contractor_contacts?select=id,email,first_name,last_name,confidence_score,contractor_id&contractor_id=in.(${ids})&confidence_score=gte.70&order=confidence_score.desc`,
+    { headers: sbH() }
+  );
+  const allContacts = await ccRes.json();
+
+  // One contact per contractor — highest confidence wins
   const seen = new Set();
-  const queue = contacts.filter(c => {
-    const cid = c.contractor_id;
-    if (seen.has(cid)) return false;
-    seen.add(cid);
-    return c.contractors && ['queued','pending'].includes(c.contractors.outreach_status);
-  });
+  const queue = [];
+  for (const c of (Array.isArray(allContacts) ? allContacts : [])) {
+    if (seen.has(c.contractor_id)) continue;
+    seen.add(c.contractor_id);
+    queue.push({ ...c, contractors: contractorMap[c.contractor_id] });
+  }
 
   let sent = 0, failed = 0, skipped = 0;
   const log = [];
