@@ -51,12 +51,15 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:14p
 .naics-ctrl-btn{background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--muted);padding:4px 11px;border-radius:6px;font-size:.72rem;font-weight:700;cursor:pointer;transition:.15s}
 .naics-ctrl-btn:hover,.naics-ctrl-btn.on{border-color:var(--cyan);color:var(--cyan);background:rgba(91,211,255,.08)}
 .naics-ribbon{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
-.naics-bubble{display:inline-flex;flex-direction:column;align-items:center;gap:2px;padding:7px 13px;border-radius:20px;cursor:pointer;border:1px solid var(--line);background:rgba(255,255,255,.04);transition:.18s;user-select:none}
+.naics-bubble{position:relative;display:inline-flex;flex-direction:column;align-items:center;gap:2px;padding:7px 13px;border-radius:20px;cursor:pointer;border:1px solid var(--line);background:rgba(255,255,255,.04);transition:.18s;user-select:none}
 .naics-bubble:hover{border-color:var(--cyan);background:rgba(91,211,255,.08)}
 .naics-bubble.on{background:rgba(91,211,255,.15);border-color:var(--cyan)}
 .naics-bubble.on .nb-code{color:var(--cyan)}
 .naics-bubble.off{opacity:.35;border-color:transparent}
 .nb-code{font-size:.75rem;font-weight:900;color:var(--muted);letter-spacing:.04em;line-height:1}
+.nb-tip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#0a1a34;border:1px solid var(--cyan);border-radius:8px;padding:7px 11px;font-size:.72rem;color:#e0f0ff;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s;z-index:200;box-shadow:0 6px 20px rgba(0,0,0,.5)}
+.nb-tip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#0a1a34}
+.naics-bubble:hover .nb-tip{opacity:1}
 
 /* ── Controls row ── */
 .controls{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;align-items:center}
@@ -629,11 +632,30 @@ function loadFederal() {
     });
 }
 
+var NAICS_DESC = {
+  '541511':'Custom Computer Programming','541512':'Computer Systems Design',
+  '541513':'Computer Facilities Mgmt','541519':'Other Computer Services',
+  '541330':'Engineering Services','541340':'Drafting Services',
+  '541350':'Building Inspection','541360':'Geophysical Surveying',
+  '541370':'Surveying & Mapping','541380':'Testing Laboratories',
+  '541611':'Admin & Mgmt Consulting','541612':'HR Consulting',
+  '541613':'Marketing Consulting','541614':'Logistics Consulting',
+  '541618':'Other Mgmt Consulting','541620':'Environmental Consulting',
+  '541690':'Other Scientific Services','541810':'Advertising Agencies',
+  '541820':'Public Relations','541990':'Other Professional Services',
+  '561210':'Facilities Support Services','561499':'Other Business Support',
+  '561720':'Janitorial Services','561730':'Landscaping Services',
+  '238210':'Electrical Contractors','238220':'Plumbing & HVAC',
+  '484110':'General Freight Trucking','518210':'Data Processing Services'
+};
+
 function buildNaicsRibbon(codes) {
   var ribbon = document.getElementById('naics-ribbon');
   ribbon.innerHTML = codes.map(function(code) {
+    var desc = NAICS_DESC[code] || 'NAICS ' + code;
     return '<div class="naics-bubble on" data-naics="' + esc(code) + '" onclick="toggleNaics(this,\'' + esc(code) + '\')">'
       + '<div class="nb-code">' + esc(code) + '</div>'
+      + '<div class="nb-tip">' + esc(desc) + '</div>'
       + '</div>';
   }).join('');
 }
