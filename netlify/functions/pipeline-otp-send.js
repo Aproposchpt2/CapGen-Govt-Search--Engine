@@ -11,8 +11,8 @@ const headers = {
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-// Anon key used for pipeline_otp table (RLS allows anon access)
-const ANON_KEY     = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1ZGlzbGZrbm1ob2ZjZ3p5b3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMDI3ODAsImV4cCI6MjA5Mjc3ODc4MH0.Kxpe0kJt0k7ZchYu70BOwm4KdT0C5aSsyeR1ov6NlQ0';
+// Falls back to SERVICE_KEY if SUPABASE_ANON_KEY not separately configured
+const ANON_KEY     = process.env.SUPABASE_ANON_KEY || SERVICE_KEY;
 const RESEND_KEY   = process.env.RESEND_API_KEY;
 const FROM_EMAIL   = process.env.RESEND_FROM_EMAIL || 'alerts@aproposgroupllc.com';
 const OTP_MINUTES  = 15;
@@ -40,6 +40,13 @@ function generateOTP() {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
 
+// ── Startup guard — fail fast with a clear log rather than a cryptic runtime error ──
+if (!SUPABASE_URL || !SERVICE_KEY) {
+  console.error('[pipeline-otp-send] Missing required env vars: SUPABASE_URL or SUPABASE_SERVICE_KEY');
+}
+if (!RESEND_KEY) {
+  console.error('[pipeline-otp-send] Missing RESEND_API_KEY — emails will fail');
+}
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers, body: '' };
   if (event.httpMethod !== 'POST') return { statusCode: 405, headers, body: JSON.stringify({ error: 'POST only' }) };
