@@ -1,4 +1,4 @@
-﻿﻿'use strict';
+'use strict';
 // pipeline-otp-send.js
 // POST { email } → generates 6-digit code, stores in Supabase, emails via Resend.
 
