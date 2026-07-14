@@ -9,7 +9,7 @@ const MODEL         = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6';
 // Stage 1 is fast triage/scoring → Haiku (2–4x faster verdict). Stage 2 is the
 // deep pursuit package → Sonnet for quality. Both env-overridable.
 const STAGE1_MODEL  = process.env.ANALYZE_STAGE1_MODEL || 'claude-haiku-4-5';
-const STAGE2_MODEL  = process.env.ANALYZE_STAGE2_MODEL || 'claude-haiku-4-5';
+const STAGE2_MODEL  = process.env.ANALYZE_STAGE2_MODEL || 'claude-sonnet-4-6';
 
 // ── Supabase helpers ─────────────────────────────────────────────────────────
 
@@ -303,7 +303,7 @@ export const handler = async (event) => {
     const stage2User = `${profileBlock}\n\n${oppBlock}\n\nSTAGE 1 ANALYSIS:\n${JSON.stringify(stage1, null, 2)}\n\n${STAGE2_SCHEMA}`;
     let stage2, s2Usage = {};
     try {
-      const r2 = await callClaudeWithRetry(STAGE2_SYSTEM, stage2User, 4096, STAGE2_MODEL);
+      const r2 = await callClaudeWithRetry(STAGE2_SYSTEM, stage2User, 8000, STAGE2_MODEL);
       stage2   = r2.parsed;
       s2Usage  = r2.usage;
       console.log(`[bg] Stage 2 complete (${s2Usage.input_tokens}in/${s2Usage.output_tokens}out)`);
