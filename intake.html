@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Build Your Contract Dashboard — NGCC</title>
+<meta name="description" content="Tell NGCC who you are and which business you represent. We will locate your public capability profile and build your personalized contract dashboard.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,500;6..96,700&family=Cormorant:ital,wght@1,500&family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#0F2A6A;--deep:#020b17;--panel:#0b1c38;--gold:#D5AA4D;--white:#fff;--muted:#9DB0D4;--green:#6EE7A8;--red:#F87171;--disp:'Bodoni Moda',Georgia,serif;--sub:'Cormorant',Georgia,serif;--body:'Jost',Arial,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0} body{min-height:100vh;background:radial-gradient(circle at top,#123878 0,#06111d 48%,#020711 100%);color:var(--white);font-family:var(--body);padding:28px 18px 60px}.shell{width:min(720px,100%);margin:0 auto}.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:32px}.brand{color:#fff;text-decoration:none}.brand strong{display:block;font-family:var(--disp);font-size:1.2rem}.brand span{display:block;font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.42)}.member{font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.58);text-decoration:none;border:1px solid rgba(255,255,255,.16);padding:9px 14px;border-radius:999px}.card{background:rgba(11,28,56,.94);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:clamp(26px,5vw,46px);box-shadow:0 30px 90px rgba(0,0,0,.35)}.eyebrow{font-size:.66rem;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);font-weight:700;margin-bottom:12px}.path-pill{display:inline-flex;align-items:center;gap:8px;font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;color:var(--green);border:1px solid rgba(110,231,168,.24);background:rgba(110,231,168,.08);padding:6px 10px;border-radius:999px;margin-bottom:18px}h1{font-family:var(--disp);font-size:clamp(2rem,6vw,3.2rem);line-height:1.03;font-weight:500;margin-bottom:14px}.sub{font-size:1rem;line-height:1.75;color:rgba(255,255,255,.62);margin-bottom:28px;max-width:620px}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.field{margin-bottom:16px}.full{grid-column:1/-1}label{display:block;font-size:.68rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.5);margin-bottom:7px}input{width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);border-radius:11px;color:#fff;padding:14px 15px;font:500 .96rem var(--body);outline:none}input:focus{border-color:var(--gold)}input::placeholder{color:rgba(255,255,255,.25)}.btn{width:100%;border:0;border-radius:999px;padding:15px 20px;background:linear-gradient(135deg,#fff,#D5AA4D);color:var(--ink);font:800 .76rem var(--body);letter-spacing:.15em;text-transform:uppercase;cursor:pointer;margin-top:6px}.btn:disabled{opacity:.55;cursor:wait}.fine{font-family:var(--sub);font-style:italic;color:rgba(255,255,255,.38);font-size:.9rem;text-align:center;margin-top:16px}.msg{margin-top:16px;font-size:.9rem;line-height:1.6;text-align:center;min-height:24px}.err{color:var(--red)}.ok{color:var(--green)}.candidates{display:grid;gap:10px;margin:18px 0}.candidate{width:100%;text-align:left;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:14px 16px;color:#fff;cursor:pointer}.candidate:hover,.candidate.selected{border-color:var(--green);background:rgba(110,231,168,.08)}.candidate strong{display:block;font-size:.96rem;margin-bottom:3px}.candidate span{font-size:.76rem;color:rgba(255,255,255,.48)}.fallback{display:none;margin-top:22px;padding:18px;border:1px solid rgba(213,170,77,.24);background:rgba(213,170,77,.06);border-radius:14px}.fallback h2{font-family:var(--disp);font-size:1.25rem;margin-bottom:8px}.fallback p{color:rgba(255,255,255,.58);font-size:.9rem;line-height:1.6}.state-links{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}.state-links a{display:block;text-align:center;text-decoration:none;color:#fff;border:1px solid rgba(255,255,255,.16);padding:12px;border-radius:10px;font-size:.8rem;font-weight:700}.privacy-note{font-size:.72rem;color:rgba(255,255,255,.3);line-height:1.55;margin-top:18px;text-align:center}@media(max-width:620px){.form-grid{grid-template-columns:1fr}.full{grid-column:auto}.state-links{grid-template-columns:1fr}.member{font-size:.6rem;padding:8px 10px}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="top">
+    <a class="brand" href="/"><strong>NGCC</strong><span>National Government Contract Center</span></a>
+    <a class="member" href="/onboarding">Returning Member Login →</a>
+  </div>
+
+  <main class="card">
+    <div class="eyebrow">New Visitor Intake</div>
+    <div class="path-pill" id="pathPill">Federal Contractor Path</div>
+    <h1>Let's build your contract dashboard.</h1>
+    <p class="sub">Tell us who you are and which business you represent. We will search official public records for your business capability profile, identify your NAICS codes, and use them to build your personalized opportunity dashboard.</p>
+
+    <div id="intakeStep">
+      <div class="form-grid">
+        <div class="field">
+          <label for="fullName">Name *</label>
+          <input id="fullName" type="text" autocomplete="name" placeholder="Jane Smith">
+        </div>
+        <div class="field">
+          <label for="businessName">Business Name *</label>
+          <input id="businessName" type="text" autocomplete="organization" placeholder="Acme Federal Services LLC">
+        </div>
+        <div class="field full">
+          <label for="email">Email *</label>
+          <input id="email" type="email" autocomplete="email" placeholder="jane@acmefederal.com">
+        </div>
+      </div>
+      <button class="btn" id="startBtn">Find My Business & Build Dashboard →</button>
+      <div class="msg" id="msg"></div>
+      <p class="fine">Your information is used to configure your personalized contract-intelligence experience.</p>
+    </div>
+
+    <div id="matchStep" style="display:none">
+      <p class="sub" style="margin-bottom:12px">We found more than one business with a similar name. Select the correct business so we can load the right capability profile.</p>
+      <div class="candidates" id="candidates"></div>
+      <button class="btn" id="confirmBtn" disabled>Use This Business →</button>
+      <div class="msg" id="matchMsg"></div>
+    </div>
+
+    <div class="fallback" id="fallback">
+      <h2>We couldn't locate an active federal capability profile.</h2>
+      <p id="fallbackText">Your business may not be registered in the federal entity system under that exact name. State and local contract resources remain available.</p>
+      <div class="state-links">
+        <a href="https://nevadastategen.aproposgroupllc.com">NevadaStateGen →</a>
+        <a href="https://calstategen.aproposgroupllc.com">CalStateGen →</a>
+      </div>
+    </div>
+
+    <p class="privacy-note">NGCC is a private business service operated by Apropos Group LLC and is not a government agency. Public capability information is sourced from official public records.</p>
+  </main>
+</div>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const params = new URLSearchParams(location.search);
+const path = params.get('path') === 'state' ? 'state' : 'federal';
+$('pathPill').textContent = path === 'state' ? 'State & Local Business Path' : 'Federal Contractor Path';
+let formData = null;
+let selected = null;
+let candidates = [];
+function setMsg(id,text,type){const el=$(id);el.textContent=text||'';el.className='msg'+(type?' '+type:'');}
+function splitName(full){const parts=full.trim().split(/\s+/);return {firstName:parts.shift()||'',lastName:parts.join(' ')};}
+function validEmail(v){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);}
+async function post(url,body){const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const data=await r.json().catch(()=>({}));if(!r.ok)throw new Error(data.message||data.error||'Request failed');return data;}
+async function buildDashboard(candidate){
+  const btn=$('confirmBtn');
+  const start=$('startBtn');
+  if(btn)btn.disabled=true;if(start)start.disabled=true;
+  setMsg('matchMsg','Building your personalized dashboard…','ok');
+  setMsg('msg','Building your personalized dashboard…','ok');
+  try{
+    const names=splitName(formData.fullName);
+    const data=await post('/.netlify/functions/demo-create',{uei:candidate.uei,businessName:candidate.legal_name||formData.businessName,firstName:names.firstName,lastName:names.lastName,email:formData.email,hp:''});
+    if(!data.view_token)throw new Error('Dashboard token was not returned.');
+    localStorage.setItem('demo_view_token',data.view_token);
+    localStorage.setItem('ngcc_intake_path',path);
+    window.location.assign('/demo?t='+encodeURIComponent(data.view_token));
+  }catch(e){
+    if(btn)btn.disabled=false;if(start)start.disabled=false;
+    setMsg($('matchStep').style.display==='none'?'msg':'matchMsg',e.message,'err');
+  }
+}
+$('startBtn').addEventListener('click',async()=>{
+  setMsg('msg','','');$('fallback').style.display='none';
+  const fullName=$('fullName').value.trim();
+  const businessName=$('businessName').value.trim();
+  const email=$('email').value.trim().toLowerCase();
+  if(!fullName)return setMsg('msg','Please enter your name.','err');
+  if(businessName.length<2)return setMsg('msg','Please enter your business name.','err');
+  if(!validEmail(email))return setMsg('msg','Please enter a valid email address.','err');
+  formData={fullName,businessName,email};
+  const btn=$('startBtn');btn.disabled=true;btn.textContent='Searching official records…';
+  try{
+    const data=await post('/.netlify/functions/demo-lookup',{businessName});
+    candidates=data.candidates||[];
+    if(candidates.length===0){
+      $('fallback').style.display='block';
+      $('fallbackText').textContent=path==='state'
+        ? 'No active federal capability profile was found under that exact business name. You can continue directly to the Nevada or California state-contract intelligence service.'
+        : 'No active federal capability profile was found under that exact business name. Check the legal business name used for your federal registration and try again.';
+      setMsg('msg','No active federal capability profile found.','err');
+      return;
+    }
+    if(candidates.length===1){await buildDashboard(candidates[0]);return;}
+    $('intakeStep').style.display='none';$('matchStep').style.display='block';
+    $('candidates').innerHTML=candidates.map((c,i)=>'<button class="candidate" data-i="'+i+'"><strong>'+escapeHtml(c.legal_name)+'</strong><span>'+escapeHtml([c.city,c.state].filter(Boolean).join(', '))+' · '+escapeHtml(c.registration_status||'')+(c.cage?' · CAGE '+escapeHtml(c.cage):'')+'</span></button>').join('');
+    document.querySelectorAll('.candidate').forEach(el=>el.addEventListener('click',()=>{document.querySelectorAll('.candidate').forEach(x=>x.classList.remove('selected'));el.classList.add('selected');selected=candidates[Number(el.dataset.i)];$('confirmBtn').disabled=false;}));
+  }catch(e){setMsg('msg',e.message,'err');}
+  finally{btn.disabled=false;btn.textContent='Find My Business & Build Dashboard →';}
+});
+$('confirmBtn').addEventListener('click',()=>{if(selected)buildDashboard(selected);});
+function escapeHtml(v){return String(v||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+['fullName','businessName','email'].forEach(id=>$(id).addEventListener('keydown',e=>{if(e.key==='Enter')$('startBtn').click();}));
+</script>
+</body>
+</html>
