@@ -873,20 +873,13 @@ document.getElementById('cd-overlay').addEventListener('click', closeDetail);
 function openFit(idx) {
   var o = renderedOpps[idx];
   if (!o) return;
-  currentOpp = o;
-  currentAnalysisOpp = o;
-  // Reset proposal panel for new contract
-  document.getElementById('proposal-panel').classList.remove('open');
-  document.getElementById('prop-messages').innerHTML = '';
-  proposalMessages = [];
-  proposalOpp = null;
-  document.getElementById('fit-opp-title').textContent  = o.title || 'Opportunity';
-  document.getElementById('fit-opp-agency').textContent = o.agency || '';
-  document.getElementById('fit-body').innerHTML = '<div class="fit-loading"><span class="fit-spinner"></span>Analyzing with AI…</div>';
-  document.getElementById('fit-overlay').classList.add('open');
-  document.getElementById('fit-drawer').classList.add('open');
-  document.body.style.overflow = 'hidden';
-  runAnalysis(o, false);
+  var noticeId = o.notice_id || o.noticeId;
+  if (!noticeId) return;
+  sessionStorage.setItem('analyze_opp', JSON.stringify({
+    title: o.title, agency: o.agency, naics: o.naics || o.naicsCode,
+    set_aside: o.set_aside || o.setAside, response_deadline: o.deadline || o.responseDeadline
+  }));
+  window.location.href = '/analyze-fit?id=' + encodeURIComponent(noticeId);
 }
 
 function closeFit() {
