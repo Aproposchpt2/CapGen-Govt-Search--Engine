@@ -98,3 +98,8 @@
   to = "/onboarding.html"
   status = 301
   force = true
+
+[[redirects]]
+  from = "/capability-report"
+  to = "/capability-report.html"
+  status = 200

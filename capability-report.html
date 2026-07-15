@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Capability Report — CapGen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital@1&family=Jost:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0A1A3A;--surface:#0f2244;--line:rgba(91,175,255,.15);--text:#f0f6ff;--muted:#8facd0;--green:#6EE7A8;--gold:#d9a45b;font-family:'Jost',Arial,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);min-height:100vh}
+
+.top-banner{background:var(--surface);border-bottom:1px solid var(--line);padding:11px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.back-btn{background:var(--green);color:#0A1A3A;font-family:'Jost',sans-serif;font-weight:700;font-size:.78rem;padding:7px 16px;border-radius:8px;text-decoration:none;white-space:nowrap}
+.back-btn:hover{opacity:.88}
+.banner-biz{font-size:.88rem;font-weight:700;color:var(--text)}
+
+header{background:var(--surface);border-bottom:1px solid var(--line);padding:14px 28px;display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-mark{width:40px;height:40px;border-radius:10px;background:var(--bg);border:1px solid rgba(91,175,255,.22);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;color:var(--green)}
+.brand-name{font-size:1rem;font-weight:700}
+.brand-sub{font-size:.72rem;color:var(--muted)}
+
+.save-btn{background:var(--gold);color:#0A1A3A;font-family:'Jost',sans-serif;font-weight:700;font-size:.82rem;padding:10px 24px;border-radius:8px;border:none;cursor:pointer;letter-spacing:.04em;transition:.15s}
+.save-btn:hover{opacity:.88}
+.save-btn:disabled{opacity:.5;cursor:default}
+
+.page{max-width:960px;margin:0 auto;padding:28px 20px 60px}
+
+.loading-state{text-align:center;padding:80px 20px;color:var(--muted);font-size:.9rem}
+.spinner{width:44px;height:44px;border:3px solid rgba(255,255,255,.1);border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 20px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.error-state{text-align:center;padding:60px;color:#F87171;font-size:.9rem}
+
+.report-wrap{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.5);margin-bottom:20px}
+.report-wrap iframe{width:100%;height:1040px;border:none;display:block}
+
+.trust-line{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:.8rem;color:rgba(255,255,255,.28);text-align:center;margin-top:16px}
+
+@media(max-width:600px){
+  .top-banner{padding:10px 14px}.page{padding:14px 12px 60px}
+  .report-wrap iframe{height:640px}
+}
+</style>
+</head>
+<body>
+
+<div class="top-banner">
+  <span class="banner-biz" id="bannerBiz">Capability Report</span>
+  <a href="/opportunity" class="back-btn" id="backBtn">← Best Matches</a>
+</div>
+
+<header>
+  <div class="brand">
+    <div class="brand-mark">CG</div>
+    <div>
+      <div class="brand-name">CapGen</div>
+      <div class="brand-sub">Capability Report</div>
+    </div>
+  </div>
+  <button class="save-btn" id="saveBtn" onclick="saveReport()" style="display:none">SAVE ↓</button>
+</header>
+
+<div class="page">
+  <div id="loadingEl" class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading your capability profile from official public records…</p>
+  </div>
+  <div id="reportWrap" class="report-wrap" style="display:none">
+    <iframe id="reportFrame" title="Capability Report"></iframe>
+  </div>
+  <p class="trust-line" id="trustLine" style="display:none">Sourced from official public records (SAM.gov). Updated live.</p>
+</div>
+
+<script>
+'use strict';
+
+var sessionData = JSON.parse(sessionStorage.getItem('capgen_session') || 'null');
+var sessionTok  = sessionData ? sessionData.session_token : '';
+
+if (!sessionTok) {
+  window.location.href = '/onboarding';
+}
+
+async function load() {
+  try {
+    var res  = await fetch('/.netlify/functions/subscriber-capability', {
+      headers: { Authorization: 'Bearer ' + sessionTok }
+    });
+    var data = await res.json();
+
+    if (res.status === 401) { window.location.href = '/onboarding'; return; }
+
+    if (!res.ok) {
+      var msg = data.error === 'NO_PROFILE' || data.error === 'NO_UEI'
+        ? 'Your business profile is still being set up. Please check back shortly or contact support.'
+        : 'Could not load your capability report: ' + (data.error || 'Unknown error');
+      document.getElementById('loadingEl').innerHTML = '<div class="error-state">' + msg + '</div>';
+      return;
+    }
+
+    if (data.legal_name) {
+      document.getElementById('bannerBiz').textContent = data.legal_name + ' — Capability Report';
+      document.title = data.legal_name + ' — Capability Report';
+    }
+
+    document.getElementById('reportFrame').srcdoc = data.html;
+    document.getElementById('loadingEl').style.display   = 'none';
+    document.getElementById('reportWrap').style.display  = 'block';
+    document.getElementById('trustLine').style.display   = 'block';
+    document.getElementById('saveBtn').style.display     = 'inline-block';
+
+  } catch(e) {
+    document.getElementById('loadingEl').innerHTML =
+      '<div class="error-state">Network error: ' + e.message + '</div>';
+  }
+}
+
+function saveReport() {
+  var btn = document.getElementById('saveBtn');
+  btn.disabled = true;
+  btn.textContent = 'Preparing…';
+  var iframe = document.getElementById('reportFrame');
+  iframe.contentWindow.print();
+  setTimeout(function() { btn.disabled = false; btn.textContent = 'SAVE ↓'; }, 2000);
+}
+
+load();
+</script>
+</body>
+</html>

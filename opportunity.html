@@ -134,7 +134,7 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:14p
 <div class="top-banner">
   <span class="banner-biz" id="bannerBiz">Top 5 Best Matches</span>
   <a href="#" class="back-btn" id="backBtn">← Return to All Contracts</a>
-  <a href="#" id="reportBtn" style="background:rgba(217,164,91,.15);border:1px solid rgba(217,164,91,.35);color:#d9a45b;font-family:'Jost',sans-serif;font-weight:700;font-size:.78rem;padding:7px 16px;border-radius:8px;text-decoration:none;white-space:nowrap">Capability Report ↓</a>
+  <a href="/capability-report" style="background:rgba(217,164,91,.15);border:1px solid rgba(217,164,91,.35);color:#d9a45b;font-family:'Jost',sans-serif;font-weight:700;font-size:.78rem;padding:7px 16px;border-radius:8px;text-decoration:none;white-space:nowrap">Capability Report ↓</a>
   <button class="btn-signout" id="signOutBtn" onclick="signOut()" style="display:none">Sign Out</button>
 </div>
 
@@ -194,8 +194,6 @@ const pageState = getPageState();
 document.getElementById('backBtn').href = token ? '/demo/snapshot?t=' + encodeURIComponent(token) : '/demo';
 document.getElementById('subCta').href  = STRIPE_BASE;
 if (token && !token.startsWith('beta_')) localStorage.setItem('demo_view_token', token);
-const reportBtn = document.getElementById('reportBtn');
-if (reportBtn) reportBtn.href = token ? '/demo/report?t=' + encodeURIComponent(token) : '/demo';
 
 if (pageState === 'subscriber') {
   const bar = document.querySelector('.sub-bar');
