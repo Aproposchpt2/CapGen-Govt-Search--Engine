@@ -103,3 +103,33 @@
   from = "/capability-report"
   to = "/capability-report.html"
   status = 200
+
+# Nested pretty-URLs need explicit redirects (Netlify only auto-resolves
+# single segments). These were lost in c45e7ac and broke the dashboard's
+# Capability Report CTA and emailed dashboard links.
+[[redirects]]
+  from = "/demo/report"
+  to = "/demo-report.html"
+  status = 200
+
+[[redirects]]
+  from = "/demo/snapshot"
+  to = "/demo-snapshot.html"
+  status = 200
+
+[[redirects]]
+  from = "/beta/welcome"
+  to = "/beta-welcome.html"
+  status = 200
+
+[[redirects]]
+  from = "/admin/leads"
+  to = "/admin-leads.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
