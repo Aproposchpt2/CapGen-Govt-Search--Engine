@@ -1045,7 +1045,7 @@ function runAnalysis(opp, force) {
   fetch('/.netlify/functions/analyze-fit', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tok },
-    body: JSON.stringify({ opportunityId: opp.notice_id || opp.noticeId, force: force, opportunity: { title: opp.title, agency: opp.agency, naics: opp.naics || opp.naicsCode, set_aside: opp.set_aside || opp.setAside, deadline: opp.deadline || opp.responseDeadline } })
+    body: JSON.stringify({ opportunityId: opp.notice_id || opp.noticeId, force: force, deep: true, opportunity: { title: opp.title, agency: opp.agency, naics: opp.naics || opp.naicsCode, set_aside: opp.set_aside || opp.setAside, deadline: opp.deadline || opp.responseDeadline } })
   })
   .then(function(r) {
     if (r.status === 401) { document.getElementById('fit-body').innerHTML = '<div class="fit-error">Session expired. Please <a href="/onboarding" style="color:var(--cyan)">sign in again</a>.</div>'; return null; }
@@ -1055,7 +1055,8 @@ function runAnalysis(opp, force) {
   })
   .then(function(d) {
     if (!d) return;
-    if (d.status === 'complete' || d.status === 'stage1_complete' || d.status === 200 || d.fit_score != null) { renderFitResult(d, opp); return; }
+    if (d.status === 'complete') { renderFitResult(d, opp); return; }
+    if (d.status === 'stage1_complete') { renderFitResult(d, opp); pollAnalysis(d.id, opp, tok); return; }
     if (d.id) { pollAnalysis(d.id, opp, tok); return; }
     if (d.error) { document.getElementById('fit-body').innerHTML = '<div class="fit-error">' + esc(d.error) + '</div>'; }
   })
@@ -1073,7 +1074,8 @@ function pollAnalysis(id, opp, tok) {
       })
       .then(function(d) {
         if (!d) return;
-        if (d.status === 'complete' || d.status === 'stage1_complete') { clearPoll(); renderFitResult(d, opp); }
+        if (d.status === 'complete') { clearPoll(); renderFitResult(d, opp); }
+        else if (d.status === 'stage1_complete') { renderFitResult(d, opp); }
         else if (d.status === 'failed') { clearPoll(); document.getElementById('fit-body').innerHTML = '<div class="fit-error">Analysis failed. Please try again.</div>'; }
       })
       .catch(function() {});
@@ -1105,6 +1107,7 @@ function renderFitResult(d, opp) {
   html += '<p style="font-size:.72rem;color:rgba(255,255,255,.25);margin-top:18px;font-style:italic;font-family:\'Cormorant Garamond\',serif">Analysis based on official public records and your capability profile.</p>'
     + '<div class="fit-footer">'
     + '<button class="fit-btn-propose" onclick="openProposalPanel()">Develop My Proposal →</button>'
+    + (noticeId ? '<a href="/analyze-fit?id=' + encodeURIComponent(noticeId) + '" style="font-size:.74rem;color:var(--cyan);text-decoration:none;margin-left:14px;white-space:nowrap">View Full Report →</a>' : '')
     + '</div>';
 
   document.getElementById('fit-body').innerHTML = html;

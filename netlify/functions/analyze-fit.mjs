@@ -146,9 +146,8 @@ export const handler = async (event) => {
   if (cached.length && !force) {
     const row = cached[0];
     // Cache hit: any status — return immediately.
-    // Special case: deep=true + complete NO_BID with no stage2 → trigger stage2 only.
-    if (deep && row.status === 'complete' && !row.stage2 &&
-        (row.recommendation === 'NO_BID' || row.recommendation === 'PENDING')) {
+    // Special case: deep=true + cached row missing stage2 → trigger stage2 only (any recommendation).
+    if (deep && !row.stage2 && (row.status === 'complete' || row.status === 'stage1_complete')) {
       await sbPatch('opportunity_analyses', `id=eq.${row.id}`, { status: 'stage1_complete' });
       await fireBackground({ rowId: row.id, accountEmail, opportunityId,
         profileVersion: 0, deep: true, skipStage1: true, opportunity: inlineOpp });
