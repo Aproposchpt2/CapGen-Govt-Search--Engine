@@ -1,115 +1,14 @@
 import type { Config, Context } from "@netlify/edge-functions";
 
-function jsonResponse(payload: unknown, status: number): Response {
-  return new Response(JSON.stringify(payload), {
-    status,
-    headers: { "content-type": "application/json" },
-  });
-}
-
-function supabaseHeaders(serviceKey: string, extra: Record<string, string> = {}): HeadersInit {
-  return {
-    apikey: serviceKey,
-    Authorization: `Bearer ${serviceKey}`,
-    "content-type": "application/json",
-    ...extra,
-  };
-}
-
-async function authorizeDemoAnalysis(req: Request, context: Context): Promise<Response> {
-  const bodyText = await req.text();
-  let body: Record<string, unknown>;
-
-  try {
-    body = JSON.parse(bodyText || "{}");
-  } catch {
-    return jsonResponse({ error: "Invalid JSON" }, 400);
-  }
-
-  const demoToken = typeof body.demo_token === "string" ? body.demo_token.trim() : "";
-  if (!demoToken || demoToken === "apex-demo") {
-    const passHeaders = new Headers(req.headers);
-    return context.nextRequest(new Request(req.url, {
-      method: req.method,
-      headers: passHeaders,
-      body: bodyText,
-    }));
-  }
-
-  const supabaseUrl = Netlify.env.get("SUPABASE_URL") || "";
-  const serviceKey = Netlify.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-  if (!supabaseUrl || !serviceKey) {
-    return jsonResponse({ error: "Analyze Fit preview authentication is not configured." }, 500);
-  }
-
-  const snapshotRes = await fetch(
-    `${supabaseUrl}/rest/v1/demo_snapshots?view_token=eq.${encodeURIComponent(demoToken)}&select=requester_email,business_name,entity_uei&limit=1`,
-    { headers: supabaseHeaders(serviceKey) },
-  );
-
-  if (!snapshotRes.ok) {
-    return jsonResponse({ error: "Could not validate the dashboard profile." }, 502);
-  }
-
-  const snapshots = await snapshotRes.json();
-  const snapshot = Array.isArray(snapshots) ? snapshots[0] : null;
-  const email = String(snapshot?.requester_email || "").trim().toLowerCase();
-
-  if (!email) {
-    return jsonResponse({ error: "Dashboard profile not found." }, 401);
-  }
-
-  const nowIso = new Date().toISOString();
-  const existingRes = await fetch(
-    `${supabaseUrl}/rest/v1/client_sessions?email=eq.${encodeURIComponent(email)}&revoked=eq.false&expires_at=gt.${encodeURIComponent(nowIso)}&select=session_token,expires_at&order=created_at.desc&limit=1`,
-    { headers: supabaseHeaders(serviceKey) },
-  );
-
-  let sessionToken = "";
-  if (existingRes.ok) {
-    const existing = await existingRes.json();
-    sessionToken = String(Array.isArray(existing) && existing[0]?.session_token || "");
-  }
-
-  if (!sessionToken) {
-    sessionToken = crypto.randomUUID();
-    const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
-    const createRes = await fetch(`${supabaseUrl}/rest/v1/client_sessions`, {
-      method: "POST",
-      headers: supabaseHeaders(serviceKey, { Prefer: "return=minimal" }),
-      body: JSON.stringify({
-        session_token: sessionToken,
-        email,
-        uei: String(snapshot?.entity_uei || ""),
-        business_name: String(snapshot?.business_name || ""),
-        account_type: "demo",
-        expires_at: expiresAt,
-      }),
-    });
-
-    if (!createRes.ok) {
-      return jsonResponse({ error: "Could not create the Analyze Fit preview session." }, 502);
-    }
-  }
-
-  const forwardedHeaders = new Headers(req.headers);
-  forwardedHeaders.set("authorization", `Bearer ${sessionToken}`);
-
-  return context.nextRequest(new Request(req.url, {
-    method: req.method,
-    headers: forwardedHeaders,
-    body: bodyText,
-  }));
-}
-
 function rewriteDemo(html: string): string {
   let output = html.replace(
     "const token = 'apex-demo'; // CapGen public live demo — fixed APEX Group LLC profile (no registration)",
     "const token = new URLSearchParams(location.search).get('t') || localStorage.getItem('demo_view_token') || '';",
   );
 
+  // The search dashboard is already ordered and filtered. Remove the redundant
+  // global Best Match CTA and place its destination on each contract title.
   output = output.replaceAll("oppBtn.style.display = 'inline-block';", "oppBtn.style.display = 'none';");
-
   output = output.replace(
     "'<td class=\"title-cell\"><a href=\"' + esc(o.url) + '\" target=\"_blank\" rel=\"noopener\">'",
     "'<td class=\"title-cell\"><a href=\"/opportunity?t=' + encodeURIComponent(token) + '&id=' + encodeURIComponent(o.notice_id || '') + '\">'",
@@ -124,16 +23,20 @@ function rewriteOpportunity(html: string): string {
     "const token = q.get('t') || localStorage.getItem('demo_view_token') || '';\nconst selectedId = q.get('id') || '';",
   );
 
+  // Return to the filter-rich search dashboard rather than the older snapshot route.
   output = output.replace(
     "document.getElementById('backBtn').href = token ? '/demo/snapshot?t=' + encodeURIComponent(token) : '/demo';",
     "document.getElementById('backBtn').href = token ? '/demo?t=' + encodeURIComponent(token) : '/demo';",
   );
 
+  // Add an explicit return action to the selected contract detail card.
   output = output.replace(
     "+ '<div class=\"card-actions\">'",
     "+ '<div class=\"card-actions\">'\n    + (selectedId ? '<a href=\"/demo?t=' + encodeURIComponent(token) + '\" class=\"btn-view\">← Return to Search Dashboard</a>' : '')",
   );
 
+  // When a contract was selected on the dashboard, preserve the existing card
+  // design but show only that contract as the dedicated detail view.
   output = output.replace(
     "function getFiltered() {\n  var pool = allOpps.filter(function(o) { return !ignoredIds.has(o.notice_id) && isEligible(o) && isCompetitive(o); });",
     "function getFiltered() {\n  if (selectedId) {\n    var selected = allOpps.find(function(o) { return o.notice_id === selectedId; });\n    return selected ? [selected] : [];\n  }\n  var pool = allOpps.filter(function(o) { return !ignoredIds.has(o.notice_id) && isEligible(o) && isCompetitive(o); });",
@@ -154,15 +57,23 @@ function rewriteOpportunity(html: string): string {
 
 function rewriteAnalyzeFit(html: string): string {
   let output = html.replace(
+    "const sessionTok  = sessionData ? sessionData.session_token : '';",
+    "let sessionTok  = sessionData ? sessionData.session_token : (sessionStorage.getItem('capgen_demo_session') || '');",
+  );
+
+  // Return from the report to the same selected contract detail page.
+  output = output.replace(
     "document.getElementById('backBtn').href = token ? '/opportunity?t=' + encodeURIComponent(token) : '/opportunity';",
     "document.getElementById('backBtn').href = token ? '/opportunity?t=' + encodeURIComponent(token) + '&id=' + encodeURIComponent(noticeId) : '/opportunity';",
   );
 
+  // A personalized demo token is a valid recovery-test entry path.
   output = output.replace(
     "} else if (!isDemo) {\n  window.location.href = '/onboarding';\n}",
     "} else if (!token) {\n  window.location.href = '/onboarding';\n}",
   );
 
+  // Fix the temporal-dead-zone error discovered during the public demo report.
   output = output.replace(
     "function startProgress() {\n  progressBar.classList.remove('done');\n  progressBar.classList.add('running');\n}",
     "function startProgress() {\n  const bar = document.getElementById('progress-bar');\n  if (!bar) return;\n  bar.classList.remove('done');\n  bar.classList.add('running');\n}",
@@ -173,16 +84,15 @@ function rewriteAnalyzeFit(html: string): string {
     "function completeProgress() {\n  const bar = document.getElementById('progress-bar');\n  if (!bar) return;\n  bar.classList.remove('running');\n  bar.classList.add('done');\n}",
   );
 
+  // Exchange the personalized dashboard token for the short-lived server-side
+  // session required by the existing Analyze Fit backend.
   output = output.replace(
-    "if (!noticeId || (!sessionTok && !betaToken)) return;",
-    "if (!noticeId || (!sessionTok && !betaToken && !token)) return;",
+    "async function runAnalysis(force = false) {\n  if (!noticeId || (!sessionTok && !betaToken)) return;",
+    "async function runAnalysis(force = false) {\n  if (!sessionTok && !betaToken && token && !isDemo) {\n    try {\n      const sessionRes = await fetch('/.netlify/functions/demo-session', {\n        method: 'POST',\n        headers: { 'Content-Type': 'application/json' },\n        body: JSON.stringify({ view_token: token }),\n      });\n      const sessionJson = await sessionRes.json();\n      if (!sessionRes.ok || !sessionJson.session_token) throw new Error(sessionJson.error || 'Could not open Analyze Fit session.');\n      sessionTok = sessionJson.session_token;\n      sessionStorage.setItem('capgen_demo_session', sessionTok);\n    } catch (sessionError) {\n      document.getElementById('loadingEl').innerHTML = '<p style=\"color:var(--red);text-align:center;padding:40px\">' + esc(sessionError.message || 'Could not open Analyze Fit session.') + '</p>';\n      return;\n    }\n  }\n  if (!noticeId || (!sessionTok && !betaToken)) return;",
   );
 
-  output = output.replaceAll(
-    "beta_token: betaToken,",
-    "beta_token: betaToken,\n    demo_token: (!betaToken && !sessionTok) ? token : undefined,",
-  );
-
+  // Preserve the public sample report while allowing personalized dashboards to
+  // execute the real Stage 1 and Stage 2 analysis pipeline.
   output = output.replace(
     "// Start\nrunAnalysis(false);",
     "// Start\nif (!isDemo) runAnalysis(false);",
@@ -191,7 +101,7 @@ function rewriteAnalyzeFit(html: string): string {
   return output;
 }
 
-async function rewriteHtml(req: Request, context: Context, pathname: string): Promise<Response> {
+async function rewriteHtml(context: Context, pathname: string): Promise<Response> {
   const response = await context.next();
   const contentType = response.headers.get("content-type") || "";
   if (!contentType.includes("text/html")) return response;
@@ -213,13 +123,7 @@ async function rewriteHtml(req: Request, context: Context, pathname: string): Pr
 }
 
 export default async (req: Request, context: Context): Promise<Response> => {
-  const url = new URL(req.url);
-
-  if (url.pathname === "/.netlify/functions/analyze-fit" && req.method === "POST") {
-    return authorizeDemoAnalysis(req, context);
-  }
-
-  return rewriteHtml(req, context, url.pathname);
+  return rewriteHtml(context, new URL(req.url).pathname);
 };
 
 export const config: Config = {
@@ -230,6 +134,5 @@ export const config: Config = {
     "/opportunity.html",
     "/analyze-fit",
     "/analyze-fit.html",
-    "/.netlify/functions/analyze-fit",
   ],
 };
