@@ -1,7 +1,12 @@
 import type { Config, Context } from "@netlify/edge-functions";
 
 function rewriteDashboard(html: string): string {
-  let output = html.replaceAll(
+  let output = html.replace(
+    "const token = 'apex-demo'; // CapGen public live demo — fixed APEX Group LLC profile (no registration)",
+    "const token = new URLSearchParams(location.search).get('t') || localStorage.getItem('demo_view_token') || '';",
+  );
+
+  output = output.replaceAll(
     "oppBtn.style.display = 'inline-block';",
     "oppBtn.style.display = 'none';",
   );
