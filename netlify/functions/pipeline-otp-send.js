@@ -1,6 +1,8 @@
-﻿'use strict';
-// pipeline-otp-send.js
-// POST { email } → generates 6-digit code, stores in Supabase, emails via Resend.
+'use strict';
+// Reference-build OTP sender.
+// POST { email } -> stores a short-lived OTP in Supabase and emails it through Resend.
+
+const crypto = require('crypto');
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -9,91 +11,133 @@ const headers = {
   'Content-Type': 'application/json',
 };
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SERVICE_KEY  = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-// Anon key used for pipeline_otp table (RLS allows anon access)
-const ANON_KEY     = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1ZGlzbGZrbm1ob2ZjZ3p5b3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMDI3ODAsImV4cCI6MjA5Mjc3ODc4MH0.Kxpe0kJt0k7ZchYu70BOwm4KdT0C5aSsyeR1ov6NlQ0';
-const RESEND_KEY   = process.env.RESEND_API_KEY;
-const FROM_EMAIL   = process.env.RESEND_FROM_EMAIL || 'alerts@aproposgroupllc.com';
-const OTP_MINUTES  = 15;
+const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const RESEND_KEY = process.env.RESEND_API_KEY || '';
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'Apropos Group LLC <jmitchell@aproposgroupllc.com>';
+const ACCESS_EMAIL = String(process.env.REFERENCE_ACCESS_EMAIL || process.env.RESEND_TO_EMAIL || '')
+  .trim()
+  .toLowerCase();
+const OTP_MINUTES = 15;
 
-// OTP code is the security — anyone who receives the code at the email gets in
-function isAllowed(email) { return !!email; }
+function json(statusCode, payload) {
+  return { statusCode, headers, body: JSON.stringify(payload) };
+}
 
 function generateOTP() {
-  return String(Math.floor(100000 + Math.random() * 900000));
+  return String(crypto.randomInt(100000, 1000000));
+}
+
+function supabaseHeaders(extra = {}) {
+  return {
+    apikey: SERVICE_KEY,
+    Authorization: `Bearer ${SERVICE_KEY}`,
+    ...extra,
+  };
 }
 
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers, body: '' };
-  if (event.httpMethod !== 'POST') return { statusCode: 405, headers, body: JSON.stringify({ error: 'POST only' }) };
+  if (event.httpMethod !== 'POST') return json(405, { error: 'POST only' });
+
+  if (!SUPABASE_URL || !SERVICE_KEY) {
+    console.error('[pipeline-otp-send] Missing SUPABASE_URL or Supabase service key.');
+    return json(500, { error: 'Access service is not configured.' });
+  }
+  if (!RESEND_KEY) {
+    console.error('[pipeline-otp-send] Missing RESEND_API_KEY.');
+    return json(500, { error: 'Email service is not configured.' });
+  }
 
   let body;
-  try { body = JSON.parse(event.body || '{}'); } catch { return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid JSON' }) }; }
-
-  const email = (body.email || '').trim().toLowerCase();
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return { statusCode: 400, headers, body: JSON.stringify({ error: 'Valid email required.' }) };
+  try {
+    body = JSON.parse(event.body || '{}');
+  } catch {
+    return json(400, { error: 'Invalid JSON' });
   }
 
-  // Check email is a registered client
-  const allowed = await isAllowed(email);
-  if (!allowed) {
-    return { statusCode: 403, headers, body: JSON.stringify({ error: 'No account found for that email address.' }) };
+  const email = String(body.email || '').trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return json(400, { error: 'Valid email required.' });
   }
 
-  const code    = generateOTP();
-  const expires = new Date(Date.now() + OTP_MINUTES * 60 * 1000).toISOString();
+  // This branch is a controlled historical-reference build, not public production.
+  if (!ACCESS_EMAIL) {
+    console.error('[pipeline-otp-send] REFERENCE_ACCESS_EMAIL or RESEND_TO_EMAIL is not configured.');
+    return json(500, { error: 'Reference access is not configured.' });
+  }
+  if (email !== ACCESS_EMAIL) {
+    return json(403, { error: 'This reference build is restricted to the authorized review email.' });
+  }
 
-  // Store code — delete any existing unused codes for this email first
-  await fetch(`${SUPABASE_URL}/rest/v1/pipeline_otp?email=eq.${encodeURIComponent(email)}&used=eq.false`, {
-    method: 'DELETE',
-    headers: { apikey: ANON_KEY, Authorization: `Bearer ${ANON_KEY}` },
-  });
+  const code = generateOTP();
+  const expiresAt = new Date(Date.now() + OTP_MINUTES * 60 * 1000).toISOString();
 
-  const saveRes = await fetch(`${SUPABASE_URL}/rest/v1/pipeline_otp`, {
-    method: 'POST',
-    headers: { apikey: ANON_KEY, Authorization: `Bearer ${ANON_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
-    body: JSON.stringify({ email, code, expires_at: expires }),
-  });
-  if (!saveRes.ok) return { statusCode: 500, headers, body: JSON.stringify({ error: 'Could not generate code. Try again.' }) };
+  try {
+    const deleteRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/pipeline_otp?email=eq.${encodeURIComponent(email)}&used=eq.false`,
+      { method: 'DELETE', headers: supabaseHeaders({ Prefer: 'return=minimal' }) },
+    );
+    if (!deleteRes.ok) {
+      const detail = await deleteRes.text().catch(() => '');
+      console.warn('[pipeline-otp-send] Prior OTP cleanup failed:', deleteRes.status, detail.slice(0, 240));
+    }
 
-  // Send email
-  const emailRes = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      from: FROM_EMAIL,
-      to: [email],
-      subject: 'Your Pipeline Access Code',
-      html: `
-        <div style="font-family:Arial,sans-serif;background:#0A1A3A;padding:40px 20px;min-height:100vh;">
-          <div style="max-width:440px;margin:0 auto;background:#0f2244;border:1px solid rgba(91,175,255,.25);border-radius:18px;padding:36px 32px;">
-            <p style="margin:0 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:#5BD3FF;font-weight:700;">CapGen by AI4 Businesses</p>
-            <h2 style="margin:0 0 16px;font-size:22px;color:#f0f6ff;">Your access code</h2>
-            <p style="margin:0 0 24px;font-size:14px;color:#8facd0;line-height:1.7;">
-              Enter this code on the login screen to access your opportunity pipeline.
-            </p>
-            <div style="background:#07111f;border:2px solid #5BD3FF;border-radius:14px;padding:28px;text-align:center;margin-bottom:24px;">
-              <div style="font-size:11px;color:#5a7899;letter-spacing:.18em;text-transform:uppercase;margin-bottom:10px;font-family:monospace;">Access Code</div>
-              <div style="font-size:3rem;font-weight:900;letter-spacing:.22em;color:#5BD3FF;font-family:monospace;">${code}</div>
+    const saveRes = await fetch(`${SUPABASE_URL}/rest/v1/pipeline_otp`, {
+      method: 'POST',
+      headers: supabaseHeaders({
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal',
+      }),
+      body: JSON.stringify({ email, code, expires_at: expiresAt, used: false }),
+    });
+
+    if (!saveRes.ok) {
+      const detail = await saveRes.text().catch(() => '');
+      console.error('[pipeline-otp-send] OTP insert failed:', saveRes.status, detail.slice(0, 500));
+      return json(500, { error: 'Could not generate code. Try again.' });
+    }
+  } catch (error) {
+    console.error('[pipeline-otp-send] Supabase request failed:', error.message);
+    return json(500, { error: 'Could not generate code. Try again.' });
+  }
+
+  try {
+    const emailRes = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${RESEND_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: FROM_EMAIL,
+        to: [email],
+        subject: 'Your NGCC Reference Access Code',
+        html: `
+          <div style="font-family:Arial,sans-serif;background:#0A1A3A;padding:40px 20px;min-height:100vh;">
+            <div style="max-width:440px;margin:0 auto;background:#0f2244;border:1px solid rgba(91,175,255,.25);border-radius:18px;padding:36px 32px;">
+              <p style="margin:0 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:#5BD3FF;font-weight:700;">National Government Contract Center</p>
+              <h2 style="margin:0 0 16px;font-size:22px;color:#f0f6ff;">Your reference access code</h2>
+              <p style="margin:0 0 24px;font-size:14px;color:#8facd0;line-height:1.7;">Enter this code to review the June 10 NGCC Analyze Fit implementation.</p>
+              <div style="background:#07111f;border:2px solid #5BD3FF;border-radius:14px;padding:28px;text-align:center;margin-bottom:24px;">
+                <div style="font-size:11px;color:#5a7899;letter-spacing:.18em;text-transform:uppercase;margin-bottom:10px;font-family:monospace;">Access Code</div>
+                <div style="font-size:3rem;font-weight:900;letter-spacing:.22em;color:#5BD3FF;font-family:monospace;">${code}</div>
+              </div>
+              <p style="margin:0;font-size:12px;color:#5a7899;line-height:1.6;">This code expires in ${OTP_MINUTES} minutes.</p>
             </div>
-            <p style="margin:0;font-size:12px;color:#3a5470;line-height:1.6;">
-              This code expires in ${OTP_MINUTES} minutes. If you didn't request this, ignore this email.
-            </p>
-            <p style="margin:16px 0 0;font-size:11px;color:#2a3f52;font-style:italic;text-align:center;">CapGen intelligence is sourced from official public records.</p>
-          </div>
-        </div>`,
-    }),
-  });
+          </div>`,
+      }),
+    });
 
-  if (!emailRes.ok) {
-    const err = await emailRes.text();
-    console.error('Resend error:', err);
-    return { statusCode: 500, headers, body: JSON.stringify({ error: 'Could not send code. Try again.' }) };
+    if (!emailRes.ok) {
+      const detail = await emailRes.text().catch(() => '');
+      console.error('[pipeline-otp-send] Resend failed:', emailRes.status, detail.slice(0, 500));
+      return json(500, { error: 'Could not send code. Try again.' });
+    }
+  } catch (error) {
+    console.error('[pipeline-otp-send] Email request failed:', error.message);
+    return json(500, { error: 'Could not send code. Try again.' });
   }
 
-  return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
+  return json(200, { ok: true });
 };
-
-
