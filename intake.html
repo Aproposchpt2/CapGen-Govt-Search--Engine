@@ -79,7 +79,7 @@
 const $=id=>document.getElementById(id);
 const params=new URLSearchParams(location.search);
 const path=params.get('path')==='state'?'state':'federal';
-const stateDest={NV:'https://nevadastategen.aproposgroupllc.com',CA:'https://calstategen.aproposgroupllc.com'};
+const stateDest={NV:'https://nvgovcc.aproposgroupllc.com/welcome.html',CA:'https://calgovcc.aproposgroupllc.com/welcome.html'};
 let formData=null, selected=null, candidates=[];
 $('pathPill').textContent=path==='state'?'State & Local Business Path':'Federal Contractor Path';
 $('intro').textContent=path==='state'
@@ -126,8 +126,8 @@ $('stateBuildBtn').addEventListener('click',()=>{
   localStorage.setItem('ngcc_state_profile',JSON.stringify(profile));
   localStorage.setItem('ngcc_intake_path','state');
   const dest=stateDest[state];
-  const q=new URLSearchParams({source:'ngcc',business:formData.businessName,email:formData.email,services:services.join('|')});
-  window.location.assign(dest+'/?'+q.toString());
+  const q=new URLSearchParams({source:'ngcc',name:formData.fullName,business:formData.businessName,email:formData.email,services:services.join('|')});
+  window.location.assign(dest+'?'+q.toString());
 });
 ['fullName','businessName','email'].forEach(id=>$(id).addEventListener('keydown',e=>{if(e.key==='Enter')$('continueBtn').click()}));
 </script>

@@ -410,6 +410,11 @@ tr:hover td{background:rgba(91,175,255,.04)}
     </div>
   </div>
 
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-bottom:18px">
+    <span style="font-size:.82rem;color:var(--muted)">Want the full standalone Nevada experience — saved preferences, email alerts, and more?</span>
+    <a id="nv-explore-link" href="https://nvgovcc.aproposgroupllc.com/welcome.html" target="_blank" rel="noopener" style="display:inline-block;background:linear-gradient(135deg,#fff,#34d399 55%,#10b981);color:#052e1f;font-weight:800;font-size:.78rem;padding:9px 18px;border-radius:8px;text-decoration:none;white-space:nowrap">Open Full Nevada Dashboard →</a>
+  </div>
+
   <div class="controls">
     <input class="ctrl-input" id="nv-search" type="text" placeholder="Search Nevada bids by title or agency…">
     <select class="ctrl-select" id="nv-type"><option value="">All Types</option><option value="RFP">RFP</option><option value="BID">Bid / IFB</option></select>
@@ -426,7 +431,7 @@ tr:hover td{background:rgba(91,175,255,.04)}
     <span class="cs-tag">Coming Soon</span>
     <h3 class="cs-title">California State Contracts</h3>
     <p style="color:var(--muted);font-size:.9rem;line-height:1.7;max-width:360px">Open state, county, city, and school district opportunities across California — matched to your business profile. No federal registration required.</p>
-    <a href="https://calstategen.aproposgroupllc.com" target="_blank" rel="noopener" style="display:inline-block;background:linear-gradient(135deg,#fff,#f59e0b 55%,#d97706);color:#1a0a00;font-weight:800;font-size:.82rem;padding:11px 24px;border-radius:8px;text-decoration:none;margin-top:4px">Preview CalStateGen →</a>
+    <a id="ca-explore-link" href="https://calgovcc.aproposgroupllc.com/welcome.html" target="_blank" rel="noopener" style="display:inline-block;background:linear-gradient(135deg,#fff,#f59e0b 55%,#d97706);color:#1a0a00;font-weight:800;font-size:.82rem;padding:11px 24px;border-radius:8px;text-decoration:none;margin-top:4px">Explore California Contracts →</a>
   </div>
 </div>
 </div>
@@ -598,6 +603,44 @@ function showApp(email) {
   if (email) {
     document.getElementById('hdr-biz').textContent = email;
   }
+  updateCaExploreLink();
+  updateNvExploreLink();
+}
+
+// Carries the already-authenticated user's identity into CalGovCC's fast-path
+// landing page so they never see a second "front door" — no repeated intake,
+// no re-entering Name/Business. Only business_name is available from this
+// dashboard's session (no personal-name field is stored client-side here);
+// CalGovCC's welcome.html and downstream services.html/dashboard.html never
+// display a personal name either, so this is not a functional gap.
+function updateCaExploreLink() {
+  var link = document.getElementById('ca-explore-link');
+  if (!link) return;
+  var business = '';
+  try { business = (JSON.parse(localStorage.getItem('capgen_session') || '{}').business_name) || ''; } catch(e) {}
+  var params = new URLSearchParams({ source: 'ngcc' });
+  if (business) params.set('business', business);
+  link.href = 'https://calgovcc.aproposgroupllc.com/welcome.html?' + params.toString();
+}
+
+// Same identity carry-forward as updateCaExploreLink(), for the secondary
+// "Open Full Nevada Dashboard" link next to the embedded Nevada panel.
+// No personal-name field is stored client-side here (same limitation as the
+// CA link), but email IS available on this session and nvgovcc's welcome.html
+// accepts it, so it's included here even though the CA link omits it.
+function updateNvExploreLink() {
+  var link = document.getElementById('nv-explore-link');
+  if (!link) return;
+  var business = '', email = '';
+  try {
+    var sess = JSON.parse(localStorage.getItem('capgen_session') || '{}');
+    business = sess.business_name || '';
+    email = sess.email || '';
+  } catch(e) {}
+  var params = new URLSearchParams({ source: 'ngcc' });
+  if (business) params.set('business', business);
+  if (email) params.set('email', email);
+  link.href = 'https://nvgovcc.aproposgroupllc.com/welcome.html?' + params.toString();
 }
 
 // ── Tab switching ─────────────────────────────────────────────────────────────
