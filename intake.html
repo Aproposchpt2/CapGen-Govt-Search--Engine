@@ -79,7 +79,7 @@
 const $=id=>document.getElementById(id);
 const params=new URLSearchParams(location.search);
 const path=params.get('path')==='state'?'state':'federal';
-const stateDest={NV:'https://nevadastategen.aproposgroupllc.com',CA:'https://calgovcc.aproposgroupllc.com/welcome.html'};
+const stateDest={NV:'https://nvgovcc.aproposgroupllc.com/welcome.html',CA:'https://calgovcc.aproposgroupllc.com/welcome.html'};
 let formData=null, selected=null, candidates=[];
 $('pathPill').textContent=path==='state'?'State & Local Business Path':'Federal Contractor Path';
 $('intro').textContent=path==='state'
