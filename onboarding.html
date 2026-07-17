@@ -43,7 +43,7 @@ footer{position:fixed;bottom:0;width:100%;text-align:center;padding:14px;font-si
   <div class="logo"><div class="logo-mark">CG</div><div class="logo-name">CapGen Pro</div></div>
   <div class="step-label">Verify Your Email Account</div>
   <h1>Access Your Dashboard</h1>
-  <p class="sub">Enter the email address you used when signing up. We'll send you a 6-digit access code — no password needed.</p>
+  <p class="sub">Enter the authorized Apropos business email. We'll send a 6-digit access code for the June 10 NGCC reference build.</p>
   <input type="email" id="emailInput" placeholder="you@yourbusiness.com" autocomplete="email"/>
   <button class="btn" id="sendBtn">Submit →</button>
   <div class="err" id="step1Err"></div>
@@ -72,100 +72,120 @@ let currentEmail = '';
 
 // Step 1 — send OTP
 document.getElementById('sendBtn').addEventListener('click', async function() {
-  const email = document.getElementById('emailInput').value.trim();
-  const err   = document.getElementById('step1Err');
+  const email = document.getElementById('emailInput').value.trim().toLowerCase();
+  const err = document.getElementById('step1Err');
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    err.textContent = 'Please enter a valid email address.'; err.style.display = 'block'; return;
+    err.textContent = 'Please enter a valid email address.';
+    err.style.display = 'block';
+    return;
   }
-  this.disabled = true; this.textContent = 'Sending…'; err.style.display = 'none';
+  this.disabled = true;
+  this.textContent = 'Sending…';
+  err.style.display = 'none';
   try {
-    const res  = await fetch('/.netlify/functions/pipeline-otp-send', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }),
+    const res = await fetch('/.netlify/functions/pipeline-otp-send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Could not send code.');
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) throw new Error(data.error || 'Could not send code.');
     currentEmail = email;
-    // Show OTP popup simultaneously
     document.getElementById('otpEmail').textContent = email;
     document.getElementById('otpOverlay').style.display = 'flex';
     document.getElementById('codeInput').focus();
     setTimeout(() => document.getElementById('resendWrap').style.display = 'block', 30000);
-  } catch(e) {
-    err.textContent = e.message; err.style.display = 'block';
-    this.disabled = false; this.textContent = 'Submit →';
+  } catch (error) {
+    err.textContent = error.message;
+    err.style.display = 'block';
+    this.disabled = false;
+    this.textContent = 'Submit →';
   }
 });
 
-// Enter key on email
-document.getElementById('emailInput').addEventListener('keydown', e => {
-  if (e.key === 'Enter') document.getElementById('sendBtn').click();
+document.getElementById('emailInput').addEventListener('keydown', event => {
+  if (event.key === 'Enter') document.getElementById('sendBtn').click();
 });
 
 // Step 2 — verify OTP
 document.getElementById('verifyBtn').addEventListener('click', async function() {
   const code = document.getElementById('codeInput').value.trim();
-  const err  = document.getElementById('otpErr');
-  if (code.length < 6) { err.textContent = 'Enter the 6-digit code from your email.'; err.style.display = 'block'; return; }
-  this.disabled = true; this.textContent = 'Verifying…'; err.style.display = 'none';
+  const err = document.getElementById('otpErr');
+  if (!/^\d{6}$/.test(code)) {
+    err.textContent = 'Enter the 6-digit code from your email.';
+    err.style.display = 'block';
+    return;
+  }
+  this.disabled = true;
+  this.textContent = 'Verifying…';
+  err.style.display = 'none';
   try {
-    const res  = await fetch('/.netlify/functions/pipeline-otp-verify', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: currentEmail, code }),
+    const res = await fetch('/.netlify/functions/pipeline-otp-verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: currentEmail, code }),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Invalid code.');
-    // Store session
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) throw new Error(data.error || 'Invalid code.');
+
     sessionStorage.setItem('pipeline_session', data.token);
     sessionStorage.setItem('capgen_email', currentEmail);
-    // Fetch client UEI from Supabase and redirect
-    await loadClientAndRedirect(currentEmail, data.token);
-  } catch(e) {
-    err.textContent = e.message; err.style.display = 'block';
-    this.disabled = false; this.textContent = 'Access My Dashboard →';
+    if (data.uei) sessionStorage.setItem('capgen_uei', data.uei);
+    if (data.business_name) sessionStorage.setItem('capgen_biz', data.business_name);
+
+    const state = data.onboarding_state || 'complete';
+    if (state === 'entity_pending' || state === 'enrichment_pending') {
+      window.location.href = '/capgen-onboarding?s=' + encodeURIComponent(state);
+      return;
+    }
+    window.location.href = '/pipeline';
+  } catch (error) {
+    err.textContent = error.message;
+    err.style.display = 'block';
+    this.disabled = false;
+    this.textContent = 'Access My Dashboard →';
   }
 });
 
-// Enter key on code
-document.getElementById('codeInput').addEventListener('keydown', e => {
-  if (e.key === 'Enter') document.getElementById('verifyBtn').click();
+document.getElementById('codeInput').addEventListener('keydown', event => {
+  if (event.key === 'Enter') document.getElementById('verifyBtn').click();
 });
 
 // Resend
 document.getElementById('resendBtn').addEventListener('click', async function() {
   if (!currentEmail) return;
-  this.textContent = 'Sending…'; this.disabled = true;
-  await fetch('/.netlify/functions/pipeline-otp-send', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: currentEmail }),
-  }).catch(() => {});
-  this.textContent = 'Sent!';
-  setTimeout(() => { this.textContent = 'Resend code'; this.disabled = false; }, 5000);
+  this.textContent = 'Sending…';
+  this.disabled = true;
+  try {
+    const res = await fetch('/.netlify/functions/pipeline-otp-send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: currentEmail }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) throw new Error(data.error || 'Could not resend code.');
+    this.textContent = 'Sent!';
+  } catch (error) {
+    document.getElementById('otpErr').textContent = error.message;
+    document.getElementById('otpErr').style.display = 'block';
+    this.textContent = 'Resend code';
+  }
+  setTimeout(() => {
+    this.textContent = 'Resend code';
+    this.disabled = false;
+  }, 5000);
 });
 
-async function loadClientAndRedirect(email, token) {
-  try {
-    const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1ZGlzbGZrbm1ob2ZjZ3p5b3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMDI3ODAsImV4cCI6MjA5Mjc3ODc4MH0.Kxpe0kJt0k7ZchYu70BOwm4KdT0C5aSsyeR1ov6NlQ0';
-    const res = await fetch(`https://judislfknmhofcgzyozc.supabase.co/rest/v1/capgen_subscriptions?email=eq.${encodeURIComponent(email)}&select=uei,business_name,naics,onboarding_state,status`, {
-      headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` }
-    });
-    const data = await res.json();
-    if (Array.isArray(data) && data[0]) {
-      const sub = data[0];
-      if (sub.uei) sessionStorage.setItem('capgen_uei', sub.uei);
-      sessionStorage.setItem('capgen_biz', sub.business_name || '');
-      // Route by onboarding_state
-      const state = sub.onboarding_state || 'complete';
-      if (state === 'entity_pending' || state === 'enrichment_pending') {
-        window.location.href = '/capgen-onboarding?s=' + state;
-        return;
-      }
-    }
-  } catch(e) { console.warn('Client lookup:', e.message); }
-  window.location.href = '/pipeline';
-}
-
-// Check existing session on load
+// Check existing legacy session on load.
 (function() {
-  const s = sessionStorage.getItem('pipeline_session');
-  if (s) { try { const d = JSON.parse(atob(s)); if (d.email && (Date.now()-d.ts)<8*60*60*1000) { window.location.href='/pipeline'; } } catch(_) {} }
+  const session = sessionStorage.getItem('pipeline_session');
+  if (!session) return;
+  try {
+    const data = JSON.parse(atob(session));
+    if (data.email && (Date.now() - data.ts) < 8 * 60 * 60 * 1000) {
+      window.location.href = '/pipeline';
+    }
+  } catch (_) {}
 })();
 </script>
 </body>
