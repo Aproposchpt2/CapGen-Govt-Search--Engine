@@ -1,6 +1,6 @@
 'use strict';
 // demo-lookup.js — Federal entity disambiguation for NGCC intake
-// GET/POST { businessName, state?, cage? } → up to 5 active candidates
+// GET/POST { businessName, state?, cage? } → up to 5 candidates
 
 const SAM_API_KEY  = process.env.SAM_API_KEY;
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -37,17 +37,20 @@ function mapCandidates(data) {
       address_line_1:      addr.addressLine1 || null,
       zip:                 addr.zipCode || null,
       registration_status: reg.registrationStatus === 'A' ? 'Active' : (reg.registrationStatus || 'Unknown'),
+      registration_status_code: reg.registrationStatus || null,
+      registration_expiration_date: reg.registrationExpirationDate || reg.expirationDate || null,
       cage:                reg.cageCode || null,
     };
   }).filter(function(c) { return !!c.uei; });
 }
 
-async function querySam(paramsObj) {
-  var params = new URLSearchParams(Object.assign({
+async function querySam(paramsObj, activeOnly) {
+  var base = {
     api_key: SAM_API_KEY,
-    registrationStatus: 'A',
     includeSections: 'entityRegistration,coreData',
-  }, paramsObj));
+  };
+  if (activeOnly) base.registrationStatus = 'A';
+  var params = new URLSearchParams(Object.assign(base, paramsObj));
   var samRes = await fetch(SAM_ENTITY + '?' + params.toString(), { headers: { Accept: 'application/json' } });
   if (!samRes.ok) throw new Error('Registry ' + samRes.status + ': ' + (await samRes.text()).slice(0, 200));
   return mapCandidates(await samRes.json());
@@ -59,7 +62,6 @@ exports.handler = async function(event) {
     return { statusCode: 405, headers: CORS, body: JSON.stringify({ error: 'GET or POST only' }) };
   }
 
-  // IP rate limit: 10 lookups per hour (use demo_snapshots as proxy)
   const ip    = event.headers['x-nf-client-connection-ip'] || event.headers['x-forwarded-for'] || 'unknown';
   const since = new Date(Date.now() - 3600000).toISOString();
   try {
@@ -91,33 +93,38 @@ exports.handler = async function(event) {
   try {
     var all = [];
 
-    // Most precise path first: exact CAGE lookup.
-    if (cage) all = await querySam({ cageCode: cage });
+    // Exact CAGE lookup must not pre-filter by active registration. Retrieve the entity first,
+    // then let NGCC display/evaluate the actual registration status returned by SAM.
+    if (cage) all = await querySam({ cageCode: cage }, false);
 
-    // Primary business-name lookup.
+    // Business-name path prefers active registrations.
     if (!all.length && businessName) {
-      all = await querySam({ legalBusinessName: businessName });
+      all = await querySam({ legalBusinessName: businessName }, true);
     }
 
-    // Fallback: normalized legal name matching from a broader name query.
+    // If no active name match exists, retrieve name matches regardless of status so a valid entity
+    // is not hidden from the user; its returned status remains visible for eligibility decisions.
+    if (!all.length && businessName) {
+      all = await querySam({ legalBusinessName: businessName }, false);
+    }
+
+    // Normalized-name fallback for punctuation/legal-suffix variations.
     if (!all.length && businessName) {
       var normalized = normalizeBusinessName(businessName);
       var broadName = businessName.replace(/[,\.]/g, ' ').replace(/\s+/g, ' ').trim();
-      var broad = await querySam({ legalBusinessName: broadName });
+      var broad = await querySam({ legalBusinessName: broadName }, false);
       all = broad.filter(function(c) {
         var n = normalizeBusinessName(c.legal_name);
         return n === normalized || n.includes(normalized) || normalized.includes(n);
       });
     }
 
-    // Apply optional state preference client-side without discarding valid matches.
     var candidates = state
       ? all.filter(function(c) { return !c.state || c.state.toUpperCase() === state; }).concat(
           all.filter(function(c) { return c.state && c.state.toUpperCase() !== state; })
         )
       : all;
 
-    // Exact CAGE match always wins and should be first.
     if (cage) candidates.sort(function(a, b) {
       return (String(b.cage || '').toUpperCase() === cage) - (String(a.cage || '').toUpperCase() === cage);
     });
