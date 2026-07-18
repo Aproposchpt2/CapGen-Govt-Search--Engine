@@ -1,0 +1,22 @@
+name: One-Time SAM.gov Opportunities Backfill
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/one-time-sam-backfill.yml'
+  workflow_dispatch:
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Backfill SAM.gov opportunities since July gap
+        run: |
+          set -euo pipefail
+          response=$(curl --fail-with-body --silent --show-error \
+            -X POST 'https://ngcc.aproposgroupllc.com/.netlify/functions/ingest-sam-opportunities?days=14' \
+            -H 'Accept: application/json')
+          echo "$response"
+          echo "$response" | grep -q '"success":true'
