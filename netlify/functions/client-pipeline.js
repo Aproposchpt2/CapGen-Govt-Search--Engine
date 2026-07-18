@@ -31,6 +31,24 @@ const BC_INDUSTRY_RULES = [
 ];
 
 const sbHeaders = () => ({ apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY });
+
+// Verifies the caller's session_token against client_sessions and returns the
+// authenticated email, or null. bc_email/cg_email query params are client-supplied
+// and must never be trusted as identity on their own — see NGCC S1 cross-tenant fix.
+async function verifySession(authHeader) {
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
+  const token = authHeader.slice(7).trim();
+  if (!token) return null;
+  try {
+    const res = await fetch(SUPABASE_URL + '/rest/v1/client_sessions?session_token=eq.' + encodeURIComponent(token) + '&revoked=eq.false&limit=1', { headers: sbHeaders() });
+    if (!res.ok) return null;
+    const rows = await res.json();
+    if (!Array.isArray(rows) || !rows[0]) return null;
+    if (new Date(rows[0].expires_at) < new Date()) return null;
+    return String(rows[0].email || '').toLowerCase().trim() || null;
+  } catch { return null; }
+}
+
 const uniq = arr => [...new Set((arr || []).map(String).map(s => s.trim()).filter(Boolean))];
 function naicsFromIndustry(industry) { const hay = String(industry || '').toLowerCase(); const out = []; for (const rule of BC_INDUSTRY_RULES) if (rule.terms.some(t => hay.includes(t))) out.push(...rule.naics); return uniq(out.length ? out : BC_DEFAULT_NAICS).slice(0, 8); }
 function normalizeNaics(value) { if (Array.isArray(value)) return uniq(value); if (typeof value === 'string') { try { const parsed = JSON.parse(value); if (Array.isArray(parsed)) return uniq(parsed); } catch (_) {} return uniq(value.split(/[\s,;|]+/)); } return []; }
@@ -98,12 +116,24 @@ exports.handler = async (event) => {
   const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
   const qs = event.queryStringParameters || {};
   const requested = String(qs.uei || qs.client || '').trim();
-  const bcEmail = qs.bc_email || (requested.startsWith('bc:') ? requested.slice(3) : '');
-  const cgEmail = qs.cg_email || (requested.startsWith('cg:') ? requested.slice(3) : '');
+  let bcEmail = qs.bc_email || (requested.startsWith('bc:') ? requested.slice(3) : '');
+  let cgEmail = qs.cg_email || (requested.startsWith('cg:') ? requested.slice(3) : '');
   const includeClosed = qs.include_closed === '1';
   const days = Math.min(90, Math.max(1, parseInt(qs.days || '60', 10)));
 
   if (!requested && !bcEmail && !cgEmail) return { statusCode: 400, headers, body: JSON.stringify({ error: 'No client identifier supplied. First-login automation requires a Business Center email, direct CapGen email, or explicit UEI.' }) };
+
+  // bc_email/cg_email requests represent an authenticated dashboard session — the
+  // email must come from a verified session_token, never trusted from the query
+  // string alone, or any caller could pull any business's profile by supplying
+  // a different email (confirmed exploitable prior to this fix).
+  if (bcEmail || cgEmail) {
+    const authHeader = event.headers.authorization || event.headers.Authorization || '';
+    const verifiedEmail = await verifySession(authHeader);
+    if (!verifiedEmail) return { statusCode: 401, headers, body: JSON.stringify({ error: 'UNAUTHORIZED' }) };
+    if (bcEmail) bcEmail = verifiedEmail;
+    if (cgEmail) cgEmail = verifiedEmail;
+  }
 
   let client = null;
   let resolvedId = requested;

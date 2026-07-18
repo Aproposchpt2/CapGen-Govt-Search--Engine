@@ -70,6 +70,23 @@ exports.handler = async (event) => {
     session_token: token,
   };
 
+  // Persist the session server-side so downstream functions (client-pipeline,
+  // subscriber-capability, etc.) can actually verify this token against
+  // client_sessions instead of trusting whatever the client claims.
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  await fetch(`${SUPABASE_URL}/rest/v1/client_sessions`, {
+    method: 'POST',
+    headers: sbH({ Prefer: 'return=minimal' }),
+    body: JSON.stringify({
+      session_token: token,
+      email: member.email,
+      uei: '',
+      business_name: member.business_name || '',
+      account_type: 'bc_member',
+      expires_at: expiresAt,
+    }),
+  }).catch(err => console.error('[verify-member-login-code] session persist failed', err.message));
+
   const response = j(200, {
     ok: true,
     token,
