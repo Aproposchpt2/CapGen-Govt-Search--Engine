@@ -1,0 +1,28 @@
+name: Ingest SAM.gov Opportunities
+
+on:
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      days:
+        description: 'Lookback window in days'
+        required: false
+        default: '14'
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Run SAM.gov opportunity ingestion
+        env:
+          DAYS: ${{ github.event.inputs.days || '14' }}
+        run: |
+          set -euo pipefail
+          echo "Starting SAM.gov opportunity ingestion with ${DAYS}-day lookback"
+          response=$(curl --fail-with-body --silent --show-error \
+            -X POST "https://ngcc.aproposgroupllc.com/.netlify/functions/ingest-sam-opportunities?days=${DAYS}" \
+            -H "Accept: application/json")
+          echo "$response"
+          echo "$response" | grep -q '"success":true'
