@@ -1,0 +1,73 @@
+name: Execute Analyze Fit print repair
+
+on:
+  push:
+    paths:
+      - 'pdf-print-repair-trigger.txt'
+
+permissions:
+  contents: write
+
+jobs:
+  execute:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply print-only PDF styling
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('analyze-fit.html')
+          text=p.read_text(encoding='utf-8')
+          marker='/* NGCC PDF PRINT STANDARD */'
+          if marker not in text:
+              anchor='</style>\n</head>'
+              if anchor not in text:
+                  raise SystemExit('stylesheet anchor not found')
+              css=r'''
+
+/* NGCC PDF PRINT STANDARD */
+@page{size:letter portrait;margin:.55in .55in .65in}
+@media print{
+html,body{background:#fff!important;color:#172033!important;font-size:10.5pt!important;line-height:1.5!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+#progress-bar,.back-btn,#signOutBtn,.action-bar,.loading-state,.stage2-loading{display:none!important}
+.top-banner,header{position:static!important;background:#fff!important;color:#172033!important;border-color:#b9c9dc!important;box-shadow:none!important;padding-left:0!important;padding-right:0!important}
+.banner-title,.brand-name,.opp-title-hero,.meta-table td:last-child{color:#172033!important}
+.brand-sub,.opp-agency-hero,.score-label,.meta-table td:first-child,.not-enough,.trust-line{color:#4a5b70!important}
+.brand-mark{background:#fff!important;color:#075985!important;border:1.5px solid #7aa7c7!important}
+.page{max-width:none!important;width:100%!important;margin:0!important;padding:18px 0 0!important}
+#reportEl{display:block!important}
+.score-hero,.section{background:#fff!important;color:#172033!important;border:1.25px solid #9eb6cc!important;box-shadow:none!important;break-inside:avoid-page!important;page-break-inside:avoid!important}
+.score-hero{padding:20px 22px!important;margin-bottom:14px!important}.section{padding:17px 19px!important;margin-bottom:11px!important}
+.section-title{color:#075985!important;font-size:8.5pt!important;border-bottom:1px solid #d4e0ea!important;padding-bottom:7px!important;margin-bottom:10px!important}
+.section-title .s-num{background:#eaf5fb!important;color:#075985!important;border-color:#7eb6d2!important}
+.section-body,.section-body p,.checklist li,.question-item,.meta-table td{color:#263547!important}
+.question-item{background:#f7fafc!important;border:1px solid #cbd8e4!important;border-left:3px solid #1686b8!important}
+.score-ring{background:#fff!important}.score-ring.bid{border-color:#16845b!important}.score-ring.caution{border-color:#b86e00!important}.score-ring.watchlist{border-color:#60758a!important}.score-ring.no_bid{border-color:#bd3535!important}
+.score-num.bid{color:#11734e!important}.score-num.caution{color:#9a5b00!important}.score-num.watchlist{color:#40556a!important}.score-num.no_bid{color:#a92727!important}
+.rec-badge,.hchip,.status-pill{background:#fff!important;font-weight:700!important}
+.rec-badge.bid,.status-pill.good,.hchip-ok{color:#116b49!important;border-color:#4e9f7d!important}.rec-badge.caution,.status-pill.warn,.hchip-warm{color:#8d5200!important;border-color:#c68a32!important}.rec-badge.no_bid,.status-pill.bad,.hchip-hot{color:#9f2929!important;border-color:#c96a6a!important}.rec-badge.watchlist,.status-pill.neutral,.hchip-neutral{color:#40556a!important;border-color:#8296aa!important}.hchip-naics{color:#075985!important;border-color:#5b9fbe!important}
+.checklist li::before{color:#075985!important}a,a:visited{color:#075985!important;text-decoration:none!important}
+h1,h2,h3,p,li,td,.section-title,.opp-title-hero{orphans:3;widows:3}
+}
+'''
+              text=text.replace(anchor,css+'\n'+anchor,1)
+              p.write_text(text,encoding='utf-8')
+          for f in ['pdf-print-repair-trigger.txt','.github/workflows/repair-analyze-fit-print.yml','.github/workflows/execute-analyze-fit-print-repair.yml']:
+              q=Path(f)
+              if q.exists(): q.unlink()
+          PY
+
+      - name: Verify and commit
+        run: |
+          grep -q 'NGCC PDF PRINT STANDARD' analyze-fit.html
+          grep -q '@media print' analyze-fit.html
+          grep -q 'print-color-adjust:exact' analyze-fit.html
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Improve Analyze Fit PDF readability'
+          git push origin main
