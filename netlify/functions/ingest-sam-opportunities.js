@@ -20,6 +20,12 @@ function mmddyyyy(d) {
   return String(d.getMonth() + 1).padStart(2, '0') + '/' + String(d.getDate()).padStart(2, '0') + '/' + d.getFullYear();
 }
 
+function parseDate(value) {
+  if (!value) return null;
+  const d = new Date(value + 'T00:00:00Z');
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
 function normalize(o, capturedAt) {
   return {
     notice_id: o.noticeId,
@@ -47,12 +53,16 @@ exports.handler = async function(event) {
   }
 
   const q = event.queryStringParameters || {};
-  const days = Math.min(60, Math.max(1, parseInt(q.days || '14', 10)));
   const now = new Date();
-  const from = new Date(now);
-  from.setDate(from.getDate() - days);
-  const capturedAt = now.toISOString();
+  const days = Math.min(60, Math.max(1, parseInt(q.days || '14', 10)));
+  const explicitFrom = parseDate(q.from);
+  const explicitTo = parseDate(q.to);
+  const to = explicitTo || now;
+  const from = explicitFrom || new Date(to);
+  if (!explicitFrom) from.setDate(from.getDate() - days);
+  if (from > to) return { statusCode: 400, body: JSON.stringify({ success: false, error: 'from must be on or before to' }) };
 
+  const capturedAt = now.toISOString();
   let fetched = 0;
   let upserted = 0;
   let offset = 0;
@@ -63,7 +73,7 @@ exports.handler = async function(event) {
       const url = new URL(OPP_URL);
       url.searchParams.set('api_key', SAM_API_KEY);
       url.searchParams.set('postedFrom', mmddyyyy(from));
-      url.searchParams.set('postedTo', mmddyyyy(now));
+      url.searchParams.set('postedTo', mmddyyyy(to));
       url.searchParams.set('limit', String(PAGE_LIMIT));
       url.searchParams.set('offset', String(offset));
 
@@ -100,7 +110,7 @@ exports.handler = async function(event) {
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ success: true, days, fetched, upserted, captured_at: capturedAt, total_records_reported: totalRecords })
+      body: JSON.stringify({ success: true, from: mmddyyyy(from), to: mmddyyyy(to), fetched, upserted, captured_at: capturedAt, total_records_reported: totalRecords, capped: totalRecords !== null && fetched < totalRecords })
     };
   } catch (err) {
     console.error('[ingest-sam-opportunities]', err);
