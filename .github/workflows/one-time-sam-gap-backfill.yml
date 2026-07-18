@@ -1,0 +1,27 @@
+name: One-Time SAM.gov Gap Backfill
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/one-time-sam-gap-backfill.yml'
+  workflow_dispatch:
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Backfill July 8-18 in bounded windows
+        run: |
+          set -euo pipefail
+          call() {
+            url="$1"
+            echo "Calling $url"
+            response=$(curl --retry 8 --retry-delay 8 --retry-all-errors --fail-with-body --silent --show-error -X POST "$url" -H 'Accept: application/json')
+            echo "$response"
+            echo "$response" | grep -q '"success":true'
+          }
+          call 'https://ngcc.aproposgroupllc.com/.netlify/functions/ingest-sam-opportunities?from=2026-07-08&to=2026-07-11'
+          call 'https://ngcc.aproposgroupllc.com/.netlify/functions/ingest-sam-opportunities?from=2026-07-12&to=2026-07-15'
+          call 'https://ngcc.aproposgroupllc.com/.netlify/functions/ingest-sam-opportunities?from=2026-07-16&to=2026-07-18'
