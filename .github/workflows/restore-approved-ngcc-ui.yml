@@ -1,0 +1,135 @@
+name: Restore approved NGCC dashboard and Analyze Fit
+
+on:
+  push:
+    paths:
+      - '.github/workflows/restore-approved-ngcc-ui.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out current main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Restore approved pre-redesign interfaces
+        run: |
+          git checkout 2d783bb8488f07947a325ea817529060cdde5512 -- demo.html opportunity.html analyze-fit.html
+
+      - name: Apply only approved Version 2.0 changes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          proposal_text = (
+              '<div class="sub-bar-text"><strong>Ready to Pursue This Opportunity?</strong> '
+              'You\'ve discovered the opportunity and analyzed the fit. NGCC provides free access to contract discovery, '
+              'opportunity matching, and Analyze Fit. When you are ready to compete, Apropos Group LLC can help prepare '
+              'a professional, responsive Contract Proposal.</div>\n'
+              '  <a href="/#analyze" id="subCta" class="sub-cta">Explore Contract Proposal Development →</a>'
+          )
+
+          for filename in ('demo.html', 'opportunity.html'):
+              path = Path(filename)
+              text = path.read_text()
+
+              # Preserve the approved interface. Replace only the former subscription notice.
+              text = re.sub(
+                  r'<div class="sub-bar-text"><strong>Subscribe for permanent access\.</strong>.*?</div>\s*'
+                  r'<a href="#" id="subCta" class="sub-cta">Subscribe Now →</a>',
+                  proposal_text,
+                  text,
+                  flags=re.S,
+              )
+
+              # Remove the obsolete purchase destination while retaining all existing page behavior.
+              text = re.sub(r"const STRIPE_BASE\s*=\s*'[^']+';\s*", '', text)
+              text = re.sub(r"\s*document\.getElementById\('subCta'\)\.href\s*=\s*STRIPE_BASE;", '', text)
+
+              # The proposal-development message must remain visible for every valid dashboard user.
+              text = text.replace("if(_cs||(_bt&&_bt.startsWith('beta_'))){document.documentElement.style.setProperty('--sub-bar','none');}", '')
+              text = text.replace("if(_cs||(_bt&&_bt.startsWith('beta_'))){document.documentElement.style.setProperty('--sub-bar','none')}\n", '')
+              text = re.sub(r"\s*const bar = document\.querySelector\('\.sub-bar'\);\s*if \(bar\) bar\.style\.display = 'none';", '', text)
+
+              # Remove stale subscription terminology from comments only; do not redesign the page.
+              text = text.replace('/* Subscribe bar */', '/* Contract Proposal Development message */')
+              text = text.replace('<!-- Subscribe bar -->', '<!-- Contract Proposal Development message -->')
+
+              assert 'Subscribe for permanent access' not in text
+              assert 'Subscribe Now' not in text
+              assert 'STRIPE_BASE' not in text
+              assert 'Ready to Pursue This Opportunity?' in text
+              path.write_text(text)
+
+          # Restore the complete long-form Analyze Fit interface and adapt only its access logic
+          # to the approved free, token-scoped NGCC model.
+          path = Path('analyze-fit.html')
+          text = path.read_text()
+
+          text = text.replace(
+              "} else if (!isDemo) {\n  window.location.href = '/onboarding';\n}",
+              "} else if (token) {\n  // Valid personalized NGCC dashboard token; server validates ownership.\n} else if (!isDemo) {\n  document.getElementById('loadingLabel').textContent = 'A valid dashboard link is required.';\n}",
+          )
+          text = text.replace(
+              "if (!noticeId || (!sessionTok && !betaToken)) return;",
+              "if (!noticeId || (!sessionTok && !token)) return;",
+          )
+          text = text.replace(
+              "beta_token: betaToken,\n    opportunity:",
+              "beta_token: betaToken,\n    view_token: token,\n    opportunity:",
+          )
+          text = text.replace(
+              "beta_token: betaToken || undefined,\n        opportunity:",
+              "beta_token: betaToken || undefined,\n        view_token: token,\n        opportunity:",
+          )
+
+          # Remove the obsolete upgrade/paywall response block while preserving error handling.
+          text = re.sub(
+              r"\n\s*// Tier gate — Scout doesn't include Analyze Fit\..*?\n\s*if \(res\.status === 403 && data && data\.error === 'UPGRADE_REQUIRED'\) \{.*?\n\s*\}\n\n\s*if \(!res\.ok\)",
+              "\n\n    if (!res.ok)",
+              text,
+              flags=re.S,
+          )
+
+          assert "window.location.href = '/onboarding'" not in text
+          assert 'view_token: token' in text
+          assert 'Upgrade to Operator' not in text
+          assert "section(14, 'Recommended Next Step'" in text
+          assert "section(12, 'Proposal Checklist'" in text
+          assert "section(13, 'Questions for the Contracting Officer'" in text
+          path.write_text(text)
+          PY
+
+      - name: Validate restoration scope
+        run: |
+          grep -q '60 Days' demo.html
+          grep -q 'naics-ribbon' demo.html
+          grep -q 'Ready to Pursue This Opportunity?' demo.html
+          grep -q 'Top 5' opportunity.html
+          grep -q 'Ready to Pursue This Opportunity?' opportunity.html
+          grep -q 'Performance Requirements' analyze-fit.html
+          grep -q 'Draft Technical Approach' analyze-fit.html
+          grep -q 'Proposal Checklist' analyze-fit.html
+          grep -q 'Questions for the Contracting Officer' analyze-fit.html
+          grep -q 'view_token: token' analyze-fit.html
+          ! grep -q 'Subscribe Now' demo.html
+          ! grep -q 'Upgrade to Operator' analyze-fit.html
+
+      - name: Commit restored approved baseline
+        run: |
+          git config user.name 'NGCC Project Orchestrator'
+          git config user.email 'actions@users.noreply.github.com'
+          git add demo.html opportunity.html analyze-fit.html
+          if git diff --cached --quiet; then
+            echo 'No restoration changes required.'
+          else
+            git commit -m 'Restore approved dashboard and long-form Analyze Fit'
+            git push origin HEAD:main
+          fi
