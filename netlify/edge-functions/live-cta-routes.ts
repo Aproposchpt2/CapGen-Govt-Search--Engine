@@ -1,5 +1,14 @@
 import type { Config, Context } from "@netlify/edge-functions";
 
+function rewriteHome(html: string): string {
+  const refinement = `<style id="ngcc-hero-refinement">
+.hero h1{color:rgba(255,255,255,.99)!important;letter-spacing:.015em!important;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased;text-shadow:0 2px 10px rgba(0,0,0,.28),0 0 2px rgba(0,0,0,.10)!important}
+.hero h1 em{color:rgba(255,255,255,.72)!important;text-shadow:0 1px 8px rgba(0,0,0,.22)!important}
+.hero-copy{color:rgba(255,255,255,.93)!important;text-shadow:0 1px 8px rgba(0,0,0,.22)!important;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased}
+</style>`;
+  return html.includes('ngcc-hero-refinement') ? html : html.replace('</head>', refinement + '</head>');
+}
+
 function rewriteDashboard(html: string): string {
   let output = html.replace(
     "const token = 'apex-demo'; // CapGen public live demo — fixed APEX Group LLC profile (no registration)",
@@ -54,6 +63,9 @@ async function rewriteHtml(context: Context, pathname: string): Promise<Response
   if (!contentType.includes("text/html")) return response;
 
   let html = await response.text();
+  if (pathname === "/" || pathname === "/index.html") {
+    html = rewriteHome(html);
+  }
   if (pathname === "/demo" || pathname === "/demo.html") {
     html = rewriteDashboard(html);
   }
@@ -77,5 +89,5 @@ export default async (request: Request, context: Context): Promise<Response> => 
 };
 
 export const config: Config = {
-  path: ["/demo", "/demo.html", "/opportunity", "/opportunity.html"],
+  path: ["/", "/index.html", "/demo", "/demo.html", "/opportunity", "/opportunity.html"],
 };
