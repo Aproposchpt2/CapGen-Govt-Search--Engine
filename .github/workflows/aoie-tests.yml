@@ -1,0 +1,30 @@
+name: AOIE Federal Matcher Tests
+
+on:
+  push:
+    branches:
+      - agent/aoie-federal-matcher-mvp
+  pull_request:
+    paths:
+      - 'netlify/functions/lib/aoie-federal.js'
+      - 'netlify/functions/aoie-shadow-evaluate.js'
+      - 'tests/aoie-federal.test.js'
+      - '.github/workflows/aoie-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run AOIE fixture suite
+        run: node tests/aoie-federal.test.js
