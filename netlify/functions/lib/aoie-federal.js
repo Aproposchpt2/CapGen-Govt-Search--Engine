@@ -26,7 +26,7 @@ const ELECTRONICS_ONTOLOGY = {
 };
 
 const DEFAULT_WEIGHTS = {
-  exactNaics: 25,
+  exactNaics: 30,
   relatedNaics: 15,
   capability: 25,
   supplierRole: 10,
@@ -67,7 +67,7 @@ function expandBusinessProfile(profile) {
     if (exactRelated || supplierRelated) {
       concepts.push({
         id,
-        source: exactRelated ? 'NORMALIZED_MAPPING' : 'NORMALIZED_MAPPING',
+        source: 'NORMALIZED_MAPPING',
         confidence: exactRelated ? 'HIGH' : 'MODERATE',
         evidence: exactNaics.filter((code) => spec.relatedNaics.includes(code) || spec.supplierNaics.includes(code)),
       });
