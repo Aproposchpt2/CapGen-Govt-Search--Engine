@@ -1,0 +1,42 @@
+name: Install Premium Analyze Fit Report
+
+on:
+  push:
+    branches:
+      - feature/premium-analyze-fit-report-standard
+    paths:
+      - '.github/template_payload/READY'
+
+permissions:
+  contents: write
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/premium-analyze-fit-report-standard
+          fetch-depth: 0
+
+      - name: Rebuild premium report template
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .github/template_payload/chunk-*.txt | tr -d '\n\r' | base64 --decode | gzip --decompress > analyze-fit.html
+          test -s analyze-fit.html
+          grep -q 'Management Authorization & Source Notes' analyze-fit.html
+          grep -q 'APROPOS GROUP LLC' analyze-fit.html
+
+      - name: Commit installed template
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .github/template_payload
+          rm -f .github/workflows/install-premium-analyze-fit.yml
+          git config user.name 'APROPOS Template Installer'
+          git config user.email 'actions@users.noreply.github.com'
+          git add analyze-fit.html .github
+          git commit -m 'Install premium Analyze Fit executive report standard'
+          git push origin HEAD:feature/premium-analyze-fit-report-standard
