@@ -96,10 +96,6 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:14p
 .btn-view{display:inline-block;background:var(--cyan);color:#0A1A3A;font-family:'Jost',sans-serif;
   font-weight:700;font-size:.8rem;padding:8px 18px;border-radius:8px;border:none;text-decoration:none;cursor:pointer;transition:.15s}
 .btn-view:hover{opacity:.88}
-.btn-analyze{background:rgba(110,231,168,.15);border:1px solid rgba(110,231,168,.3);color:#6EE7A8;
-  font-family:'Jost',sans-serif;font-size:.78rem;font-weight:700;padding:7px 16px;border-radius:8px;
-  cursor:pointer;transition:.18s}
-.btn-analyze:hover{background:rgba(110,231,168,.28)}
 .btn-capgen{display:inline-block;background:rgba(91,211,255,.1);border:1px solid rgba(91,211,255,.28);
   color:var(--cyan);font-family:'Jost',sans-serif;font-weight:700;font-size:.8rem;
   padding:8px 16px;border-radius:8px;text-decoration:none;transition:.18s}
@@ -288,8 +284,7 @@ function renderCard(opp, rank, analysis) {
     + '</div>'
     + fitHtml
     + '<div class="card-actions">'
-    + (opp.url ? '<a href="' + esc(opp.url) + '" target="_blank" rel="noopener" class="btn-view">View Opportunity →</a>' : '')
-    + '<button class="btn-analyze" onclick="openAnalyzeFit(\'' + esc(opp.notice_id || '') + '\')">Analyze Fit ↗</button>'
+    + '<button class="btn-view" onclick="openAnalyzeFit(\'' + esc(opp.notice_id || '') + '\')">View Opportunity →</button>'
     + '<button class="btn-ignore" onclick="ignoreOpp(' + JSON.stringify(opp.notice_id || '') + ')">✕ Ignore</button>'
     + '</div>'
     + '</div>';

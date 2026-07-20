@@ -439,7 +439,82 @@ function render(row){
   document.getElementById('topTitle').textContent=m.title.slice(0,100);
 }
 
-(async()=>{await loadContext();analyze(false)})();
+function renderDetails(){
+  clearTimeout(polling);
+  loading.style.display='none';
+  const src=opp||{};
+  const raw=src.raw||{};
+  const title=field(src.title,'Untitled Opportunity');
+  const agency=field(src.agency,raw.fullParentPathName,'Not specified');
+  const naics=field(src.naics,src.naics_code,raw.naicsCode,'Not specified');
+  const setAside=field(src.set_aside,raw.typeOfSetAsideDescription,'Unrestricted / Not specified');
+  const deadline=field(src.response_deadline,src.deadline,raw.responseDeadLine,'');
+  const solicitation=field(src.solicitation_number,raw.solicitationNumber,noticeId,'Not specified');
+  const noticeType=field(raw.type,raw.baseType,'Not specified');
+  const posted=field(raw.postedDate,'');
+  const pop=placeOfPerformance(src);
+  const contacts=arr(raw.pointOfContact);
+  const resources=arr(raw.resourceLinks);
+  const contactsHtml=contacts.length?contacts.map(c=>'<div>'+esc(field(c.fullName,'Contact'))+(c.title?' — '+esc(c.title):'')+(c.email?' — <a href="mailto:'+esc(c.email)+'" style="color:var(--blue)">'+esc(c.email)+'</a>':'')+(c.phone?' — '+esc(c.phone):'')+'</div>').join(''):'Not listed';
+  const resourcesHtml=resources.length?'<ul>'+resources.map((r,i)=>'<li><a href="'+esc(r)+'" target="_blank" rel="noopener" style="color:var(--blue)">Document '+(i+1)+' — Download →</a></li>').join('')+'</ul>':'<p>No attachments listed for this notice.</p>';
+  report.innerHTML=
+    '<div class="panel" style="margin-bottom:16px">'
+    +'<div class="eyebrow">Solicitation '+esc(solicitation)+'</div>'
+    +'<h1 style="font:700 1.7rem/1.25 &quot;Cormorant Garamond&quot;,Georgia,serif;color:#fff;margin:4px 0 8px">'+esc(title)+'</h1>'
+    +'<div style="color:#9fb0c5;font-size:.85rem">'+esc(agency)+'</div>'
+    +'</div>'
+    +'<div class="panel" style="margin-bottom:16px;background:#fff">'
+    +'<table class="report-table">'
+    +'<tr><td class="field">NAICS</td><td>'+esc(naics)+'</td></tr>'
+    +'<tr><td class="field">Notice Type</td><td>'+esc(noticeType)+'</td></tr>'
+    +'<tr><td class="field">Set-Aside</td><td>'+esc(setAside)+'</td></tr>'
+    +'<tr><td class="field">Response Deadline</td><td>'+(deadline?esc(fmtDate(deadline)):'Not specified')+'</td></tr>'
+    +'<tr><td class="field">Posted</td><td>'+(posted?esc(fmtDate(posted)):'Not specified')+'</td></tr>'
+    +'<tr><td class="field">Place of Performance</td><td>'+esc(pop)+'</td></tr>'
+    +'<tr><td class="field">Point of Contact</td><td>'+contactsHtml+'</td></tr>'
+    +'</table>'
+    +'</div>'
+    +'<div class="panel" style="margin-bottom:16px;background:#fff">'
+    +'<div class="panel-title">Description</div>'
+    +'<div id="descBody" class="body-copy"><p>Loading solicitation description…</p></div>'
+    +'</div>'
+    +'<div class="panel" style="margin-bottom:16px;background:#fff">'
+    +'<div class="panel-title">Attachments &amp; Documents</div>'
+    +resourcesHtml
+    +'</div>'
+    +'<div class="report-actions">'
+    +'<button class="button" style="background:#77e4b2;color:#06172c" onclick="startAnalysis()">Run Analyze Fit →</button>'
+    +'</div>'
+    +'<div class="trust" style="margin-top:10px">Sourced from official public records.</div>';
+  document.getElementById('topTitle').textContent=title.slice(0,100);
+  loadDescription();
+}
+
+function startAnalysis(){
+  report.innerHTML='';
+  document.getElementById('loadingTitle').textContent='Preparing the executive opportunity dossier…';
+  loading.style.display='';
+  analyze(false);
+}
+
+async function loadDescription(){
+  const el=document.getElementById('descBody');
+  if(!el)return;
+  if(!noticeId){el.innerHTML='<p>No description available — see attachments.</p>';return}
+  try{
+    const response=await fetch('/.netlify/functions/opportunity-description?noticeId='+encodeURIComponent(noticeId));
+    const data=await response.json();
+    if(data.description){
+      el.innerHTML=data.description.split(/\n{2,}/).map(p=>'<p>'+esc(p).replace(/\n/g,'<br>')+'</p>').join('');
+    }else{
+      el.innerHTML='<p>No description text was provided for this notice — see attachments above for full requirements.</p>';
+    }
+  }catch{
+    el.innerHTML='<p>Description could not be loaded — see attachments above for full requirements.</p>';
+  }
+}
+
+(async()=>{await loadContext();renderDetails()})();
 </script>
 </body>
 </html>
