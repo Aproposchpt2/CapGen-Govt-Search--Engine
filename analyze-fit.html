@@ -169,6 +169,78 @@ button,a{font:inherit}
   .observations-page .page-header{margin-bottom:15px!important}.observations-page .page-deck{margin-bottom:12px!important}.observations-page .gold-rule{margin-bottom:12px!important}.observations-page .observation{min-height:110px;padding:10px 11px}.observations-page .observation p,.observations-page .observation li{font-size:8.2pt!important;line-height:1.35!important}.observations-page .callout{padding:9px 11px;font-size:8.2pt;line-height:1.35}
   .metric-card,.status-card,.panel,.quad-card,.observation,.factor,.action-column,.report-table tr,.callout{break-inside:avoid!important;page-break-inside:avoid!important}
 }
+
+
+/* NGCC PROFESSIONAL OPPORTUNITY BRIEF */
+.opportunity-brief{display:grid;gap:18px}
+.brief-hero{position:relative;overflow:hidden;border:1px solid rgba(214,177,95,.5);border-radius:22px;padding:31px 32px 30px;background:radial-gradient(circle at 90% 0%,rgba(214,177,95,.19),transparent 34%),linear-gradient(145deg,#0b294b 0%,#071a31 72%);box-shadow:0 24px 65px rgba(0,0,0,.3)}
+.brief-hero:before{content:"";position:absolute;inset:0 auto 0 0;width:5px;background:linear-gradient(180deg,var(--gold-2),var(--gold),var(--navy-2))}
+.brief-brand-row{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:34px}
+.brief-brand{display:flex;align-items:center;gap:12px;min-width:0}
+.brief-logo-wrap{width:72px;height:50px;display:grid;place-items:center;background:#fff;border-radius:8px;padding:6px;box-shadow:0 8px 22px rgba(0,0,0,.18)}
+.brief-logo-wrap img{display:block;width:100%;height:100%;object-fit:contain}
+.brief-brand>span:last-child{display:grid;gap:2px}
+.brief-brand strong{font-size:.73rem;letter-spacing:.14em;color:#fff}
+.brief-brand small{font-size:.59rem;letter-spacing:.11em;text-transform:uppercase;color:var(--gold-2)}
+.brief-record-badge{padding:6px 10px;border:1px solid rgba(255,255,255,.18);border-radius:999px;background:rgba(255,255,255,.07);color:#d9e5f2;font-size:.58rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+.brief-kicker{font-size:.65rem;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--gold-2);margin-bottom:10px}
+.brief-title{max-width:930px;margin:0;color:#fff;font:700 clamp(2rem,4.8vw,3.4rem)/1.03 "Cormorant Garamond",Georgia,serif;letter-spacing:-.018em}
+.brief-agency{max-width:880px;margin:13px 0 0;color:#b9c9da;font-size:.88rem;line-height:1.45}
+.brief-identifiers{display:flex;flex-wrap:wrap;gap:9px;margin-top:22px}
+.brief-identifiers>span{min-width:150px;padding:10px 12px;border:1px solid rgba(255,255,255,.13);border-radius:10px;background:rgba(255,255,255,.055);color:#fff;font-size:.72rem;font-weight:700;overflow-wrap:anywhere}
+.brief-identifiers small{display:block;margin-bottom:4px;color:#8fa7bf;font-size:.52rem;letter-spacing:.1em;text-transform:uppercase}
+.brief-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}
+.brief-btn{display:inline-flex;align-items:center;justify-content:center;min-height:42px;border:1px solid transparent;border-radius:9px;padding:10px 16px;text-decoration:none;font-size:.72rem;font-weight:800;cursor:pointer;transition:transform .18s ease,opacity .18s ease,background .18s ease}
+.brief-btn:hover{transform:translateY(-1px)}
+.brief-btn-primary{background:linear-gradient(135deg,var(--gold-2),var(--gold));color:#142033;box-shadow:0 9px 24px rgba(184,138,45,.22)}
+.brief-btn-secondary{background:#fff;color:var(--navy)}
+.brief-btn-ghost{border-color:rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:#e8f0f8}
+.brief-stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:11px}
+.brief-stat{position:relative;min-height:112px;padding:16px 17px;border:1px solid #d7e0e9;border-radius:14px;background:#fff;color:var(--ink);box-shadow:0 10px 26px rgba(0,0,0,.11)}
+.brief-stat:before{content:"";position:absolute;left:0;right:0;top:0;height:4px;border-radius:14px 14px 0 0;background:var(--blue)}
+.brief-stat.ready:before{background:var(--green)}.brief-stat.watch:before{background:var(--amber)}.brief-stat.urgent:before{background:var(--red)}
+.brief-stat span{display:block;margin-bottom:8px;color:#6c7886;font-size:.55rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase}
+.brief-stat strong{display:block;color:var(--navy);font-size:1rem;line-height:1.25;overflow-wrap:anywhere}
+.brief-stat small{display:block;margin-top:6px;color:#778390;font-size:.61rem;line-height:1.35}
+.brief-content-grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(300px,.75fr);gap:14px}
+.brief-two-column{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.brief-card{border:1px solid #d8e1ea;border-radius:16px;background:#fff;color:var(--ink);padding:21px 22px;box-shadow:0 12px 32px rgba(0,0,0,.11)}
+.brief-section-heading{display:flex;align-items:flex-start;gap:12px;padding-bottom:13px;margin-bottom:15px;border-bottom:1px solid #e1e7ed}
+.brief-section-heading>span{flex:0 0 auto;display:grid;place-items:center;width:31px;height:31px;border-radius:8px;background:var(--navy);color:var(--gold-2);font-size:.62rem;font-weight:800}
+.brief-section-heading h2{margin:0;color:var(--navy);font:700 1.32rem/1.08 "Cormorant Garamond",Georgia,serif}
+.brief-section-heading p{margin:4px 0 0;color:#758291;font-size:.65rem;line-height:1.35}
+.brief-description{color:#3c4957;font-size:.84rem;line-height:1.68}
+.brief-description p{margin:0 0 12px}.brief-description p:last-child{margin-bottom:0}
+.brief-detail-list{display:grid;gap:0;margin:0}
+.brief-detail-list>div{display:grid;grid-template-columns:116px minmax(0,1fr);gap:12px;padding:10px 0;border-bottom:1px solid #e5eaf0}
+.brief-detail-list>div:last-child{border-bottom:0}
+.brief-detail-list dt{color:#6d7987;font-size:.59rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.brief-detail-list dd{margin:0;color:#263746;font-size:.74rem;font-weight:700;line-height:1.42;overflow-wrap:anywhere}
+.brief-contact-grid{display:grid;gap:10px}
+.brief-contact{padding:13px 14px;border:1px solid #dfe6ec;border-left:4px solid var(--gold);border-radius:9px;background:#f8fafb}
+.brief-contact-name{color:var(--navy);font-size:.78rem;font-weight:800}
+.brief-contact-role{margin-top:2px;color:#778493;font-size:.63rem}
+.brief-contact-links{display:flex;flex-wrap:wrap;gap:9px 14px;margin-top:7px;font-size:.67rem}
+.brief-contact-links a{color:var(--blue);font-weight:700;text-decoration:none}.brief-contact-links span{color:#4e5d6c}
+.brief-document-list{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.brief-document{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 13px;border:1px solid #dfe6ec;border-radius:9px;background:#f8fafb}
+.brief-document div{min-width:0}.brief-document strong{display:block;color:var(--navy);font-size:.72rem;overflow-wrap:anywhere}.brief-document span{display:block;margin-top:3px;color:#7b8794;font-size:.58rem}
+.brief-document a{flex:0 0 auto;color:var(--blue);font-size:.63rem;font-weight:800;text-decoration:none}
+.brief-doc-unavailable{flex:0 0 auto;color:#8b96a2!important;font-size:.59rem!important;font-weight:700}
+.brief-empty{padding:14px;border:1px dashed #cbd5df;border-radius:9px;background:#f8fafb;color:#6d7987;font-size:.7rem;line-height:1.5}
+.brief-cta-panel{display:flex;align-items:center;justify-content:space-between;gap:28px;padding:23px 25px;border:1px solid rgba(214,177,95,.5);border-radius:17px;background:linear-gradient(135deg,#fffaf0,#f4ead4);color:var(--ink);box-shadow:0 12px 32px rgba(0,0,0,.1)}
+.brief-cta-label{display:block;margin-bottom:6px;color:#8a6821;font-size:.57rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+.brief-cta-panel h2{margin:0;color:var(--navy);font:700 1.55rem/1.08 "Cormorant Garamond",Georgia,serif}
+.brief-cta-panel p{max-width:720px;margin:8px 0 0;color:#5d6875;font-size:.72rem;line-height:1.52}
+.brief-cta-actions{display:grid;justify-items:center;gap:9px;flex:0 0 auto}
+.brief-text-link{color:var(--navy);font-size:.62rem;font-weight:800;text-decoration:none}
+.brief-source-note{margin:0;text-align:center;color:#99aabd;font-size:.63rem;line-height:1.5}
+@media(max-width:900px){.brief-stat-grid{grid-template-columns:repeat(2,1fr)}.brief-content-grid,.brief-two-column{grid-template-columns:1fr}.brief-cta-panel{align-items:flex-start;flex-direction:column}.brief-cta-actions{justify-items:start}}
+@media(max-width:620px){.brief-hero{padding:24px 20px}.brief-brand-row{display:grid;margin-bottom:26px}.brief-record-badge{width:max-content;max-width:100%;white-space:normal}.brief-title{font-size:2.1rem}.brief-identifiers{display:grid}.brief-identifiers>span{min-width:0}.brief-stat-grid{grid-template-columns:1fr}.brief-card{padding:18px 17px}.brief-detail-list>div{grid-template-columns:1fr;gap:4px}.brief-document{align-items:flex-start;flex-direction:column}.brief-actions{display:grid}.brief-btn{width:100%}}
+@media print{
+  .opportunity-brief{display:block!important}.opportunity-brief>*{margin-bottom:12px!important}.brief-hero,.brief-stat,.brief-card,.brief-cta-panel{box-shadow:none!important;break-inside:avoid!important;page-break-inside:avoid!important}.brief-hero{background:#fff!important;color:var(--ink)!important;border:1px solid #9eaab6!important}.brief-title,.brief-brand strong{color:var(--navy)!important}.brief-agency,.brief-brand small{color:#5e6c79!important}.brief-record-badge,.brief-identifiers>span{background:#fff!important;border-color:#cbd4dd!important;color:var(--ink)!important}.brief-identifiers small{color:#687582!important}.brief-actions,.brief-cta-actions{display:none!important}.brief-stat-grid{grid-template-columns:repeat(3,1fr)!important}.brief-content-grid,.brief-two-column{grid-template-columns:1fr 1fr!important}.brief-source-note{color:#596674!important}
+}
+
 </style>
 </head>
 <body>
@@ -234,11 +306,29 @@ async function loadContext(){
       }
     }catch{}
   }
-  if(!opp&&noticeId){
+  if(noticeId){
     try{
       const response=await fetch('https://judislfknmhofcgzyozc.supabase.co/rest/v1/sam_opportunities?notice_id=eq.'+encodeURIComponent(noticeId)+'&select=title,agency,naics_code,set_aside,response_deadline,solicitation_number,raw&limit=1',{headers:{apikey:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJIUzI1NiIsInJlZiI6Imp1ZGlzbGZrbm1ob2ZjZ3p5b3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMDI3ODAsImV4cCI6MjA5Mjc3ODc4MH0.Kxpe0kJt0k7ZchYu70BOwm4KdT0C5aSsyeR1ov6NlQ0'}});
       const rows=await response.json();
-      if(rows[0])opp={title:rows[0].title,agency:rows[0].agency,naics:rows[0].naics_code,set_aside:rows[0].set_aside,response_deadline:rows[0].response_deadline,solicitation_number:rows[0].solicitation_number,...(rows[0].raw||{}),raw:rows[0].raw||{}};
+      if(rows[0]){
+      const row=rows[0];
+      const existing=opp||{};
+      const raw=row.raw||existing.raw||{};
+      opp={
+        ...existing,
+        ...raw,
+        title:field(row.title,existing.title,raw.title),
+        agency:field(row.agency,existing.agency,raw.fullParentPathName),
+        naics:field(row.naics_code,existing.naics,existing.naics_code,raw.naicsCode),
+        naics_code:field(row.naics_code,existing.naics_code,existing.naics,raw.naicsCode),
+        set_aside:field(row.set_aside,existing.set_aside,raw.typeOfSetAsideDescription),
+        response_deadline:field(row.response_deadline,existing.response_deadline,existing.deadline,raw.responseDeadLine),
+        solicitation_number:field(row.solicitation_number,existing.solicitation_number,raw.solicitationNumber,noticeId),
+        notice_id:field(existing.notice_id,noticeId),
+        url:field(existing.url,raw.uiLink,raw.url),
+        raw
+      };
+    }
     }catch{}
   }
   if(opp?.title)document.getElementById('topTitle').textContent=opp.title.slice(0,100);
@@ -441,52 +531,115 @@ function render(row){
 
 function renderDetails(){
   clearTimeout(polling);
+  progress.classList.add('done');
   loading.style.display='none';
   const src=opp||{};
   const raw=src.raw||{};
   const title=field(src.title,'Untitled Opportunity');
-  const agency=field(src.agency,raw.fullParentPathName,'Not specified');
+  const agency=field(src.agency,raw.fullParentPathName,'Federal Agency Not Specified');
   const naics=field(src.naics,src.naics_code,raw.naicsCode,'Not specified');
   const setAside=field(src.set_aside,raw.typeOfSetAsideDescription,'Unrestricted / Not specified');
   const deadline=field(src.response_deadline,src.deadline,raw.responseDeadLine,'');
-  const solicitation=field(src.solicitation_number,raw.solicitationNumber,noticeId,'Not specified');
-  const noticeType=field(raw.type,raw.baseType,'Not specified');
-  const posted=field(raw.postedDate,'');
+  const solicitation=field(src.solicitation_number,src.solicitationNumber,raw.solicitationNumber,noticeId,'Not specified');
+  const noticeType=field(src.notice_type,src.type,raw.type,raw.baseType,'Not specified');
+  const posted=field(src.posted_date,raw.postedDate,'');
   const pop=placeOfPerformance(src);
-  const contacts=arr(raw.pointOfContact);
-  const resources=arr(raw.resourceLinks);
-  const contactsHtml=contacts.length?contacts.map(c=>'<div>'+esc(field(c.fullName,'Contact'))+(c.title?' — '+esc(c.title):'')+(c.email?' — <a href="mailto:'+esc(c.email)+'" style="color:var(--blue)">'+esc(c.email)+'</a>':'')+(c.phone?' — '+esc(c.phone):'')+'</div>').join(''):'Not listed';
-  const resourcesHtml=resources.length?'<ul>'+resources.map((r,i)=>'<li><a href="'+esc(r)+'" target="_blank" rel="noopener" style="color:var(--blue)">Document '+(i+1)+' — Download →</a></li>').join('')+'</ul>':'<p>No attachments listed for this notice.</p>';
-  report.innerHTML=
-    '<div class="panel" style="margin-bottom:16px">'
-    +'<div class="eyebrow">Solicitation '+esc(solicitation)+'</div>'
-    +'<h1 style="font:700 1.7rem/1.25 &quot;Cormorant Garamond&quot;,Georgia,serif;color:#fff;margin:4px 0 8px">'+esc(title)+'</h1>'
-    +'<div style="color:#9fb0c5;font-size:.85rem">'+esc(agency)+'</div>'
-    +'</div>'
-    +'<div class="panel" style="margin-bottom:16px;background:#fff">'
-    +'<table class="report-table">'
-    +'<tr><td class="field">NAICS</td><td>'+esc(naics)+'</td></tr>'
-    +'<tr><td class="field">Notice Type</td><td>'+esc(noticeType)+'</td></tr>'
-    +'<tr><td class="field">Set-Aside</td><td>'+esc(setAside)+'</td></tr>'
-    +'<tr><td class="field">Response Deadline</td><td>'+(deadline?esc(fmtDate(deadline)):'Not specified')+'</td></tr>'
-    +'<tr><td class="field">Posted</td><td>'+(posted?esc(fmtDate(posted)):'Not specified')+'</td></tr>'
-    +'<tr><td class="field">Place of Performance</td><td>'+esc(pop)+'</td></tr>'
-    +'<tr><td class="field">Point of Contact</td><td>'+contactsHtml+'</td></tr>'
-    +'</table>'
-    +'</div>'
-    +'<div class="panel" style="margin-bottom:16px;background:#fff">'
-    +'<div class="panel-title">Description</div>'
-    +'<div id="descBody" class="body-copy"><p>Loading solicitation description…</p></div>'
-    +'</div>'
-    +'<div class="panel" style="margin-bottom:16px;background:#fff">'
-    +'<div class="panel-title">Attachments &amp; Documents</div>'
-    +resourcesHtml
-    +'</div>'
-    +'<div class="report-actions">'
-    +'<button class="button" style="background:#77e4b2;color:#06172c" onclick="startAnalysis()">Run Analyze Fit →</button>'
-    +'</div>'
-    +'<div class="trust" style="margin-top:10px">Sourced from official public records.</div>';
-  document.getElementById('topTitle').textContent=title.slice(0,100);
+  const contacts=arr(raw.pointOfContact).filter(Boolean);
+  const resources=arr(raw.resourceLinks).filter(Boolean);
+  const dleft=daysRemaining(deadline);
+  const deadlineLabel=!deadline?'Not specified':dleft===null?fmtDate(deadline):dleft<0?'Closed '+fmtDate(deadline):dleft===0?'Due today':fmtDate(deadline);
+  const urgencyLabel=dleft===null?'Verify deadline':dleft<0?'Closed':dleft===0?'Due today':dleft===1?'1 day remaining':dleft+' days remaining';
+  const urgencyTone=dleft!==null&&dleft<=7?'urgent':dleft!==null&&dleft<=21?'watch':'ready';
+  const officialCandidate=field(src.url,src.link,raw.uiLink,raw.url,noticeId?`https://sam.gov/opp/${encodeURIComponent(noticeId)}/view`: '');
+  const officialUrl=/^https?:\/\//i.test(String(officialCandidate||''))?String(officialCandidate):'';
+  const resourceUrl=r=>typeof r==='string'?r:field(r?.url,r?.href,r?.link);
+  const resourceName=(r,i)=>typeof r==='string'?`Official Document ${i+1}`:field(r?.name,r?.title,r?.description,`Official Document ${i+1}`);
+  const contactHtml=contacts.length?contacts.map((c,i)=>{
+    const name=field(c?.fullName,c?.name,`Point of Contact ${i+1}`);
+    const role=field(c?.title,c?.type,'Official Procurement Contact');
+    const email=field(c?.email,c?.emailAddress,'');
+    const phone=field(c?.phone,c?.phoneNumber,'');
+    return `<article class="brief-contact"><div class="brief-contact-name">${esc(name)}</div><div class="brief-contact-role">${esc(role)}</div><div class="brief-contact-links">${email?`<a href="mailto:${esc(email)}">${esc(email)}</a>`:''}${phone?`<span>${esc(phone)}</span>`:''}</div></article>`;
+  }).join(''):'<div class="brief-empty">No point of contact was included in the public record. Review the official notice and attachments.</div>';
+  const documentsHtml=resources.length?resources.map((r,i)=>{
+    const href=resourceUrl(r);
+    const safe=/^https?:\/\//i.test(String(href||''))?String(href):'';
+    return `<li class="brief-document"><div><strong>${esc(resourceName(r,i))}</strong><span>Official solicitation resource</span></div>${safe?`<a href="${esc(safe)}" target="_blank" rel="noopener">Open Document ↗</a>`:'<span class="brief-doc-unavailable">Link unavailable</span>'}</li>`;
+  }).join(''):'<li class="brief-empty">No separate attachments were listed in the public record. Use the official notice link to confirm the complete solicitation package.</li>';
+
+  report.innerHTML=`
+    <div class="opportunity-brief">
+      <section class="brief-hero">
+        <div class="brief-brand-row">
+          <div class="brief-brand">
+            <span class="brief-logo-wrap"><img src="${BRAND_LOGO}" alt="APROPOS GROUP LLC"></span>
+            <span><strong>APROPOS GROUP LLC</strong><small>Government Opportunity Intelligence</small></span>
+          </div>
+          <span class="brief-record-badge">Official Public Opportunity Record</span>
+        </div>
+        <div class="brief-kicker">Federal Procurement Opportunity Brief</div>
+        <h1 class="brief-title">${esc(title)}</h1>
+        <p class="brief-agency">${esc(agency)}</p>
+        <div class="brief-identifiers">
+          <span><small>Solicitation</small>${esc(solicitation)}</span>
+          <span><small>Notice Type</small>${esc(noticeType)}</span>
+          <span><small>Record ID</small>${esc(noticeId||solicitation)}</span>
+        </div>
+        <div class="brief-actions">
+          <button class="brief-btn brief-btn-primary" onclick="startAnalysis()">Run Analyze Fit →</button>
+          ${officialUrl?`<a class="brief-btn brief-btn-secondary" href="${esc(officialUrl)}" target="_blank" rel="noopener">View Official Notice ↗</a>`:''}
+          <button class="brief-btn brief-btn-ghost" onclick="window.print()">Print Opportunity Brief</button>
+        </div>
+      </section>
+
+      <section class="brief-stat-grid" aria-label="Opportunity highlights">
+        <div class="brief-stat ${urgencyTone}"><span>Response Deadline</span><strong>${esc(deadlineLabel)}</strong><small>${esc(urgencyLabel)}</small></div>
+        <div class="brief-stat"><span>NAICS</span><strong>${esc(naics)}</strong><small>Industry classification</small></div>
+        <div class="brief-stat"><span>Set-Aside</span><strong>${esc(setAside)}</strong><small>Verify current eligibility</small></div>
+        <div class="brief-stat"><span>Place of Performance</span><strong>${esc(pop)}</strong><small>Reported performance location</small></div>
+        <div class="brief-stat"><span>Posted</span><strong>${posted?esc(fmtDate(posted)):'Not specified'}</strong><small>Public notice date</small></div>
+        <div class="brief-stat"><span>Opportunity Status</span><strong>${dleft!==null&&dleft<0?'Closed':'Open / Verify Live'}</strong><small>Confirm on the official source</small></div>
+      </section>
+
+      <div class="brief-content-grid">
+        <section class="brief-card brief-description-card">
+          <div class="brief-section-heading"><span>01</span><div><h2>Opportunity Description</h2><p>Public solicitation summary and scope information.</p></div></div>
+          <div id="descBody" class="brief-description"><p>Loading the official opportunity description…</p></div>
+        </section>
+
+        <aside class="brief-card brief-snapshot-card">
+          <div class="brief-section-heading"><span>02</span><div><h2>Procurement Snapshot</h2><p>Decision-critical notice metadata.</p></div></div>
+          <dl class="brief-detail-list">
+            <div><dt>Agency</dt><dd>${esc(agency)}</dd></div>
+            <div><dt>Solicitation</dt><dd>${esc(solicitation)}</dd></div>
+            <div><dt>Notice Type</dt><dd>${esc(noticeType)}</dd></div>
+            <div><dt>NAICS</dt><dd>${esc(naics)}</dd></div>
+            <div><dt>Set-Aside</dt><dd>${esc(setAside)}</dd></div>
+            <div><dt>Response Deadline</dt><dd>${esc(deadlineLabel)}</dd></div>
+            <div><dt>Place of Performance</dt><dd>${esc(pop)}</dd></div>
+          </dl>
+        </aside>
+      </div>
+
+      <div class="brief-two-column">
+        <section class="brief-card">
+          <div class="brief-section-heading"><span>03</span><div><h2>Official Contact</h2><p>Contracting and procurement contacts reported with the notice.</p></div></div>
+          <div class="brief-contact-grid">${contactHtml}</div>
+        </section>
+        <section class="brief-card">
+          <div class="brief-section-heading"><span>04</span><div><h2>Attachments &amp; Documents</h2><p>Official resources associated with the solicitation.</p></div></div>
+          <ul class="brief-document-list">${documentsHtml}</ul>
+        </section>
+      </div>
+
+      <section class="brief-cta-panel">
+        <div><span class="brief-cta-label">Executive Decision Support</span><h2>Determine whether this opportunity is worth pursuing.</h2><p>Analyze Fit evaluates capability alignment, eligibility, evidence requirements, competition, timeline, and execution risk against your business profile.</p></div>
+        <div class="brief-cta-actions"><button class="brief-btn brief-btn-primary" onclick="startAnalysis()">Run Analyze Fit →</button>${officialUrl?`<a class="brief-text-link" href="${esc(officialUrl)}" target="_blank" rel="noopener">Verify on official source ↗</a>`:''}</div>
+      </section>
+
+      <p class="brief-source-note">Source notice data is presented for decision support. The official solicitation, amendments, attachments, and live government record control.</p>
+    </div>`;
+  document.getElementById('topTitle').textContent='Opportunity Intelligence Brief · '+title.slice(0,82);
   loadDescription();
 }
 
