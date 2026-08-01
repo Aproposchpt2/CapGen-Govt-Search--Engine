@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /account
+Disallow: /dashboard
+Disallow: /api/
+Disallow: /.netlify/functions/
+
+Sitemap: https://ngcc.aproposgroupllc.com/sitemap.xml
