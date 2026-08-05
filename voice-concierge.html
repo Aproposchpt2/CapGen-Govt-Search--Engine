@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="robots" content="noindex, nofollow">
+<title>NGCC Voice Concierge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital@1&family=Jost:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0A1A3A;--surface:#0f2244;--panel:#132954;--line:rgba(91,175,255,.15);
+  --line2:rgba(91,175,255,.28);--text:#f0f6ff;--muted:#8facd0;--soft:#5a7899;
+  --gold:#d9a45b;--green:#2ecc8a;--amber:#f0a500;--red:#e05555;--cyan:#5BD3FF;
+  font-family:'Jost',Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6}
+
+.internal-banner{background:linear-gradient(90deg,#3a2a06,#2a1f08);border-bottom:1px solid rgba(217,164,91,.35);
+  color:var(--gold);font-size:.74rem;font-weight:700;letter-spacing:.03em;text-align:center;padding:8px 16px}
+
+header{background:var(--surface);border-bottom:1px solid var(--line);padding:14px 28px;
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-mark{width:40px;height:40px;border-radius:10px;background:var(--bg);border:1px solid var(--line2);
+  display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;color:var(--cyan)}
+.brand-name{font-size:1rem;font-weight:700}
+.brand-sub{font-size:.72rem;color:var(--muted)}
+.badge-live{background:rgba(46,204,138,.12);border:1px solid rgba(46,204,138,.3);color:var(--green);
+  padding:4px 10px;border-radius:20px;font-size:.68rem;font-weight:700;letter-spacing:.04em}
+
+.page{max-width:900px;margin:0 auto;padding:28px 20px 90px}
+
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:.68rem;font-weight:700;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--cyan);margin-bottom:10px}
+h1{font-family:'Cormorant Garamond',serif;font-style:italic;font-weight:400;font-size:1.7rem;
+  margin-bottom:8px;color:var(--text)}
+.lede{color:var(--muted);font-size:.9rem;max-width:64ch;margin-bottom:26px}
+.lede b{color:var(--text);font-weight:600}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:24px 26px;margin-bottom:26px}
+.panel-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:4px}
+.panel-head h2{font-size:1rem;font-weight:700;color:var(--text)}
+.status-live{display:inline-flex;align-items:center;gap:6px;font-size:.66rem;font-weight:700;
+  letter-spacing:.06em;text-transform:uppercase;padding:5px 10px;border-radius:999px;
+  background:rgba(46,204,138,.14);color:var(--green)}
+.status-live .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+.panel-note{font-size:.8rem;color:var(--soft);margin:6px 0 18px}
+.widget-frame{border:1px solid var(--line);border-radius:12px;padding:28px 20px;
+  display:flex;align-items:center;justify-content:center;min-height:110px;background:var(--panel)}
+
+.entity-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  padding:22px 26px;margin-bottom:22px;display:none;flex-wrap:wrap;gap:24px}
+.entity-field{min-width:120px}
+.ef-label{font-size:.62rem;text-transform:uppercase;letter-spacing:.09em;color:var(--soft);margin-bottom:4px}
+.ef-value{font-size:.94rem;font-weight:700;color:var(--text)}
+.naics-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+.naics-chip{background:rgba(91,211,255,.1);border:1px solid rgba(91,211,255,.22);color:var(--cyan);
+  padding:3px 9px;border-radius:6px;font-size:.72rem;font-weight:700}
+.naics-chip.primary{background:var(--cyan);color:#0A1A3A}
+
+.section-label{font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);
+  margin:0 0 12px;display:none;align-items:center;gap:10px}
+.section-label::after{content:"";flex:1;height:1px;background:var(--line)}
+
+.rank-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  padding:20px 24px;margin-bottom:12px;position:relative;transition:border-color .2s,box-shadow .2s}
+.rank-card.rank-1{border-color:var(--cyan);border-width:2px}
+.rank-card.opened{box-shadow:0 0 0 2px var(--cyan)}
+.rank-badge{position:absolute;top:-11px;left:20px;font-weight:700;font-size:.68rem;letter-spacing:.06em;
+  text-transform:uppercase;padding:3px 12px;border-radius:20px}
+.rank-badge.r1{background:var(--cyan);color:#0A1A3A}
+.rank-badge.r2{background:rgba(46,204,138,.9);color:#0A1A3A}
+.rank-badge.r3{background:var(--surface);border:1px solid var(--gold);color:var(--gold)}
+.rank-badge.r4,.rank-badge.r5{background:var(--surface);border:1px solid var(--line2);color:var(--muted)}
+.opp-title{font-size:.96rem;font-weight:700;line-height:1.35;margin:6px 0 3px}
+.opp-agency{font-size:.76rem;color:var(--muted);margin-bottom:12px}
+.opp-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.chip{display:inline-flex;align-items:center;padding:4px 9px;border-radius:6px;font-size:.68rem;font-weight:700}
+.chip-naics{background:rgba(91,211,255,.1);border:1px solid rgba(91,211,255,.22);color:var(--cyan)}
+.chip-deadline{background:rgba(240,165,0,.14);border:1px solid rgba(240,165,0,.28);color:#ffc96b}
+.chip-setaside{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.13);color:var(--muted)}
+.score-row{display:flex;align-items:center;gap:10px}
+.score-num{font-size:1.5rem;font-weight:900;line-height:1}
+.score-num.bid{color:var(--green)}.score-num.conditional{color:var(--amber)}.score-num.no_bid{color:var(--red)}.score-num.plain{color:var(--text)}
+.rec-badge{padding:3px 9px;border-radius:5px;font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.rec-badge.bid{background:rgba(46,204,138,.18);color:var(--green)}
+.rec-badge.conditional{background:rgba(240,165,0,.15);color:var(--amber)}
+.rec-badge.no_bid{background:rgba(224,85,85,.14);color:var(--red)}
+
+.empty-state{border:1px dashed var(--line2);border-radius:14px;padding:40px 20px;text-align:center;color:var(--soft);font-size:.86rem}
+
+footer{border-top:1px solid var(--line);padding-top:20px;margin-top:30px;font-size:.72rem;color:var(--soft);line-height:1.7}
+footer code{background:rgba(91,211,255,.08);padding:1px 6px;border-radius:4px;font-size:.86em;color:var(--cyan)}
+</style>
+</head>
+<body>
+
+<div class="internal-banner">⚠ INTERNAL TEST BUILD — real SAM.gov + Analyze Fit pipeline, not linked from the live site nav.</div>
+
+<header>
+  <div class="brand">
+    <div class="brand-mark">NG</div>
+    <div>
+      <div class="brand-name">NGCC</div>
+      <div class="brand-sub">Voice Concierge</div>
+    </div>
+  </div>
+  <span class="badge-live"><span class="dot"></span>Live pipeline</span>
+</header>
+
+<div class="page">
+  <div class="eyebrow">Talk To Build Your Dashboard</div>
+  <h1>Tell the concierge your business name — watch your dashboard build itself.</h1>
+  <p class="lede">Nothing is pre-loaded. Start the conversation, give your business name, and the concierge pulls your real <b>capability profile</b> and <b>NAICS classification</b> from SAM.gov, scores today's open contracts against it, and walks you through the results — live.</p>
+
+  <div class="panel">
+    <div class="panel-head">
+      <h2>Talk to your concierge</h2>
+      <span class="status-live"><span class="dot"></span>Live</span>
+    </div>
+    <p class="panel-note">Click to start — allow microphone access when prompted.</p>
+    <div class="widget-frame">
+      <elevenlabs-convai id="convaiWidget" agent-id="agent_2101kz8gpaxmey5thz96ke4b59m1"></elevenlabs-convai>
+    </div>
+  </div>
+
+  <div class="entity-card" id="entityCard"></div>
+
+  <div class="section-label" id="matchesLabel">Best Fit Contracts</div>
+  <div id="cardsEl">
+    <div class="empty-state" id="emptyState">Nothing built yet — start talking to the concierge above.</div>
+  </div>
+
+  <footer>
+    Agent ID <code>agent_2101kz8gpaxmey5thz96ke4b59m1</code> · ElevenLabs Conversational AI · writes real rows to the production <code>demo_snapshots</code> table via <code>demo-create.js</code>.
+  </footer>
+</div>
+
+<script src="https://unpkg.com/@elevenlabs/convai-widget-embed" async></script>
+<script>
+'use strict';
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+var session = { viewToken: null, businessName: null, matches: [] };
+
+var RANK_LABELS = ['#1 Best Match','#2 Strong Match','#3 Match','#4 Match','#5 Match'];
+var RANK_CSS    = ['r1','r2','r3','r4','r5'];
+
+function fmtDeadline(o){
+  if (o.days_left == null) return 'No deadline listed';
+  if (o.days_left < 1) return 'Closing today';
+  return o.days_left + ' days left';
+}
+
+function scoreBand(score){
+  if (score >= 80) return { label: 'Strong fit', cls: 'bid' };
+  if (score >= 55) return { label: 'Possible fit', cls: 'conditional' };
+  return { label: 'Weak fit', cls: 'no_bid' };
+}
+
+function renderEntity(profile){
+  var chips = (profile.naics || []).map(function(n){
+    return '<span class="naics-chip' + (n.primary ? ' primary' : '') + '">' + esc(n.code) + (n.title ? ' — ' + esc(n.title) : '') + '</span>';
+  }).join('');
+  var card = document.getElementById('entityCard');
+  card.style.display = 'flex';
+  card.innerHTML =
+    '<div class="entity-field"><div class="ef-label">Business</div><div class="ef-value">' + esc(profile.legal_name) + '</div></div>' +
+    '<div class="entity-field"><div class="ef-label">Registration</div><div class="ef-value" style="color:var(--green)">● ' + esc(profile.sam_status || 'Active') + '</div></div>' +
+    (profile.city ? '<div class="entity-field"><div class="ef-label">Location</div><div class="ef-value">' + esc([profile.city, profile.state].filter(Boolean).join(', ')) + '</div></div>' : '') +
+    '<div class="entity-field" style="min-width:280px"><div class="ef-label">NAICS Classification</div><div class="naics-chips">' + (chips || '<span class="naics-chip">None on file</span>') + '</div></div>';
+}
+
+function renderMatches(topMatches, analysis){
+  document.getElementById('matchesLabel').style.display = 'flex';
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('cardsEl').innerHTML = topMatches.map(function(o, i){
+    var hasAnalysis = i === 0 && analysis;
+    var recClass = hasAnalysis ? ({BID:'bid',CONDITIONAL:'conditional',NO_BID:'no_bid'}[analysis.recommendation] || 'conditional') : 'plain';
+    var band = hasAnalysis ? null : scoreBand(o.match_score);
+    return '<div class="rank-card' + (i===0 ? ' rank-1' : '') + '" id="card-' + esc(o.notice_id) + '">' +
+      '<div class="rank-badge ' + RANK_CSS[Math.min(i,4)] + '">' + RANK_LABELS[Math.min(i,4)] + '</div>' +
+      '<h3 class="opp-title">' + esc(o.title) + '</h3>' +
+      '<div class="opp-agency">' + esc(o.agency || 'Agency not listed') + '</div>' +
+      '<div class="opp-chips">' +
+        '<span class="chip chip-naics">NAICS ' + esc(o.naics || '—') + '</span>' +
+        '<span class="chip chip-deadline">' + esc(fmtDeadline(o)) + '</span>' +
+        '<span class="chip chip-setaside">' + esc(o.set_aside || 'Unrestricted') + '</span>' +
+      '</div>' +
+      '<div class="score-row">' +
+        '<span class="score-num ' + recClass + '">' + (hasAnalysis ? analysis.fit_score : o.match_score) + '</span>' +
+        (hasAnalysis
+          ? '<span class="rec-badge ' + recClass + '">' + esc(analysis.recommendation.replace('_',' ')) + '</span>'
+          : '<span class="rec-badge ' + recClass + '">' + band.label + '</span>') +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+// ── ElevenLabs client tools ────────────────────────────────────────────
+var widget = document.getElementById('convaiWidget');
+widget.addEventListener('elevenlabs-convai:call', function(event){
+  event.detail.config.clientTools = {
+
+    resolve_business: async function(params){
+      var businessName = (params && params.business_name) || '';
+      var state = (params && params.state) || '';
+      try {
+        var res = await fetch('/.netlify/functions/demo-lookup', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ businessName: businessName, state: state })
+        });
+        var data = await res.json();
+        if (!res.ok) return JSON.stringify({ error: data.error || 'Lookup failed' });
+        return JSON.stringify({ candidates: data.candidates || [] });
+      } catch(e) {
+        return JSON.stringify({ error: 'Lookup request failed: ' + e.message });
+      }
+    },
+
+    create_dashboard: async function(params){
+      var uei = params && params.uei;
+      var businessName = params && params.business_name;
+      var firstName = params && params.first_name;
+      var lastName = params && params.last_name;
+      var email = params && params.email;
+      if (!uei || !businessName || !firstName || !email) {
+        return JSON.stringify({ status: 'error', message: 'Missing required field(s) — need uei, business_name, first_name, email.' });
+      }
+      try {
+        var createRes = await fetch('/.netlify/functions/demo-create', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ uei: uei, businessName: businessName, firstName: firstName, lastName: lastName || '', email: email })
+        });
+        var createData = await createRes.json();
+        if (!createRes.ok || !createData.view_token) {
+          return JSON.stringify({ status: 'error', message: createData.error || 'Could not start dashboard build.' });
+        }
+        var viewToken = createData.view_token;
+
+        var deadline = Date.now() + 50000;
+        while (Date.now() < deadline) {
+          await new Promise(function(r){ setTimeout(r, 2000); });
+          var pollRes = await fetch('/.netlify/functions/demo-get?t=' + encodeURIComponent(viewToken));
+          if (!pollRes.ok) continue;
+          var snap = await pollRes.json();
+          if (snap.status === 'complete') {
+            session.viewToken = viewToken;
+            session.businessName = snap.business_name;
+            session.matches = snap.opportunities || [];
+            renderEntity(snap.profile);
+            renderMatches(session.matches, snap.analysis);
+            return JSON.stringify({
+              status: 'complete',
+              business_name: snap.profile.legal_name,
+              city: snap.profile.city, state: snap.profile.state,
+              naics: snap.profile.naics, primary_naics: snap.profile.primary_naics,
+              match_count: session.matches.length,
+              additional_match_count: snap.additional_match_count || 0,
+              top_matches: session.matches.map(function(o, i){
+                return {
+                  rank: i + 1, notice_id: o.notice_id, agency: o.agency, title: o.title,
+                  naics: o.naics, set_aside: o.set_aside, days_left: o.days_left,
+                  match_score: o.match_score,
+                  analysis: (i === 0 && snap.analysis) ? snap.analysis : null
+                };
+              })
+            });
+          }
+          if (snap.status === 'not_registered') return JSON.stringify({ status: 'not_registered' });
+          if (snap.status === 'failed') return JSON.stringify({ status: 'failed' });
+        }
+        return JSON.stringify({ status: 'timeout' });
+      } catch(e) {
+        return JSON.stringify({ status: 'error', message: e.message });
+      }
+    },
+
+    open_contract: async function(params){
+      var noticeId = params && params.notice_id;
+      var contract = session.matches.find(function(o){ return o.notice_id === noticeId; });
+      if (!contract || !session.viewToken) return 'No open contract found for that notice_id — has the dashboard finished building yet?';
+      window.open('/analyze-fit?id=' + encodeURIComponent(noticeId) + '&t=' + encodeURIComponent(session.viewToken), '_blank', 'width=960,height=880');
+      var el = document.getElementById('card-' + noticeId);
+      if (el) el.classList.add('opened');
+      return 'Opened a new window with the full contract and match analysis for "' + contract.title + '" (' + contract.agency + ').';
+    }
+  };
+});
+</script>
+</body>
+</html>
