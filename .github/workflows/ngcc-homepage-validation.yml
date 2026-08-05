@@ -50,6 +50,18 @@ jobs:
           grep -Fq 'from = "/member-login"' netlify.toml
           grep -Fq 'to = "/onboarding.html"' netlify.toml
 
+      - name: Verify external free-trial endpoint
+        run: |
+          curl \
+            --fail \
+            --location \
+            --silent \
+            --show-error \
+            --retry 3 \
+            --retry-delay 2 \
+            --output /dev/null \
+            https://ai4-product-purchasing.ai4businesses.org/ngcc-offer.html
+
       - name: Capture desktop and mobile review screenshots
         run: |
           set -euo pipefail
@@ -87,6 +99,7 @@ jobs:
           Duplicate ID check: PASS
           Internal anchor check: PASS
           HTTPS link check: PASS
+          External 14-day free-trial endpoint: PASS
           Prohibited state-only/free-offer language check: PASS
           robots.txt and sitemap.xml retrieval: PASS
           Hero image repository asset check: PASS
