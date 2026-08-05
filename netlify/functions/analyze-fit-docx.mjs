@@ -24,7 +24,7 @@ export const handler=async event=>{
   if(!opportunityId)return json(400,{error:'opportunityId required'});
   try{
     const ae=encodeURIComponent(account.email),oid=encodeURIComponent(opportunityId);
-    const rows=await sbGet(`opportunity_analyses?account_email=eq.${ae}&opportunity_id=eq.${oid}&status=eq.complete&order=updated_at.desc&limit=1`);
+    const rows=await sbGet(`opportunity_analyses?account_email=eq.${ae}&opportunity_id=eq.${oid}&status=eq.complete&order=created_at.desc&limit=1`);
     const row=rows[0];if(!row)return json(404,{error:'Completed Analyze Fit report not found.'});
     const profile=await loadProfile(account);if(!profile)return json(409,{error:'Business profile not found.'});
     const oppRows=await sbGet(`sam_opportunities?notice_id=eq.${oid}&limit=1`);
