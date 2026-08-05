@@ -1,0 +1,104 @@
+name: NGCC Homepage Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "index.html"
+      - "robots.txt"
+      - "sitemap.xml"
+      - "tests/homepage-seo-validation.mjs"
+      - ".github/workflows/ngcc-homepage-validation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-and-capture:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+
+      - name: Validate metadata, schema, headings, and internal links
+        run: node tests/homepage-seo-validation.mjs
+
+      - name: Start local review server
+        run: |
+          python3 -m http.server 8000 --bind 127.0.0.1 > /tmp/ngcc-http.log 2>&1 &
+          echo $! > /tmp/ngcc-http.pid
+          for attempt in {1..20}; do
+            if curl --fail --silent http://127.0.0.1:8000/ > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/ngcc-http.log
+          exit 1
+
+      - name: Verify crawl files and primary static resources
+        run: |
+          set -euo pipefail
+          curl --fail --silent http://127.0.0.1:8000/ > /tmp/ngcc-homepage.html
+          curl --fail --silent http://127.0.0.1:8000/robots.txt > /tmp/ngcc-robots.txt
+          curl --fail --silent http://127.0.0.1:8000/sitemap.xml > /tmp/ngcc-sitemap.xml
+          test -s headquarters.webp
+          grep -Fq 'Sitemap: https://ngcc.aproposgroupllc.com/sitemap.xml' /tmp/ngcc-robots.txt
+          grep -Fq '<loc>https://ngcc.aproposgroupllc.com/</loc>' /tmp/ngcc-sitemap.xml
+          grep -Fq 'from = "/member-login"' netlify.toml
+          grep -Fq 'to = "/onboarding.html"' netlify.toml
+
+      - name: Capture desktop and mobile review screenshots
+        run: |
+          set -euo pipefail
+          mkdir -p validation-artifacts
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser)"
+          "$CHROME" \
+            --headless \
+            --no-sandbox \
+            --disable-gpu \
+            --hide-scrollbars \
+            --virtual-time-budget=5000 \
+            --window-size=1440,1200 \
+            --screenshot=validation-artifacts/ngcc-desktop-1440x1200.png \
+            http://127.0.0.1:8000/
+          "$CHROME" \
+            --headless \
+            --no-sandbox \
+            --disable-gpu \
+            --hide-scrollbars \
+            --virtual-time-budget=5000 \
+            --window-size=390,844 \
+            --screenshot=validation-artifacts/ngcc-mobile-390x844.png \
+            http://127.0.0.1:8000/
+          file validation-artifacts/*.png
+
+      - name: Write validation report
+        run: |
+          cat > validation-artifacts/validation-report.txt <<'REPORT'
+          NGCC HOMEPAGE VALIDATION
+          ========================
+          Metadata validation: PASS
+          JSON-LD parse and required schema types: PASS
+          Offer price/currency/monthly duration/14-day trial fields: PASS
+          Exactly one H1: PASS
+          Duplicate ID check: PASS
+          Internal anchor check: PASS
+          HTTPS link check: PASS
+          Prohibited state-only/free-offer language check: PASS
+          robots.txt and sitemap.xml retrieval: PASS
+          Hero image repository asset check: PASS
+          Netlify member-login redirect configuration check: PASS
+          Desktop screenshot: ngcc-desktop-1440x1200.png
+          Mobile screenshot: ngcc-mobile-390x844.png
+          REPORT
+
+      - name: Upload validation evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: ngcc-homepage-validation-${{ github.event.pull_request.head.sha }}
+          path: validation-artifacts/
+          if-no-files-found: error
+          retention-days: 30
