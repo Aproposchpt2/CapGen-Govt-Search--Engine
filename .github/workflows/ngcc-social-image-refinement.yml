@@ -1,0 +1,68 @@
+name: NGCC Social Image Refinement
+
+on:
+  push:
+    branches: [fix-ngcc-production-metadata-v1]
+    paths: [".github/workflows/ngcc-social-image-refinement.yml"]
+
+permissions:
+  contents: write
+
+jobs:
+  refine-social-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build social image from preserved NGCC hero
+        run: |
+          python3 -m pip install --quiet Pillow
+          python3 - <<'PY'
+          from PIL import Image, ImageDraw, ImageFont
+          from pathlib import Path
+
+          W, H = 1200, 630
+          hero = Image.open('headquarters.webp').convert('RGB')
+          scale = max(W / hero.width, H / hero.height)
+          hero = hero.resize((round(hero.width * scale), round(hero.height * scale)), Image.Resampling.LANCZOS)
+          left = max(0, hero.width - W)
+          top = max(0, (hero.height - H) // 2)
+          canvas = hero.crop((left, top, left + W, top + H)).convert('RGBA')
+
+          overlay = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+          px = overlay.load()
+          for x in range(W):
+              alpha = int(210 - 110 * (x / W))
+              for y in range(H):
+                  px[x, y] = (4, 18, 43, max(80, alpha))
+          canvas = Image.alpha_composite(canvas, overlay)
+          draw = ImageDraw.Draw(canvas)
+
+          serif = '/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf'
+          bold = '/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf'
+          sans = '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'
+          sans_bold = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
+          def f(path, size): return ImageFont.truetype(path, size)
+
+          gold = (232, 201, 130, 255)
+          white = (255, 255, 255, 255)
+          soft = (225, 232, 242, 255)
+          draw.rounded_rectangle((54, 48, 138, 132), radius=9, outline=gold, width=3, fill=(4, 18, 43, 185))
+          draw.text((74, 68), 'NG', font=f(bold, 27), fill=gold)
+          draw.text((58, 170), 'NATIONAL GOVERNMENT', font=f(serif, 48), fill=white)
+          draw.text((58, 232), 'CONTRACT CENTER', font=f(bold, 65), fill=white)
+          draw.text((60, 345), 'Federal Contract Matching for Registered Contractors', font=f(sans_bold, 24), fill=gold)
+          draw.text((60, 395), 'Guided onboarding • Personalized matches • Intelligent rankings', font=f(sans, 18), fill=soft)
+          draw.text((60, 430), '14-day free trial • $99 per month', font=f(sans, 18), fill=soft)
+          draw.rectangle((0, 526, W, H), fill=(3, 11, 28, 225))
+          draw.text((60, 566), 'OPPORTUNITY BUILDS BUSINESS. BUSINESS BUILDS COMMUNITY.', font=f(sans_bold, 17), fill=gold)
+          canvas.convert('RGB').save('og-ngcc.jpg', 'JPEG', quality=84, optimize=True, progressive=True, subsampling=2)
+          assert Image.open('og-ngcc.jpg').size == (1200, 630)
+          PY
+      - name: Commit refined asset
+        run: |
+          git config user.name "APROPOS Automation"
+          git config user.email "actions@users.noreply.github.com"
+          git rm .github/workflows/ngcc-social-image-refinement.yml
+          git add og-ngcc.jpg
+          git commit -m "Use preserved NGCC hero imagery for social card"
+          git push origin HEAD:fix-ngcc-production-metadata-v1
