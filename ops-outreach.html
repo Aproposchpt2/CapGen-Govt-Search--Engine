@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NGCC — Operator Outreach</title>
+<meta name="robots" content="noindex,nofollow"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;1,6..96,400&family=Cormorant:ital,wght@1,500&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#0F2A6A;--white:#FFFFFF;--silver:#C3D0E8;--gold:#D5AE55;--green:#3EE391;--red:#FF6969;
+  --line:rgba(255,255,255,.12);--line-2:rgba(255,255,255,.22);
+  --disp:'Bodoni Moda',Georgia,serif;--sub:'Cormorant',Georgia,serif;--body:'Jost',sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--body);color:rgba(255,255,255,.82);font-weight:300;line-height:1.6;
+  min-height:100vh;background:var(--ink)}
+a{color:inherit}
+.wrap{max-width:1080px;margin:0 auto;padding:32px 20px 80px}
+.brand{display:flex;align-items:center;gap:11px;margin-bottom:26px}
+.mark{width:38px;height:38px;border:1px solid rgba(213,174,85,.4);border-radius:9px;
+  display:grid;place-items:center;font-family:var(--disp);font-size:.72rem;
+  color:var(--gold);font-weight:700;background:rgba(213,174,85,.08)}
+.bname{font-family:var(--disp);font-size:1.18rem;color:var(--white);line-height:1}
+.bsub{font-size:.52rem;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.35);font-weight:500}
+.eyebrow{font-size:10px;font-weight:500;letter-spacing:.22em;text-transform:uppercase;
+  color:rgba(255,255,255,.4);margin-bottom:10px}
+h1{font-family:var(--disp);font-weight:400;font-size:1.9rem;color:var(--white);margin-bottom:8px}
+h2{font-family:var(--disp);font-weight:400;font-size:1.3rem;color:var(--white);margin-bottom:4px}
+.desc{color:rgba(255,255,255,.55);font-size:.9rem;margin-bottom:18px}
+.card{background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:10px;padding:22px;margin-bottom:20px}
+label{display:block;font-size:.58rem;font-weight:600;letter-spacing:.14em;
+  text-transform:uppercase;color:rgba(255,255,255,.4);margin:0 0 7px}
+input,select{width:100%;font-family:var(--body);font-size:.94rem;font-weight:300;color:#fff;
+  background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:4px;
+  padding:.72rem .85rem;margin-bottom:14px}
+input:focus,select:focus{outline:none;border-color:rgba(255,255,255,.38)}
+.row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
+.row>div{flex:1;min-width:160px}
+.btn{background:var(--white);color:var(--ink);font-family:var(--body);
+  font-weight:600;font-size:.76rem;letter-spacing:.14em;text-transform:uppercase;
+  border:none;border-radius:4px;padding:.82rem 1.3rem;cursor:pointer}
+.btn:hover:not(:disabled){background:#EEF3FF}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.secondary{background:transparent;color:#fff;border:1px solid var(--line-2)}
+.btn.good{background:var(--green);color:#04331b}
+.msg{margin-top:10px;font-size:.84rem}
+.msg.err{color:var(--red)}.msg.ok{color:var(--green)}
+table{width:100%;border-collapse:collapse;font-size:.84rem;margin-top:6px}
+th{text-align:left;color:rgba(255,255,255,.4);font-size:.62rem;text-transform:uppercase;
+  letter-spacing:.08em;padding:8px 6px;border-bottom:1px solid var(--line-2)}
+td{padding:9px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+td small{color:rgba(255,255,255,.4)}
+.pill{display:inline-flex;padding:3px 8px;border-radius:6px;font-size:.62rem;font-weight:700;
+  text-transform:uppercase;letter-spacing:.05em}
+.pill.hot{background:rgba(255,105,105,.15);color:var(--red)}
+.pill.warm{background:rgba(213,174,85,.15);color:var(--gold)}
+.pill.ok{background:rgba(195,208,232,.15);color:var(--silver)}
+.pill.found{background:rgba(62,227,145,.15);color:var(--green)}
+.pill.notfound{background:rgba(255,255,255,.08);color:rgba(255,255,255,.45)}
+.pill.sent{background:rgba(62,227,145,.15);color:var(--green)}
+.pill.failed{background:rgba(255,105,105,.15);color:var(--red)}
+.selected-row{background:rgba(213,174,85,.06)}
+.opp-item{border:1px solid var(--line);border-radius:8px;padding:14px 16px;margin-bottom:8px;cursor:pointer}
+.opp-item:hover{border-color:var(--line-2)}
+.opp-item.active{border-color:var(--gold);background:rgba(213,174,85,.06)}
+.opp-title{color:#fff;font-size:.92rem;font-weight:500;margin-bottom:4px}
+.opp-meta{font-size:.74rem;color:rgba(255,255,255,.45)}
+.contract-banner{background:rgba(213,174,85,.08);border:1px solid rgba(213,174,85,.25);
+  border-radius:8px;padding:14px 16px;margin-bottom:16px;font-size:.84rem}
+.test-note{font-size:.72rem;color:var(--gold);margin-top:10px}
+.hidden{display:none!important}
+#gate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+#gate .card{width:min(420px,100%)}
+.count-chip{display:inline-flex;padding:4px 9px;border-radius:6px;background:rgba(255,255,255,.08);
+  color:rgba(255,255,255,.6);font-size:.68rem;font-weight:700;margin-left:8px}
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <div class="card">
+    <div class="brand"><div class="mark">NG</div><div><div class="bname">NGCC Ops</div><div class="bsub">Internal — Not Public</div></div></div>
+    <p class="eyebrow">Operator Access</p>
+    <h1>Enter <em>operator password.</em></h1>
+    <p class="desc">This tool is not part of the public or subscriber-facing site.</p>
+    <label for="pw">Password</label>
+    <input id="pw" type="password" autocomplete="current-password" placeholder="••••••••">
+    <button class="btn" id="unlockBtn">Unlock →</button>
+    <div class="msg" id="gateMsg"></div>
+  </div>
+</div>
+
+<div id="app" class="wrap hidden">
+  <div class="brand"><div class="mark">NG</div><div><div class="bname">NGCC Ops — Business Discovery &amp; Outreach</div><div class="bsub">Internal — Not Public</div></div></div>
+
+  <div class="card">
+    <p class="eyebrow">Step 1 · Contract</p>
+    <h2>Find a federal opportunity by NAICS</h2>
+    <p class="desc">SAM.gov Opportunities — the same source already used on the public site.</p>
+    <div class="row">
+      <div><label for="naics">NAICS code</label><input id="naics" placeholder="e.g. 541512"></div>
+      <div style="flex:0 0 auto"><button class="btn" id="findOppsBtn">Search Opportunities</button></div>
+    </div>
+    <div class="msg" id="oppsMsg"></div>
+    <div id="oppsList"></div>
+  </div>
+
+  <div id="contractorsCard" class="card hidden">
+    <p class="eyebrow">Step 2 · Contract Selected</p>
+    <div id="contractBanner" class="contract-banner"></div>
+    <h2>Registered contractors <span class="count-chip" id="contractorCount">0</span></h2>
+    <p class="desc">SAM.gov Entity Management, filtered by this contract's NAICS code — the same source, for the contractor side.</p>
+    <div class="row">
+      <div><label for="stateFilter">State filter (optional)</label><input id="stateFilter" placeholder="e.g. NV" maxlength="2"></div>
+      <div style="flex:0 0 auto"><button class="btn" id="findContractorsBtn">Find Registered Contractors</button></div>
+    </div>
+    <div class="msg" id="contractorsMsg"></div>
+    <div id="contractorsTable"></div>
+    <div class="row" style="margin-top:14px">
+      <div style="flex:0 0 auto"><button class="btn secondary" id="findEmailsBtn" disabled>Find Emails for All (AI web search)</button></div>
+      <div style="flex:0 0 auto"><button class="btn good" id="sendBtn" disabled>Send Opportunity to Selected (<span id="selCount">0</span>)</button></div>
+    </div>
+    <div class="test-note">TEST MODE is active — every send currently routes to the operator inbox, not the real business.</div>
+    <div class="msg" id="sendMsg"></div>
+  </div>
+</div>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let opsToken = sessionStorage.getItem('ngcc_ops_token') || '';
+let selectedOpp = null;
+let contractors = [];   // [{ueiSAM,businessName,city,state, email, source_url, confidence, checked, sendStatus}]
+
+function authHeaders() { return opsToken ? { authorization: `Bearer ${opsToken}` } : {}; }
+
+async function request(url, options = {}) {
+  const res = await fetch(url, { cache: 'no-store', ...options, headers: { ...(options.body ? {'content-type':'application/json'} : {}), ...authHeaders(), ...(options.headers||{}) } });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.ok === false) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}
+
+async function tryRestoreSession() {
+  if (!opsToken) return;
+  try {
+    const d = await request('/.netlify/functions/ngcc-ops-auth');
+    if (d.ok) { $('gate').classList.add('hidden'); $('app').classList.remove('hidden'); }
+    else { sessionStorage.removeItem('ngcc_ops_token'); opsToken = ''; }
+  } catch { sessionStorage.removeItem('ngcc_ops_token'); opsToken = ''; }
+}
+
+$('unlockBtn').onclick = async () => {
+  const m = $('gateMsg'); m.className = 'msg'; m.textContent = '';
+  const password = $('pw').value;
+  if (!password) return;
+  $('unlockBtn').disabled = true; $('unlockBtn').textContent = 'Unlocking…';
+  try {
+    const res = await fetch('/.netlify/functions/ngcc-ops-auth', { method: 'POST', headers: {'content-type':'application/json'}, body: JSON.stringify({ password }) });
+    const d = await res.json();
+    if (!res.ok || !d.ok) throw new Error(d.error || 'Incorrect password.');
+    opsToken = d.token;
+    sessionStorage.setItem('ngcc_ops_token', opsToken);
+    $('gate').classList.add('hidden'); $('app').classList.remove('hidden');
+  } catch (e) {
+    m.className = 'msg err'; m.textContent = e.message;
+  } finally { $('unlockBtn').disabled = false; $('unlockBtn').textContent = 'Unlock →'; }
+};
+$('pw').addEventListener('keydown', e => { if (e.key === 'Enter') $('unlockBtn').click(); });
+
+function urgencyPill(u) {
+  if (u === 'hot') return '<span class="pill hot">Due soon</span>';
+  if (u === 'warm') return '<span class="pill warm">Warm</span>';
+  return '<span class="pill ok">Open</span>';
+}
+
+$('findOppsBtn').onclick = async () => {
+  const m = $('oppsMsg'); m.className = 'msg'; m.textContent = '';
+  const naics = $('naics').value.trim();
+  if (!naics) { m.className = 'msg err'; m.textContent = 'Enter a NAICS code.'; return; }
+  $('findOppsBtn').disabled = true; $('findOppsBtn').textContent = 'Searching…';
+  $('oppsList').innerHTML = '';
+  $('contractorsCard').classList.add('hidden');
+  try {
+    const d = await request(`/.netlify/functions/ngcc-ops-sam-opportunities?naics=${encodeURIComponent(naics)}&limit=50`);
+    if (d.error) throw new Error(d.message || 'SAM.gov search failed.');
+    if (!d.results.length) { m.className = 'msg'; m.textContent = 'No active opportunities found for that NAICS code.'; return; }
+    $('oppsList').innerHTML = d.results.map((o, i) => `<div class="opp-item" data-i="${i}"><div class="opp-title">${esc(o.title)}</div><div class="opp-meta">${esc(o.agency)} · NAICS ${esc(o.naicsCode)} · Deadline ${esc(o.responseDeadline||'Unavailable')} ${urgencyPill(o.urgency)}</div></div>`).join('');
+    [...$('oppsList').children].forEach((el, i) => el.onclick = () => selectOpportunity(d.results[i], el));
+  } catch (e) {
+    m.className = 'msg err'; m.textContent = e.message;
+  } finally { $('findOppsBtn').disabled = false; $('findOppsBtn').textContent = 'Search Opportunities'; }
+};
+
+function selectOpportunity(opp, el) {
+  selectedOpp = opp;
+  [...$('oppsList').children].forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  $('contractBanner').innerHTML = `<strong>${esc(opp.title)}</strong><br>${esc(opp.agency)} · NAICS ${esc(opp.naicsCode)} · Deadline ${esc(opp.responseDeadline||'Unavailable')}<br><a href="${esc(opp.samUrl)}" target="_blank" rel="noopener" style="color:#C3D0E8">View on SAM.gov ↗</a>`;
+  $('contractorsCard').classList.remove('hidden');
+  $('contractorsTable').innerHTML = '';
+  $('contractorCount').textContent = '0';
+  $('findEmailsBtn').disabled = true;
+  $('sendBtn').disabled = true;
+  contractors = [];
+  renderContractors();
+  $('contractorsCard').scrollIntoView({ behavior: 'smooth' });
+}
+
+function renderContractors() {
+  $('contractorCount').textContent = contractors.length;
+  const selCount = contractors.filter(c => c.checked && c.email).length;
+  $('selCount').textContent = selCount;
+  $('sendBtn').disabled = !selCount;
+  $('findEmailsBtn').disabled = !contractors.length;
+  if (!contractors.length) { $('contractorsTable').innerHTML = ''; return; }
+  $('contractorsTable').innerHTML = `<table><thead><tr><th></th><th>Business</th><th>UEI</th><th>Email</th><th>Status</th></tr></thead><tbody>${contractors.map((c, i) => `<tr class="${c.checked?'selected-row':''}"><td>${c.email?`<input type="checkbox" ${c.checked?'checked':''} onchange="window.__toggle(${i},this.checked)">`:''}</td><td><strong>${esc(c.businessName)}</strong><br><small>${esc([c.city,c.state].filter(Boolean).join(', ')||'')}</small></td><td><small>${esc(c.ueiSAM||'—')}</small></td><td>${c.email?esc(c.email):'<small>Not searched</small>'}</td><td>${emailStatusPill(c)}</td></tr>`).join('')}</tbody></table>`;
+}
+function emailStatusPill(c) {
+  if (c.sendStatus === 'SENT') return '<span class="pill sent">Sent</span>';
+  if (c.sendStatus === 'ALREADY_SENT') return '<span class="pill sent">Already sent</span>';
+  if (c.sendStatus === 'FAILED') return '<span class="pill failed">Failed</span>';
+  if (c.email) return `<span class="pill found">${esc(c.confidence||'Found')}</span>`;
+  if (c.searched) return '<span class="pill notfound">Not found</span>';
+  return '';
+}
+window.__toggle = (i, checked) => { contractors[i].checked = checked; renderContractors(); };
+
+$('findContractorsBtn').onclick = async () => {
+  const m = $('contractorsMsg'); m.className = 'msg'; m.textContent = '';
+  if (!selectedOpp) return;
+  $('findContractorsBtn').disabled = true; $('findContractorsBtn').textContent = 'Searching SAM.gov…';
+  try {
+    const d = await request('/.netlify/functions/ngcc-sam-entity-search', { method: 'POST', body: JSON.stringify({ naicsCode: selectedOpp.naicsCode, state: $('stateFilter').value.trim() }) });
+    contractors = (d.entities || []).map(e => ({ ...e, email: null, source_url: null, confidence: null, searched: false, checked: false, sendStatus: null }));
+    if (!contractors.length) m.textContent = 'No active SAM.gov registrants found for this NAICS code.';
+    renderContractors();
+  } catch (e) {
+    m.className = 'msg err'; m.textContent = e.message;
+  } finally { $('findContractorsBtn').disabled = false; $('findContractorsBtn').textContent = 'Find Registered Contractors'; }
+};
+
+$('findEmailsBtn').onclick = async () => {
+  const m = $('contractorsMsg'); m.className = 'msg'; m.textContent = '';
+  $('findEmailsBtn').disabled = true;
+  const pending = contractors.filter(c => !c.searched);
+  let done = 0;
+  const CONCURRENCY = 2; // AI web-search calls — kept modest to avoid rate limits
+  async function worker() {
+    while (pending.length) {
+      const c = pending.shift();
+      $('findEmailsBtn').textContent = `Finding emails… (${++done}/${contractors.filter(x=>!x.searched).length + done})`;
+      try {
+        const d = await request('/.netlify/functions/ngcc-ops-find-email', { method: 'POST', body: JSON.stringify({ business_name: c.businessName, city: c.city, state: c.state }) });
+        c.email = d.email; c.source_url = d.source_url; c.confidence = d.confidence; c.checked = Boolean(d.email);
+      } catch (e) { c.email = null; }
+      c.searched = true;
+      renderContractors();
+    }
+  }
+  await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+  $('findEmailsBtn').textContent = 'Find Emails for All (AI web search)';
+  $('findEmailsBtn').disabled = false;
+  const found = contractors.filter(c => c.email).length;
+  m.className = 'msg ok'; m.textContent = `Found ${found} of ${contractors.length} public contact emails.`;
+};
+
+$('sendBtn').onclick = async () => {
+  const m = $('sendMsg'); m.className = 'msg'; m.textContent = '';
+  const selected = contractors.filter(c => c.checked && c.email);
+  if (!selected.length || !selectedOpp) return;
+  if (!confirm(`Send this opportunity introduction to ${selected.length} business(es)? TEST MODE is active — every message will route to your own inbox, not the real businesses.`)) return;
+  $('sendBtn').disabled = true; $('sendBtn').textContent = 'Sending…';
+  try {
+    const d = await request('/.netlify/functions/ngcc-ops-outreach', {
+      method: 'POST',
+      body: JSON.stringify({
+        contract: { noticeId: selectedOpp.noticeId, title: selectedOpp.title, agency: selectedOpp.agency, naicsCode: selectedOpp.naicsCode, responseDeadline: selectedOpp.responseDeadline, samUrl: selectedOpp.samUrl },
+        candidates: selected.map(c => ({ business_name: c.businessName, contact_email: c.email, ueiSAM: c.ueiSAM })),
+      }),
+    });
+    const byName = new Map(d.results.map(r => [r.business_name, r.outcome]));
+    contractors.forEach(c => { if (byName.has(c.businessName)) c.sendStatus = byName.get(c.businessName); });
+    const s = d.summary || {};
+    m.className = (s.FAILED || 0) ? 'msg err' : 'msg ok';
+    m.textContent = `Sent: ${s.SENT||0} · Already sent: ${s.ALREADY_SENT||0} · Failed: ${s.FAILED||0} · Skipped: ${s.SKIPPED_NO_EMAIL||0}`;
+    renderContractors();
+  } catch (e) {
+    m.className = 'msg err'; m.textContent = e.message;
+  } finally { $('sendBtn').disabled = false; $('sendBtn').textContent = `Send Opportunity to Selected (${contractors.filter(c=>c.checked&&c.email).length})`; }
+};
+
+tryRestoreSession();
+</script>
+</body>
+</html>

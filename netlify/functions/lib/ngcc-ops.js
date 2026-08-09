@@ -1,0 +1,140 @@
+// NGCC — shared helpers for the internal (non-public-facing) operator
+// outreach tools: ngcc-ops-auth, ngcc-sam-entity-search, ngcc-ops-find-email,
+// ngcc-ops-outreach, ngcc-unsubscribe.
+//
+// This is a DIFFERENT feature from send-contractor-outreach.js /
+// import-active-contractors.js / enricher-hunter.js, which already exist in
+// this repo and run a general "sign up for NGCC" campaign against a bulk
+// SAM.gov import (contractors / contractor_contacts / email_batch tables).
+// This tool instead matches ONE specific contract opportunity to real
+// SAM-registered contractors and emails THAT opportunity to them, on
+// demand, from a password-gated internal page — same shape as the
+// BusinessContracts bulk-outreach feature. Separate tables
+// (ngcc_outreach_events), separate functions, so it can't collide with the
+// existing campaign machinery.
+//
+// Reuses existing site infrastructure rather than provisioning new secrets:
+//   AUTH_TOKEN_SECRET  — already set on this site, unused elsewhere in the
+//                        codebase as of 2026-08-09. Reused here as the HMAC
+//                        key for both the ops session token and the
+//                        unsubscribe link token.
+//   MAILING_ADDRESS    — already set. Used in the outreach email footer for
+//                        CAN-SPAM compliance.
+//   RESEND_TO_EMAIL    — already set. Used as the TEST MODE recipient.
+'use strict';
+
+const crypto = require('crypto');
+
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+const SAM_KEY = process.env.SAM_API_KEY;
+const SESSION_SECRET = process.env.AUTH_TOKEN_SECRET || '';
+const OPS_PASSWORD = process.env.NGCC_OPS_PASSWORD || '';
+const MAILING_ADDRESS = process.env.MAILING_ADDRESS || '';
+const TEST_RECIPIENT = process.env.RESEND_TO_EMAIL || '';
+const RESEND_FROM = process.env.RESEND_FROM_EMAIL || 'NGCC <noreply@ai4businesses.org>';
+const RESEND_KEY = process.env.RESEND_API_KEY;
+const OPENAI_KEY = process.env.OPENAI_API_KEY;
+const SITE_ORIGIN = 'https://ngcc.aproposgroupllc.com';
+const SESSION_TTL_SECONDS = 12 * 3600; // 12h — operator re-enters the password once per work session
+
+function json(statusCode, body, extraHeaders) {
+  return {
+    statusCode,
+    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...(extraHeaders || {}) },
+    body: JSON.stringify(body),
+  };
+}
+
+function sbHeaders() {
+  return { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' };
+}
+
+// Same-origin check for the internal ops endpoints — this tool is never
+// meant to be called cross-origin, unlike the existing public/campaign
+// functions in this repo which intentionally use CORS *.
+function sameOrigin(event) {
+  const headers = event.headers || {};
+  const origin = headers.origin || headers.Origin || headers.referer || headers.Referer || '';
+  if (!origin) return false;
+  try {
+    const u = new URL(origin);
+    return u.origin === SITE_ORIGIN || u.hostname === 'localhost';
+  } catch { return false; }
+}
+
+function hmacHex(secret, message) {
+  return crypto.createHmac('sha256', secret).update(message).digest('hex');
+}
+
+function sha256Hex(message) {
+  return crypto.createHash('sha256').update(message).digest('hex');
+}
+
+function issueOpsSession() {
+  const exp = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS;
+  const sig = hmacHex(SESSION_SECRET, `ops.${exp}`);
+  return { token: `${exp}.${sig}`, expires_at: new Date(exp * 1000).toISOString() };
+}
+
+// Verifies the Authorization: Bearer <exp>.<hmac> header. Stateless — no DB
+// round trip, so a leaked/expired token simply stops working at `exp`
+// rather than needing a revocation list.
+function verifyOpsSession(event) {
+  const headers = event.headers || {};
+  const header = headers.authorization || headers.Authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7).trim() : '';
+  const [expStr, sig] = token.split('.');
+  if (!expStr || !sig) return false;
+  const exp = Number(expStr);
+  if (!Number.isFinite(exp) || exp < Math.floor(Date.now() / 1000)) return false;
+  const expected = hmacHex(SESSION_SECRET, `ops.${exp}`);
+  return expected === sig;
+}
+
+function opsGuard(event) {
+  if (!sameOrigin(event)) return json(403, { ok: false, error: 'Same-origin request required.' });
+  if (!verifyOpsSession(event)) return json(401, { ok: false, error: 'Operator session required. Sign in again.' });
+  return null;
+}
+
+// Public-tier SAM.gov Entity Management search, filtered by NAICS code.
+// Confirmed against GSA's own API docs (2026-08-09): point-of-contact
+// email/phone/fax only exist at the FOUO tier, which is not reachable with
+// a non-federal Personal API Key — this deliberately only requests
+// entityRegistration + coreData (public tier). Email is found separately,
+// per-candidate, via ngcc-ops-find-email.js's web-search agent (this repo's
+// existing enricher-hunter.js uses Hunter.io domain search instead, for its
+// own, different bulk-campaign use case).
+async function samEntitySearchByNaics({ naicsCode, state, limit }) {
+  const params = new URLSearchParams({
+    api_key: SAM_KEY,
+    naicsCode,
+    registrationStatus: 'A',
+    includeSections: 'entityRegistration,coreData',
+    size: String(Math.min(limit || 25, 100)),
+  });
+  if (state) params.set('physicalAddressProvinceOrStateCode', state);
+  const res = await fetch(`https://api.sam.gov/entity-information/v3/entities?${params.toString()}`);
+  if (!res.ok) { const t = await res.text(); throw new Error(`SAM entity search ${res.status}: ${t.slice(0, 300)}`); }
+  const data = await res.json();
+  return (data.entityData || []).map(e => {
+    const reg = e.entityRegistration || {};
+    const core = e.coreData || {};
+    const addr = core.physicalAddress || core.mailingAddress || {};
+    return {
+      ueiSAM: reg.ueiSAM || '',
+      businessName: reg.legalBusinessName || reg.entityName || '',
+      cageCode: reg.cageCode || '',
+      city: addr.city || '',
+      state: addr.stateOrProvinceCode || '',
+    };
+  }).filter(e => e.businessName);
+}
+
+module.exports = {
+  SUPABASE_URL, SUPABASE_KEY, SAM_KEY, SESSION_SECRET, OPS_PASSWORD, MAILING_ADDRESS,
+  TEST_RECIPIENT, RESEND_FROM, RESEND_KEY, OPENAI_KEY, SITE_ORIGIN,
+  json, sbHeaders, sameOrigin, hmacHex, sha256Hex, issueOpsSession, verifyOpsSession, opsGuard,
+  samEntitySearchByNaics,
+};

@@ -127,6 +127,11 @@
   to = "/admin-leads.html"
   status = 200
 
+[[redirects]]
+  from = "/ops-outreach"
+  to = "/ops-outreach.html"
+  status = 200
+
 [[headers]]
   for = "/*"
   [headers.values]
