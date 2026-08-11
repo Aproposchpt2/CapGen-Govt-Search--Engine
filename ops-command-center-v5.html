@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>NGCC Command Center</title>
+</head>
+<body>
+<script>
+(async()=>{
+  try {
+    const res = await fetch('/ops-command-center-v3.html?v5=1', { cache: 'no-store' });
+    if (!res.ok) throw new Error(`Unable to load command center (${res.status}).`);
+    let html = await res.text();
+
+    const originalSave = "function saveEvidence(){if(ctx?.mission?.id)sessionStorage.setItem(key(ctx.mission.id),JSON.stringify(evidence))}";
+    const patchedSave = `function saveEvidence(){if(!ctx?.mission?.id)return;sessionStorage.setItem(key(ctx.mission.id),JSON.stringify(evidence));fetch('/.netlify/functions/ngcc-ops-mission-evidence',{method:'POST',headers:{'content-type':'application/json',...auth()},body:JSON.stringify({mission_id:ctx.mission.id,operational_state:evidence})}).catch(error=>console.error('[ngcc-mission-evidence]',error));}`;
+    const originalLoad = "function loadEvidence(){try{evidence=JSON.parse(sessionStorage.getItem(key(ctx.mission.id))||'{}')}catch{evidence={}}}";
+    const patchedLoad = `function loadEvidence(){let local={};try{local=JSON.parse(sessionStorage.getItem(key(ctx.mission.id))||'{}')}catch{local={}}const server=ctx?.mission?.operational_state&&typeof ctx.mission.operational_state==='object'?ctx.mission.operational_state:{};evidence={...server,...local};if(!evidence.opportunity&&ctx?.mission?.selected_opportunity_snapshot&&typeof ctx.mission.selected_opportunity_snapshot==='object'){evidence.opportunity=ctx.mission.selected_opportunity_snapshot;}sessionStorage.setItem(key(ctx.mission.id),JSON.stringify(evidence));}`;
+    if (!html.includes(originalSave) || !html.includes(originalLoad)) throw new Error('Mission evidence patch markers were not found.');
+    html = html.replace(originalSave, patchedSave).replace(originalLoad, patchedLoad);
+
+    const startMarker = "$('searchOpps').onclick=async()=>{";
+    const endMarker = "async function transition(step,status,extra={})";
+    const start = html.indexOf(startMarker);
+    const end = html.indexOf(endMarker, start);
+    if (start < 0 || end < 0) throw new Error('Stage 01 command-center patch markers were not found.');
+
+    const replacement = `$('searchOpps').onclick=async()=>{const p=new URLSearchParams({limit:'30'});if($('keyword').value.trim())p.set('title',$('keyword').value.trim());if($('naics').value.trim())p.set('naics',$('naics').value.trim());$('searchOpps').disabled=true;$('opps').innerHTML='';$('oppsMsg').className='msg';try{const d=await req('/.netlify/functions/ngcc-ops-sam-opportunities?'+p);const results=d.results||[];$('oppsMsg').textContent=results.length+' open opportunities returned. Select one contract to create a fresh mission.';$('opps').innerHTML=results.map((o,i)=>'<div class="opp" data-contract-card="'+i+'"><div><b>'+esc(o.title)+'</b><br><small>'+esc(o.organizationName||o.agency||'')+' · '+esc(o.naicsCode||'NAICS unavailable')+' · '+esc(o.responseDeadline||o.response_date||'')+'</small></div><div class="controls" style="margin-bottom:0"><button type="button" class="btn secondary" data-select-contract="'+i+'">Select Contract</button></div></div>').join('');document.querySelectorAll('[data-select-contract]').forEach(btn=>btn.onclick=async e=>{e.preventDefault();e.stopPropagation();const i=Number(btn.dataset.selectContract);const opp=results[i];if(!opp)return;document.querySelectorAll('[data-contract-card]').forEach(card=>{card.style.borderColor='';card.style.background='';});const card=document.querySelector('[data-contract-card="'+i+'"]');if(card){card.style.borderColor='var(--gold)';card.style.background='rgba(213,174,85,.08)';}document.querySelectorAll('[data-select-contract]').forEach(b=>{b.disabled=true;});btn.textContent='Creating Mission…';await createMission(opp,btn);});}catch(e){$('oppsMsg').className='msg err';$('oppsMsg').textContent=e.message}finally{$('searchOpps').disabled=false}};
+async function createMission(opp,button){try{ctx=await req('/.netlify/functions/ngcc-ops-mission-control',{method:'POST',body:JSON.stringify({action:'create',opportunity:opp})});evidence={opportunity:opp,ranked_candidates:[],contacts:[],outreach_result:null,reconciliation:null,closeout:null};saveEvidence();render();$('oppsMsg').className='msg ok';$('oppsMsg').textContent='Contract selected. Fresh mission created. Stage 02 — Contract DNA is READY; all later stages remain locked.';if(button){button.textContent='Selected';button.classList.remove('secondary');button.classList.add('warn');}document.querySelectorAll('[data-select-contract]').forEach(b=>{if(b!==button){b.disabled=false;b.textContent='Select Contract';}});}catch(e){$('oppsMsg').className='msg err';$('oppsMsg').textContent=e.message;document.querySelectorAll('[data-select-contract]').forEach(b=>{b.disabled=false;if(b.textContent!=='Selected')b.textContent='Select Contract';});}}\n`;
+    html = html.slice(0, start) + replacement + html.slice(end);
+
+    const diagnosticCss = `<style id="ngcc-dev-diagnostics-style">body{padding-top:46px!important}#ngccDiagBar{position:fixed;z-index:999999;left:0;right:0;top:0;height:46px;background:#041229;border-bottom:1px solid rgba(255,255,255,.18);display:flex;align-items:center;gap:10px;padding:0 12px;box-sizing:border-box;color:#fff;font-family:Arial,sans-serif}#ngccDiagBar strong{font-size:12px;letter-spacing:.08em;text-transform:uppercase}#ngccDiagStatus{font-size:11px;color:rgba(255,255,255,.72);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#ngccDiagBar button{border:0;border-radius:5px;padding:8px 11px;font-weight:700;cursor:pointer}#ngccDownloadReport{background:#fff;color:#0f2a6a}#ngccClearReport{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.24)!important}</style>`;
+    const diagnosticBar = `<div id="ngccDiagBar"><strong>Development Diagnostics</strong><span id="ngccDiagStatus">Initializing same-document diagnostics…</span><button id="ngccClearReport" type="button">Clear</button><button id="ngccDownloadReport" type="button">Download Job Report (.json)</button></div>`;
+    html = html.replace('</head>', diagnosticCss + '</head>').replace('<body>', '<body>' + diagnosticBar);
+
+    document.open();
+    document.write(html);
+    document.close();
+
+    setTimeout(()=>{
+      const events=[]; const maxEvents=500; const startedAt=new Date().toISOString();
+      const statusEl=document.getElementById('ngccDiagStatus');
+      const extensionPattern=/(chrome-extension:|moz-extension:|edge-extension:|injectedMethod(?:US|EU)?\.js|message channel closed)/i;
+      const safe=v=>{try{return JSON.parse(JSON.stringify(v))}catch{return String(v)}};
+      const text=id=>document.getElementById(id)?.textContent?.trim()||null;
+      const val=id=>document.getElementById(id)?.value||null;
+      const snapshot=()=>({mission_number:text('missionNumber'),mission_action:text('missionAction'),overall_percent:text('overallPct'),status:text('mStatus'),current_stage:text('mStage'),candidate_count:text('mCandidates'),keyword:val('keyword'),naics:val('naics'),opportunity_message:text('oppsMsg'),execution_title:text('execTitle'),execution_message:text('execMsg'),page_url:location.href});
+      const classify=(message='',source='')=>extensionPattern.test(`${message} ${source}`)?'BROWSER_EXTENSION_OR_INJECTED_SCRIPT':'NGCC_OR_BROWSER_RUNTIME';
+      const add=(type,data={})=>{events.push({ts:new Date().toISOString(),type,...safe(data)});if(events.length>maxEvents)events.splice(0,events.length-maxEvents);if(statusEl)statusEl.textContent=`Captured ${events.length} diagnostic event${events.length===1?'':'s'} · latest: ${type}`};
+      const originalFetch=window.fetch.bind(window);
+      window.fetch=async function(input,init={}){const url=typeof input==='string'?input:(input?.url||String(input));const method=String(init?.method||'GET').toUpperCase();const begin=performance.now();add('REQUEST_START',{url,method,context:snapshot()});try{const response=await originalFetch(input,init);let preview=null;try{preview=(await response.clone().text()).slice(0,1800)}catch{}add(response.ok?'REQUEST_SUCCESS':'REQUEST_HTTP_FAILURE',{url,method,status:response.status,status_text:response.statusText,duration_ms:Math.round(performance.now()-begin),response_preview:preview,context:snapshot()});return response}catch(error){add('REQUEST_NETWORK_FAILURE',{url,method,duration_ms:Math.round(performance.now()-begin),message:error?.message||String(error),stack:error?.stack||null,classification:classify(error?.message,error?.stack),context:snapshot()});throw error}};
+      window.addEventListener('error',e=>add('WINDOW_ERROR',{message:e.message||String(e.error||''),source:e.filename||null,line:e.lineno||null,column:e.colno||null,stack:e.error?.stack||null,classification:classify(e.message,e.filename),context:snapshot()}),true);
+      window.addEventListener('unhandledrejection',e=>{const r=e.reason;add('UNHANDLED_REJECTION',{message:r?.message||String(r||''),stack:r?.stack||null,classification:classify(r?.message||String(r||''),r?.stack||''),context:snapshot()})});
+      document.addEventListener('click',e=>{const el=e.target?.closest?.('button,a,.opp');if(!el)return;add('OPERATOR_ACTION',{element:el.tagName,id:el.id||null,text:(el.textContent||'').trim().slice(0,160),dataset:safe(el.dataset||{}),context:snapshot()})},true);
+      document.getElementById('ngccClearReport').onclick=()=>{events.length=0;add('REPORT_CLEARED',{context:snapshot()})};
+      document.getElementById('ngccDownloadReport').onclick=()=>{const extensionEvents=events.filter(e=>e.classification==='BROWSER_EXTENSION_OR_INJECTED_SCRIPT');const applicationFailures=events.filter(e=>['REQUEST_HTTP_FAILURE','REQUEST_NETWORK_FAILURE','WINDOW_ERROR','UNHANDLED_REJECTION'].includes(e.type)&&e.classification!=='BROWSER_EXTENSION_OR_INJECTED_SCRIPT');const report={report_type:'NGCC_COMMAND_CENTER_DEVELOPMENT_JOB_REPORT',report_version:'1.1',generated_at:new Date().toISOString(),session_started_at:startedAt,production_url:location.origin+'/ops-command-center',command_center_impl:'/ops-command-center-v5.html',browser:{user_agent:navigator.userAgent,language:navigator.language,online:navigator.onLine},current_state:snapshot(),summary:{event_count:events.length,application_failure_count:applicationFailures.length,extension_or_injected_script_event_count:extensionEvents.length},application_failures:applicationFailures,extension_or_injected_script_events:extensionEvents,events};const blob=new Blob([JSON.stringify(report,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`NGCC-CommandCenter-JobReport-${new Date().toISOString().replace(/[:.]/g,'-')}.json`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);add('JOB_REPORT_DOWNLOADED',{summary:report.summary})};
+      add('DIAGNOSTICS_INSTALLED',{mode:'same-document',context:snapshot()});
+      if(statusEl)statusEl.textContent='Diagnostics active. Reproduce the issue, then download the JSON report.';
+    },0);
+  } catch (error) {
+    document.body.innerHTML = '<pre style="white-space:pre-wrap;color:#fff;background:#071a3c;padding:24px;min-height:100vh">NGCC development command center failed to initialize:\n' + String(error && error.message || error) + '</pre>';
+  }
+})();
+</script>
+</body>
+</html>
