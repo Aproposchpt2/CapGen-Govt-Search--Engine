@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NGCC — Ops Dashboard</title>
+<meta name="robots" content="noindex,nofollow"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;1,6..96,400&family=Cormorant:ital,wght@1,500&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#0F2A6A;--white:#FFFFFF;--silver:#C3D0E8;--gold:#D5AE55;--green:#3EE391;--red:#FF6969;
+  --line:rgba(255,255,255,.12);--line-2:rgba(255,255,255,.22);
+  --disp:'Bodoni Moda',Georgia,serif;--sub:'Cormorant',Georgia,serif;--body:'Jost',sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--body);color:rgba(255,255,255,.82);font-weight:300;line-height:1.6;
+  min-height:100vh;background:var(--ink)}
+a{color:inherit}
+.wrap{max-width:1080px;margin:0 auto;padding:32px 20px 80px}
+.brand{display:flex;align-items:center;justify-content:space-between;gap:11px;margin-bottom:26px;flex-wrap:wrap}
+.brand-left{display:flex;align-items:center;gap:11px}
+.mark{width:38px;height:38px;border:1px solid rgba(213,174,85,.4);border-radius:9px;
+  display:grid;place-items:center;font-family:var(--disp);font-size:.72rem;
+  color:var(--gold);font-weight:700;background:rgba(213,174,85,.08)}
+.bname{font-family:var(--disp);font-size:1.18rem;color:var(--white);line-height:1}
+.bsub{font-size:.52rem;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.35);font-weight:500}
+.navlink{font-family:var(--body);font-size:.76rem;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--silver);border:1px solid var(--line-2);border-radius:4px;padding:.6rem 1rem;text-decoration:none}
+.navlink:hover{border-color:var(--gold);color:var(--gold)}
+.eyebrow{font-size:10px;font-weight:500;letter-spacing:.22em;text-transform:uppercase;
+  color:rgba(255,255,255,.4);margin-bottom:10px}
+h1{font-family:var(--disp);font-weight:400;font-size:1.9rem;color:var(--white);margin-bottom:8px}
+h2{font-family:var(--disp);font-weight:400;font-size:1.2rem;color:var(--white);margin-bottom:12px}
+.desc{color:rgba(255,255,255,.55);font-size:.9rem;margin-bottom:18px}
+.card{background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:10px;padding:22px;margin-bottom:20px}
+label{display:block;font-size:.58rem;font-weight:600;letter-spacing:.14em;
+  text-transform:uppercase;color:rgba(255,255,255,.4);margin:0 0 7px}
+input{width:100%;font-family:var(--body);font-size:.94rem;font-weight:300;color:#fff;
+  background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:4px;
+  padding:.72rem .85rem;margin-bottom:14px}
+input:focus{outline:none;border-color:rgba(255,255,255,.38)}
+.btn{background:var(--white);color:var(--ink);font-family:var(--body);
+  font-weight:600;font-size:.76rem;letter-spacing:.14em;text-transform:uppercase;
+  border:none;border-radius:4px;padding:.82rem 1.3rem;cursor:pointer}
+.btn:hover:not(:disabled){background:#EEF3FF}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.msg{margin-top:10px;font-size:.84rem}
+.msg.err{color:var(--red)}.msg.ok{color:var(--green)}
+.hidden{display:none!important}
+#gate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+#gate .card{width:min(420px,100%)}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:8px}
+.stat{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:8px;padding:16px}
+.stat small{display:block;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:6px}
+.stat strong{display:block;font-family:var(--disp);font-size:1.8rem;color:var(--white)}
+.stat span{font-size:.72rem;color:rgba(255,255,255,.45)}
+table{width:100%;border-collapse:collapse;font-size:.84rem;margin-top:6px}
+th{text-align:left;color:rgba(255,255,255,.4);font-size:.62rem;text-transform:uppercase;
+  letter-spacing:.08em;padding:8px 6px;border-bottom:1px solid var(--line-2)}
+td{padding:9px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+td small{color:rgba(255,255,255,.4)}
+.pill{display:inline-flex;padding:3px 8px;border-radius:6px;font-size:.62rem;font-weight:700;
+  text-transform:uppercase;letter-spacing:.05em}
+.pill.sent{background:rgba(62,227,145,.15);color:var(--green)}
+.pill.failed{background:rgba(255,105,105,.15);color:var(--red)}
+.pill.draft{background:rgba(213,174,85,.15);color:var(--gold)}
+.pill.claim{background:rgba(62,227,145,.15);color:var(--green)}
+.pill.free_offer{background:rgba(195,208,232,.15);color:var(--silver)}
+.pill.outreach{background:rgba(213,174,85,.15);color:var(--gold)}
+.pill.yes{background:rgba(62,227,145,.15);color:var(--green)}
+.pill.no{background:rgba(255,255,255,.08);color:rgba(255,255,255,.4)}
+.empty{color:rgba(255,255,255,.4);font-size:.84rem;padding:14px 0}
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <div class="card">
+    <div class="brand-left"><div class="mark">NG</div><div><div class="bname">NGCC Ops</div><div class="bsub">Internal — Not Public</div></div></div>
+    <p class="eyebrow" style="margin-top:16px">Operator Access</p>
+    <h1>Enter <em>operator password.</em></h1>
+    <p class="desc">This tool is not part of the public or subscriber-facing site.</p>
+    <label for="pw">Password</label>
+    <input id="pw" type="password" autocomplete="current-password" placeholder="••••••••">
+    <button class="btn" id="unlockBtn">Unlock →</button>
+    <div class="msg" id="gateMsg"></div>
+  </div>
+</div>
+
+<div id="app" class="wrap hidden">
+  <div class="brand">
+    <div class="brand-left"><div class="mark">NG</div><div><div class="bname">NGCC Ops Dashboard</div><div class="bsub">Internal — Not Public</div></div></div>
+    <a class="navlink" href="/ops-outreach">Business Discovery &amp; Outreach →</a>
+  </div>
+
+  <div class="card">
+    <p class="eyebrow">Overview</p>
+    <h2>Pipeline at a glance</h2>
+    <div id="statGrid" class="stat-grid"></div>
+    <button class="btn" id="refreshBtn" style="margin-top:6px">Refresh</button>
+    <div class="msg" id="dashMsg"></div>
+  </div>
+
+  <div class="card">
+    <p class="eyebrow">Per Contract</p>
+    <h2>Outreach by contract</h2>
+    <div id="contractTable"><div class="empty">No outreach sent yet.</div></div>
+  </div>
+
+  <div class="card">
+    <p class="eyebrow">Activity</p>
+    <h2>Recent activity</h2>
+    <div id="recentTable"><div class="empty">No activity yet.</div></div>
+  </div>
+</div>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let opsToken = sessionStorage.getItem('ngcc_ops_token') || '';
+
+function authHeaders() { return opsToken ? { authorization: `Bearer ${opsToken}` } : {}; }
+async function request(url, options = {}) {
+  const res = await fetch(url, { cache: 'no-store', ...options, headers: { ...(options.body ? {'content-type':'application/json'} : {}), ...authHeaders(), ...(options.headers||{}) } });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.ok === false) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}
+
+async function tryRestoreSession() {
+  if (!opsToken) return;
+  try {
+    const d = await request('/.netlify/functions/ngcc-ops-auth');
+    if (d.ok) { $('gate').classList.add('hidden'); $('app').classList.remove('hidden'); loadDashboard(); }
+    else { sessionStorage.removeItem('ngcc_ops_token'); opsToken = ''; }
+  } catch { sessionStorage.removeItem('ngcc_ops_token'); opsToken = ''; }
+}
+
+$('unlockBtn').onclick = async () => {
+  const m = $('gateMsg'); m.className = 'msg'; m.textContent = '';
+  const password = $('pw').value;
+  if (!password) return;
+  $('unlockBtn').disabled = true; $('unlockBtn').textContent = 'Unlocking…';
+  try {
+    const res = await fetch('/.netlify/functions/ngcc-ops-auth', { method: 'POST', headers: {'content-type':'application/json'}, body: JSON.stringify({ password }) });
+    const d = await res.json();
+    if (!res.ok || !d.ok) throw new Error(d.error || 'Incorrect password.');
+    opsToken = d.token;
+    sessionStorage.setItem('ngcc_ops_token', opsToken);
+    $('gate').classList.add('hidden'); $('app').classList.remove('hidden');
+    loadDashboard();
+  } catch (e) {
+    m.className = 'msg err'; m.textContent = e.message;
+  } finally { $('unlockBtn').disabled = false; $('unlockBtn').textContent = 'Unlock →'; }
+};
+$('pw').addEventListener('keydown', e => { if (e.key === 'Enter') $('unlockBtn').click(); });
+
+function statCard(label, value, sub) {
+  return `<div class="stat"><small>${esc(label)}</small><strong>${esc(value)}</strong>${sub ? `<span>${esc(sub)}</span>` : ''}</div>`;
+}
+
+async function loadDashboard() {
+  const m = $('dashMsg'); m.className = 'msg'; m.textContent = '';
+  $('refreshBtn').disabled = true; $('refreshBtn').textContent = 'Loading…';
+  try {
+    const d = await request('/.netlify/functions/ngcc-ops-dashboard');
+    const s = d.summary;
+    $('statGrid').innerHTML = [
+      statCard('Emails Sent', s.outreach_sent_total, `${s.outreach_sent_week} this week · ${s.outreach_sent_today} today`),
+      statCard('Emails Failed', s.outreach_failed_total),
+      statCard('Contracts Worked', s.contracts_worked),
+      statCard('Opportunities Claimed', s.claims_total, `${s.claims_week} this week`),
+      statCard('Claim Rate', s.claim_rate_pct === null ? '—' : `${s.claim_rate_pct}%`, 'of businesses emailed'),
+      statCard('Free-Offer Leads', s.free_offers_total, `${s.free_offers_week} this week`),
+    ].join('');
+
+    $('contractTable').innerHTML = !d.per_contract.length ? '<div class="empty">No outreach sent yet.</div>' :
+      `<table><thead><tr><th>Contract</th><th>NAICS</th><th>Sent</th><th>Failed</th><th>Claimed?</th></tr></thead><tbody>${d.per_contract.map(c => `<tr><td><strong>${esc(c.contract_title||'Untitled')}</strong><br><small>${esc(c.notice_id)}</small></td><td>${esc(c.contract_naics||'—')}</td><td>${c.sent}</td><td>${c.failed}</td><td><span class="pill ${c.claimed?'yes':'no'}">${c.claimed?'Yes':'No'}</span></td></tr>`).join('')}</tbody></table>`;
+
+    $('recentTable').innerHTML = !d.recent.length ? '<div class="empty">No activity yet.</div>' :
+      `<table><thead><tr><th>When</th><th>Type</th><th>Business</th><th>Detail</th><th>Status</th></tr></thead><tbody>${d.recent.map(r => `<tr><td><small>${esc(new Date(r.at).toLocaleString())}</small></td><td><span class="pill ${esc(r.type)}">${esc(r.type.replace('_',' '))}</span></td><td>${esc(r.business_name||'—')}</td><td><small>${esc(r.detail||'—')}</small></td><td>${r.status ? `<span class="pill ${esc(r.status)}">${esc(r.status)}</span>` : '—'}</td></tr>`).join('')}</tbody></table>`;
+  } catch (e) {
+    m.className = 'msg err'; m.textContent = e.message;
+  } finally { $('refreshBtn').disabled = false; $('refreshBtn').textContent = 'Refresh'; }
+}
+$('refreshBtn').onclick = loadDashboard;
+
+tryRestoreSession();
+</script>
+</body>
+</html>

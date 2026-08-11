@@ -17,7 +17,11 @@ body{font-family:var(--body);color:rgba(255,255,255,.82);font-weight:300;line-he
   min-height:100vh;background:var(--ink)}
 a{color:inherit}
 .wrap{max-width:1080px;margin:0 auto;padding:32px 20px 80px}
-.brand{display:flex;align-items:center;gap:11px;margin-bottom:26px}
+.brand{display:flex;align-items:center;justify-content:space-between;gap:11px;margin-bottom:26px;flex-wrap:wrap}
+.brand-left{display:flex;align-items:center;gap:11px}
+.navlink{font-family:var(--body);font-size:.76rem;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--silver);border:1px solid var(--line-2);border-radius:4px;padding:.6rem 1rem;text-decoration:none}
+.navlink:hover{border-color:var(--gold);color:var(--gold)}
 .mark{width:38px;height:38px;border:1px solid rgba(213,174,85,.4);border-radius:9px;
   display:grid;place-items:center;font-family:var(--disp);font-size:.72rem;
   color:var(--gold);font-weight:700;background:rgba(213,174,85,.08)}
@@ -92,7 +96,10 @@ td small{color:rgba(255,255,255,.4)}
 </div>
 
 <div id="app" class="wrap hidden">
-  <div class="brand"><div class="mark">NG</div><div><div class="bname">NGCC Ops — Business Discovery &amp; Outreach</div><div class="bsub">Internal — Not Public</div></div></div>
+  <div class="brand">
+    <div class="brand-left"><div class="mark">NG</div><div><div class="bname">NGCC Ops — Business Discovery &amp; Outreach</div><div class="bsub">Internal — Not Public</div></div></div>
+    <a class="navlink" href="/ops-dashboard">Dashboard →</a>
+  </div>
 
   <div class="card">
     <p class="eyebrow">Step 1 · Contract</p>
