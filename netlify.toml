@@ -137,9 +137,12 @@
   to = "/ops-dashboard.html"
   status = 200
 
+# Canonical NGCC procurement command center. Route directly to the current
+# top-level implementation so the operator does not depend on a redirect
+# trampoline before the mission UI initializes.
 [[redirects]]
   from = "/ops-command-center"
-  to = "/ops-command-center-v4.html"
+  to = "/ops-command-center-v5.html"
   status = 200
   force = true
 
