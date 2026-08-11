@@ -137,6 +137,11 @@
   to = "/ops-dashboard.html"
   status = 200
 
+[[redirects]]
+  from = "/ops-command-center"
+  to = "/ops-command-center.html"
+  status = 200
+
 [[headers]]
   for = "/*"
   [headers.values]
