@@ -49,13 +49,20 @@ function mapOpportunity(o) {
     active: o.active,
   };
 }
-async function fetchForNaics(naicsCode, limit) {
+// naicsCode and title are both optional now -- browsing recent open
+// opportunities with neither is a real, supported mode (Jeff's actual
+// workflow starts from contracts, not from a NAICS code the operator has
+// to already know). postedFrom/postedTo are the only truly required SAM.gov
+// params, confirmed against GSA's own docs.
+async function fetchOpportunities({ naicsCode, title, limit }) {
   const today = new Date();
   const params = new URLSearchParams({
-    api_key: SAM_KEY, naicsCode, active: 'Yes', limit: String(limit),
+    api_key: SAM_KEY, active: 'Yes', limit: String(limit),
     postedFrom: postedFromDate(90),
     postedTo: `${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getDate().toString().padStart(2, '0')}/${today.getFullYear()}`,
   });
+  if (naicsCode) params.set('naicsCode', naicsCode);
+  if (title) params.set('title', title);
   const res = await fetch(`${SAM_BASE}?${params.toString()}`);
   if (!res.ok) { const t = await res.text(); throw new Error(`SAM ${res.status}: ${t.slice(0, 200)}`); }
   const data = await res.json();
@@ -69,14 +76,14 @@ exports.handler = async (event) => {
   if (!SAM_KEY) return json(500, { ok: false, error: true, message: 'SAM_API_KEY not configured', results: [] });
 
   const qs = event.queryStringParameters || {};
-  const naicsParam = qs.naics || '';
+  const naicsParam = (qs.naics || '').trim();
+  const titleParam = (qs.title || '').trim();
   const limit = Math.min(parseInt(qs.limit || '50', 10), 200);
-  if (!naicsParam) return json(400, { ok: false, error: true, message: 'naics parameter required', results: [] });
 
-  const naicsCodes = naicsParam.split(',').map(n => n.trim()).filter(Boolean).slice(0, 10);
+  const naicsCodes = naicsParam ? naicsParam.split(',').map(n => n.trim()).filter(Boolean).slice(0, 10) : [null];
   try {
     const perCode = Math.max(10, Math.floor(limit / naicsCodes.length));
-    const batches = await Promise.all(naicsCodes.map(n => fetchForNaics(n, perCode).catch(e => { console.error('[ngcc-ops-sam-opportunities] NAICS', n, e.message); return []; })));
+    const batches = await Promise.all(naicsCodes.map(n => fetchOpportunities({ naicsCode: n, title: titleParam || undefined, limit: perCode }).catch(e => { console.error('[ngcc-ops-sam-opportunities]', n, e.message); return []; })));
     const seen = new Set();
     const results = [];
     for (const batch of batches) for (const opp of batch) {
@@ -91,7 +98,7 @@ exports.handler = async (event) => {
       if (a.responseDeadline && b.responseDeadline) return new Date(a.responseDeadline) - new Date(b.responseDeadline);
       return 0;
     });
-    return json(200, { ok: true, naicsCodes, total: results.length, returned: Math.min(results.length, limit), results: results.slice(0, limit) });
+    return json(200, { ok: true, naicsCodes: naicsCodes.filter(Boolean), title: titleParam || null, total: results.length, returned: Math.min(results.length, limit), results: results.slice(0, limit) });
   } catch (error) {
     console.error('[ngcc-ops-sam-opportunities]', error.message);
     return json(200, { ok: false, error: true, message: error.message, results: [] });
