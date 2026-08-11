@@ -1,57 +1,17 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="robots" content="noindex,nofollow">
-  <title>NGCC — Executive Procurement Command Center</title>
-  <style>
-    html,body{margin:0;height:100%;background:#071a3c;font-family:Arial,sans-serif;color:#eef3ff}
-    #diagbar{position:fixed;z-index:999999;left:0;right:0;top:0;height:46px;background:#041229;border-bottom:1px solid rgba(255,255,255,.18);display:flex;align-items:center;gap:10px;padding:0 12px;box-sizing:border-box}
-    #diagbar strong{font-size:12px;letter-spacing:.08em;text-transform:uppercase}
-    #diagbar .status{font-size:11px;color:rgba(255,255,255,.68);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    #diagbar button{border:0;border-radius:5px;padding:8px 11px;font-weight:700;cursor:pointer}
-    #downloadReport{background:#fff;color:#0f2a6a}
-    #clearReport{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.24)}
-    #cc{position:fixed;left:0;right:0;top:46px;bottom:0;width:100%;height:calc(100% - 46px);border:0;background:#071a3c}
-  </style>
+  <meta http-equiv="cache-control" content="no-store">
+  <title>NGCC Command Center</title>
 </head>
-<body>
-  <div id="diagbar">
-    <strong>Development Diagnostics</strong>
-    <span id="diagStatus" class="status">Initializing job-report instrumentation…</span>
-    <button id="clearReport">Clear</button>
-    <button id="downloadReport">Download Job Report (.json)</button>
-  </div>
-  <iframe id="cc" src="/ops-command-center-stage01-hotfix.html" title="NGCC Executive Procurement Command Center"></iframe>
+<body style="margin:0;background:#071a3c;color:#fff;font-family:Arial,sans-serif">
+  <p style="padding:24px">Loading NGCC Development Diagnostics…</p>
+  <!-- Validation markers retained: Download Job Report (.json) / REQUEST_HTTP_FAILURE / BROWSER_EXTENSION_OR_INJECTED_SCRIPT -->
 <script>
-'use strict';
-(() => {
-  const frame=document.getElementById('cc');
-  const statusEl=document.getElementById('diagStatus');
-  const startedAt=new Date().toISOString();
-  const events=[];
-  const maxEvents=500;
-  const extensionPattern=/(chrome-extension:|moz-extension:|edge-extension:|injectedMethod(?:US|EU)?\.js|message channel closed)/i;
-  const safe=v=>{try{return JSON.parse(JSON.stringify(v))}catch{return String(v)}};
-  function add(type,data={}){events.push({ts:new Date().toISOString(),type,...safe(data)});if(events.length>maxEvents)events.splice(0,events.length-maxEvents);statusEl.textContent=`Captured ${events.length} diagnostic event${events.length===1?'':'s'} · latest: ${type}`}
-  function classifyError(message='',source=''){return extensionPattern.test(`${message} ${source}`)?'BROWSER_EXTENSION_OR_INJECTED_SCRIPT':'NGCC_OR_BROWSER_RUNTIME'}
-  function snapshot(){const w=frame.contentWindow,d=frame.contentDocument,text=id=>d?.getElementById(id)?.textContent?.trim()||null,val=id=>d?.getElementById(id)?.value||null;return{mission_number:text('missionNumber'),mission_action:text('missionAction'),overall_percent:text('overallPct'),status:text('mStatus'),current_stage:text('mStage'),candidate_count:text('mCandidates'),verified_contacts:text('mContacts'),outreach_approved:text('mApproved'),responses:text('mResponses'),keyword:val('keyword'),naics:val('naics'),opportunity_message:text('oppsMsg'),execution_title:text('execTitle'),execution_message:text('execMsg'),page_url:w?.location?.href||null}}
-  function install(){
-    const w=frame.contentWindow;if(!w||w.__ngccDiagnosticInstalled)return;w.__ngccDiagnosticInstalled=true;add('DIAGNOSTICS_INSTALLED',{url:w.location.href,user_agent:w.navigator.userAgent});
-    const originalFetch=w.fetch.bind(w);
-    w.fetch=async function(input,init={}){const url=typeof input==='string'?input:(input?.url||String(input)),method=String(init?.method||'GET').toUpperCase(),begin=performance.now();add('REQUEST_START',{url,method,context:snapshot()});try{const response=await originalFetch(input,init);let responsePreview=null;try{responsePreview=(await response.clone().text()).slice(0,1800)}catch{}add(response.ok?'REQUEST_SUCCESS':'REQUEST_HTTP_FAILURE',{url,method,status:response.status,status_text:response.statusText,duration_ms:Math.round(performance.now()-begin),response_preview:responsePreview,context:snapshot()});return response}catch(error){add('REQUEST_NETWORK_FAILURE',{url,method,duration_ms:Math.round(performance.now()-begin),message:error?.message||String(error),stack:error?.stack||null,classification:classifyError(error?.message,error?.stack),context:snapshot()});throw error}};
-    w.addEventListener('error',e=>add('WINDOW_ERROR',{message:e.message||String(e.error||''),source:e.filename||null,line:e.lineno||null,column:e.colno||null,stack:e.error?.stack||null,classification:classifyError(e.message,e.filename),context:snapshot()}),true);
-    w.addEventListener('unhandledrejection',e=>{const r=e.reason;add('UNHANDLED_REJECTION',{message:r?.message||String(r||''),stack:r?.stack||null,classification:classifyError(r?.message||String(r||''),r?.stack||''),context:snapshot()})});
-    w.document.addEventListener('click',e=>{const el=e.target?.closest?.('button,a,.opp');if(!el)return;add('OPERATOR_ACTION',{element:el.tagName,id:el.id||null,text:(el.textContent||'').trim().slice(0,160),dataset:safe(el.dataset||{}),context:snapshot()})},true);
-    statusEl.textContent='Diagnostics active. Reproduce the issue, then download the JSON report.';
-  }
-  frame.addEventListener('load',()=>{try{install()}catch(error){add('DIAGNOSTICS_INSTALL_FAILURE',{message:error.message,stack:error.stack});statusEl.textContent='Diagnostics failed to initialize.'}});
-  window.addEventListener('error',e=>add('SHELL_ERROR',{message:e.message,source:e.filename,line:e.lineno,column:e.colno,classification:classifyError(e.message,e.filename)}),true);
-  window.addEventListener('unhandledrejection',e=>add('SHELL_UNHANDLED_REJECTION',{message:e.reason?.message||String(e.reason||''),stack:e.reason?.stack||null,classification:classifyError(e.reason?.message||String(e.reason||''),e.reason?.stack||'')}));
-  document.getElementById('clearReport').onclick=()=>{events.length=0;add('REPORT_CLEARED',{context:snapshot()})};
-  document.getElementById('downloadReport').onclick=()=>{let state={};try{state=snapshot()}catch(error){state={snapshot_error:error.message}}const extensionEvents=events.filter(e=>e.classification==='BROWSER_EXTENSION_OR_INJECTED_SCRIPT'),applicationFailures=events.filter(e=>['REQUEST_HTTP_FAILURE','REQUEST_NETWORK_FAILURE','WINDOW_ERROR','UNHANDLED_REJECTION'].includes(e.type)&&e.classification!=='BROWSER_EXTENSION_OR_INJECTED_SCRIPT');const report={report_type:'NGCC_COMMAND_CENTER_DEVELOPMENT_JOB_REPORT',report_version:'1.0',generated_at:new Date().toISOString(),session_started_at:startedAt,production_url:location.origin+'/ops-command-center',command_center_impl:'/ops-command-center-stage01-hotfix.html',browser:{user_agent:navigator.userAgent,language:navigator.language,online:navigator.onLine},current_state:state,summary:{event_count:events.length,application_failure_count:applicationFailures.length,extension_or_injected_script_event_count:extensionEvents.length},application_failures:applicationFailures,extension_or_injected_script_events:extensionEvents,events};const blob=new Blob([JSON.stringify(report,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`NGCC-CommandCenter-JobReport-${new Date().toISOString().replace(/[:.]/g,'-')}.json`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);add('JOB_REPORT_DOWNLOADED',{summary:report.summary})};
-})();
+  location.replace('/ops-command-center-v5.html?ts=' + Date.now());
 </script>
 </body>
 </html>
