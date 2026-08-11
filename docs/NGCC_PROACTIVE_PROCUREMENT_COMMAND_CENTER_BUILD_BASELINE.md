@@ -20,7 +20,7 @@ Only one execution stage may be active at a time. A successful stage unlocks its
 ## Mission stages
 
 1. OPPORTUNITY_DISCOVERY — select one actionable open federal opportunity.
-2. CONTRACT_DNA — construct evidence-backed procurement requirements, including set-aside/competition, NAICS, PSC, capability language, supplier role, geography, deadlines, and hard constraints.
+2. CONTRACT_DNA — construct evidence-backed procurement requirements, including SAM-assigned NAICS, requirements-derived primary/related NAICS, set-aside/competition, PSC, capability language, supplier role, geography, deadlines, and hard constraints.
 3. BUSINESS_SEARCH_DNA — convert Contract DNA into explicit registered-contractor retrieval and qualification criteria.
 4. SAM_CONTRACTOR_DISCOVERY — execute live SAM Entity Management search using the approved Business Search DNA.
 5. CONTRACTOR_QUALIFICATION — hard-filter and explainably score candidates using eligibility, NAICS/related NAICS, capability, supplier role, PSC, semantic evidence, geography/capacity, and contract-specific constraints.
@@ -75,6 +75,32 @@ Do not rebuild working capabilities when they satisfy the new contract. Reuse an
 
 The current ops-dashboard.html is not the new interaction-design baseline. The BusinessContracts Executive Command Center task/mission model is the structural baseline.
 
+## Approved derived-NAICS search enhancement
+
+The existing requirements-based NAICS derivation capability is a permanent component of Stage 02 CONTRACT_DNA.
+
+Governing rule: the derived classification expands and refines contractor discovery; it does not silently overwrite SAM.gov source evidence.
+
+Contract DNA must preserve separately:
+
+- sam_assigned_naics
+- derived_primary_naics
+- derived_related_naics
+- sam_naics_confirmed
+- derivation_rationale
+- requirements_evidence_used
+
+Search construction must use:
+
+1. SAM-assigned NAICS as authoritative source evidence.
+2. Derived primary NAICS as an additional/refined retrieval path.
+3. Derived related NAICS as controlled search expansion.
+4. Capability language, PSC, supplier role, set-aside eligibility, and hard constraints for downstream qualification.
+
+When derived analysis disagrees with SAM's assigned NAICS, both values remain visible and auditable. No source classification is destroyed or replaced.
+
+The resulting contractor population is a candidate pool only. A business must still pass eligibility and contract-specific qualification before operator review.
+
 ## Contract DNA minimum output
 
 - SAM notice ID
@@ -92,8 +118,11 @@ The current ops-dashboard.html is not the new interaction-design baseline. The B
 - required experience/certifications
 - supplier role
 - place of performance
-- primary NAICS
-- related NAICS
+- SAM-assigned NAICS
+- derived primary NAICS
+- derived related NAICS
+- SAM NAICS confirmed/corrected determination
+- NAICS derivation rationale/evidence
 - PSC
 - procurement keywords/language
 - mandatory requirements
@@ -112,8 +141,9 @@ Hard requirements:
 - registration validity appropriate to pursuit
 
 Retrieval/qualification signals:
-- primary NAICS
-- related NAICS
+- SAM-assigned NAICS
+- derived primary NAICS
+- derived related NAICS
 - capability terms
 - PSC-derived capability concepts
 - supplier role
@@ -130,7 +160,7 @@ Each candidate must expose:
 - CAGE when available
 - SAM registration status
 - business classifications relevant to the procurement
-- matched NAICS evidence
+- matched NAICS evidence, including which search path produced the candidate
 - set-aside compatibility
 - capability alignment
 - supplier-role compatibility
@@ -150,8 +180,8 @@ A SAM registration alone is not a qualification decision.
 
 1. Reverse-engineer current NGCC operator functions and BusinessContracts mission implementation.
 2. Define mission/step API contract and minimal operational persistence.
-3. Build Contract DNA service by extending the existing requirements/NAICS derivation path rather than duplicating it.
-4. Build Business Search DNA service.
+3. Build Contract DNA service by extending the existing requirements/NAICS derivation path rather than duplicating it, preserving SAM NAICS while adding derived primary/related NAICS evidence.
+4. Build Business Search DNA service using the approved multi-path NAICS search model.
 5. Wire live SAM contractor discovery to the approved DNA.
 6. Integrate explainable candidate qualification using validated AOIE assets.
 7. Build the Executive Command Center UI with server-authoritative monitoring.
