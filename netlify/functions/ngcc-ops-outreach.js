@@ -33,9 +33,26 @@ async function sb(table, method, query, body, prefer) {
 
 function esc(v) { return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
+// Claim link: routes through the Marketplace claim page (captures the lead
+// into marketplace_lead_intake, source='ngcc_outreach_claim'), which then
+// redirects to the real SAM.gov URL after claiming. NGCC never hosts the
+// package or the description locally -- SAM.gov stays the source of truth
+// for full details, per the standing "don't store much, use sam.gov's
+// database" direction.
+function claimUrl(contract) {
+  const params = new URLSearchParams({
+    notice_id: contract.noticeId || '',
+    sam_url: contract.samUrl || '',
+    title: contract.title || '',
+    agency: contract.agency || '',
+  });
+  return `https://marketplace.aproposgroupllc.com/claim-federal-opportunity?${params.toString()}`;
+}
+
 function outreachCopy(contract, candidate, unsubscribeUrl) {
   const deadline = contract.responseDeadline ? new Date(contract.responseDeadline).toLocaleDateString('en-US', { dateStyle: 'long' }) : 'See official solicitation';
   const subject = `Federal contract opportunity for ${candidate.business_name}: ${contract.title}`;
+  const claimLink = claimUrl(contract);
   const text = `Hello${candidate.contact_name ? ` ${candidate.contact_name}` : ''},
 
 The National Government Contract Center identified a federal contract opportunity that appears relevant to ${candidate.business_name}, based on your SAM.gov registration (NAICS ${contract.naicsCode || 'Unavailable'}).
@@ -45,8 +62,8 @@ Agency: ${contract.agency || 'Unavailable'}
 NAICS: ${contract.naicsCode || 'Unavailable'}
 Response deadline: ${deadline}
 
-View the full solicitation on SAM.gov:
-${contract.samUrl}
+Claim this complimentary opportunity (you'll be taken to the official SAM.gov listing for full details):
+${claimLink}
 
 Unsubscribe from future opportunity introductions:
 ${unsubscribeUrl}
@@ -54,7 +71,7 @@ ${unsubscribeUrl}
 National Government Contract Center
 Apropos Group LLC
 ${MAILING_ADDRESS}`;
-  const html = `<!doctype html><html><body style="margin:0;background:#EEF1F7;font-family:Arial,sans-serif;color:#0F2A6A"><table width="100%" cellpadding="0" cellspacing="0" style="padding:28px 12px"><tr><td align="center"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;background:#fff;border:1px solid #dbe1ec;border-radius:14px;overflow:hidden"><tr><td style="background:#0F2A6A;padding:24px 28px;color:#fff;border-bottom:3px solid #D5AE55"><div style="font-weight:700;letter-spacing:.08em;font-size:13px">NATIONAL GOVERNMENT CONTRACT CENTER</div></td></tr><tr><td style="padding:28px"><p>Hello${candidate.contact_name ? ` ${esc(candidate.contact_name)}` : ''},</p><p>NGCC identified a federal contract opportunity that appears relevant to <strong>${esc(candidate.business_name)}</strong>, based on your SAM.gov registration (NAICS ${esc(contract.naicsCode || 'Unavailable')}).</p><div style="background:#F5F7FB;border-left:4px solid #D5AE55;padding:16px;margin:20px 0"><div style="font-size:18px;font-weight:700;color:#0F2A6A">${esc(contract.title)}</div><p style="margin:8px 0 0"><strong>Agency:</strong> ${esc(contract.agency || 'Unavailable')}<br><strong>NAICS:</strong> ${esc(contract.naicsCode || 'Unavailable')}<br><strong>Deadline:</strong> ${esc(deadline)}</p></div><p style="margin:26px 0"><a href="${contract.samUrl}" style="display:inline-block;background:#0F2A6A;color:#fff;text-decoration:none;padding:13px 20px;border-radius:8px;font-weight:700">View full solicitation on SAM.gov</a></p><p style="margin-top:30px">National Government Contract Center<br>Apropos Group LLC</p><p style="border-top:1px solid #e4e8ee;padding-top:14px;font-size:11px;color:#667085">${esc(MAILING_ADDRESS)}<br><a href="${unsubscribeUrl}" style="color:#667085">Unsubscribe</a></p></td></tr></table></td></tr></table></body></html>`;
+  const html = `<!doctype html><html><body style="margin:0;background:#EEF1F7;font-family:Arial,sans-serif;color:#0F2A6A"><table width="100%" cellpadding="0" cellspacing="0" style="padding:28px 12px"><tr><td align="center"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;background:#fff;border:1px solid #dbe1ec;border-radius:14px;overflow:hidden"><tr><td style="background:#0F2A6A;padding:24px 28px;color:#fff;border-bottom:3px solid #D5AE55"><div style="font-weight:700;letter-spacing:.08em;font-size:13px">NATIONAL GOVERNMENT CONTRACT CENTER</div></td></tr><tr><td style="padding:28px"><p>Hello${candidate.contact_name ? ` ${esc(candidate.contact_name)}` : ''},</p><p>NGCC identified a federal contract opportunity that appears relevant to <strong>${esc(candidate.business_name)}</strong>, based on your SAM.gov registration (NAICS ${esc(contract.naicsCode || 'Unavailable')}).</p><div style="background:#F5F7FB;border-left:4px solid #D5AE55;padding:16px;margin:20px 0"><div style="font-size:18px;font-weight:700;color:#0F2A6A">${esc(contract.title)}</div><p style="margin:8px 0 0"><strong>Agency:</strong> ${esc(contract.agency || 'Unavailable')}<br><strong>NAICS:</strong> ${esc(contract.naicsCode || 'Unavailable')}<br><strong>Deadline:</strong> ${esc(deadline)}</p></div><p style="margin:26px 0"><a href="${claimLink}" style="display:inline-block;background:#0F2A6A;color:#fff;text-decoration:none;padding:13px 20px;border-radius:8px;font-weight:700">Claim This Complimentary Opportunity</a></p><p style="margin-top:30px">National Government Contract Center<br>Apropos Group LLC</p><p style="border-top:1px solid #e4e8ee;padding-top:14px;font-size:11px;color:#667085">${esc(MAILING_ADDRESS)}<br><a href="${unsubscribeUrl}" style="color:#667085">Unsubscribe</a></p></td></tr></table></td></tr></table></body></html>`;
   return { subject, text, html };
 }
 
