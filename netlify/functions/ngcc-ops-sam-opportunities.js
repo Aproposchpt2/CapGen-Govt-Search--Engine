@@ -1,18 +1,35 @@
-// NGCC ops — live, on-demand SAM.gov Opportunities search by NAICS code,
-// for the internal outreach tool's "pick a contract" step.
+// NGCC ops — live, on-demand SAM.gov Opportunities search for the internal
+// proactive procurement command center.
 //
-// This repo already has ingest-sam-opportunities.js, a batch importer that
-// upserts pages of SAM.gov opportunities into a table for the subscriber
-// dashboard. This function is deliberately different: a live, on-demand
-// query straight to SAM.gov (same shape as the entity search in
-// ngcc-sam-entity-search.js), scoped to the internal ops tool only, so a
-// contract picked here is always current rather than only as fresh as the
-// last batch import.
+// Governing inventory rule: this operator workflow starts with actionable
+// SMALL-BUSINESS SET-ASIDE opportunities from SAM.gov. SAM.gov remains the
+// source of truth; NGCC does not substitute a locally cached contract list.
 'use strict';
 const { json, opsGuard } = require('./lib/ngcc-ops');
 
 const SAM_BASE = 'https://api.sam.gov/opportunities/v2/search';
 const SAM_KEY = process.env.SAM_API_KEY;
+
+// SAM.gov Get Opportunities Public API accepts one typeOfSetAside value per
+// request. These are the competitive set-aside classifications documented by
+// GSA. Sole-source classifications are intentionally excluded from the
+// default proactive-outreach inventory because they are not open competitive
+// set-aside opportunities.
+const SMALL_BUSINESS_SET_ASIDES = Object.freeze([
+  { code: 'SBA', label: 'Total Small Business Set-Aside' },
+  { code: 'SBP', label: 'Partial Small Business Set-Aside' },
+  { code: '8A', label: '8(a) Set-Aside' },
+  { code: 'HZC', label: 'HUBZone Set-Aside' },
+  { code: 'SDVOSBC', label: 'Service-Disabled Veteran-Owned Small Business Set-Aside' },
+  { code: 'WOSB', label: 'Women-Owned Small Business Program Set-Aside' },
+  { code: 'EDWOSB', label: 'Economically Disadvantaged WOSB Program Set-Aside' },
+  { code: 'LAS', label: 'Local Area Set-Aside' },
+  { code: 'IEE', label: 'Indian Economic Enterprise Set-Aside' },
+  { code: 'ISBEE', label: 'Indian Small Business Economic Enterprise Set-Aside' },
+  { code: 'BICiv', label: 'Buy Indian Set-Aside' },
+  { code: 'VSA', label: 'Veteran-Owned Small Business Set-Aside' },
+]);
+const SET_ASIDE_BY_CODE = new Map(SMALL_BUSINESS_SET_ASIDES.map(item => [item.code.toUpperCase(), item]));
 
 function daysFromNow(d) { return Math.ceil((new Date(d) - new Date()) / 864e5); }
 function urgency(deadline) {
@@ -32,65 +49,123 @@ function postedFromDate(daysBack) {
   d.setDate(d.getDate() - daysBack);
   return `${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getDate().toString().padStart(2, '0')}/${d.getFullYear()}`;
 }
-function mapOpportunity(o) {
-  const deadline = formatDate(o.responseDeadLine) || o.responseDeadLine || null;
+function mapOpportunity(o, requestedSetAsideCode) {
+  const deadline = formatDate(o.responseDeadLine || o.responseDeadline) || o.responseDeadLine || o.responseDeadline || null;
+  const responseCode = String(o.setAsideCode || o.typeOfSetAside || requestedSetAsideCode || '').trim();
+  const setAsideMeta = SET_ASIDE_BY_CODE.get(responseCode.toUpperCase());
   return {
     noticeId: o.noticeId || o.solicitationNumber || '',
+    solicitationNumber: o.solicitationNumber || '',
     title: o.title || 'Untitled Opportunity',
     agency: o.organizationName || o.department || '',
+    organizationName: o.organizationName || o.department || '',
     naicsCode: o.naicsCode || '',
-    setAside: o.typeOfSetAside || o.setAside || '',
+    setAsideCode: responseCode,
+    setAside: o.setAside || o.typeOfSetAsideDescription || setAsideMeta?.label || responseCode,
     responseDeadline: deadline,
     urgency: urgency(deadline),
     postedDate: formatDate(o.postedDate) || o.postedDate || null,
-    description: (o.description || '').slice(0, 300),
+    description: (o.description || '').slice(0, 1200),
     samUrl: o.uiLink || `https://sam.gov/opp/${o.noticeId}/view`,
     type: o.type || 'Solicitation',
     active: o.active,
+    source: 'SAM.gov Opportunities API',
   };
 }
-// naicsCode and title are both optional now -- browsing recent open
-// opportunities with neither is a real, supported mode (Jeff's actual
-// workflow starts from contracts, not from a NAICS code the operator has
-// to already know). postedFrom/postedTo are the only truly required SAM.gov
-// params, confirmed against GSA's own docs.
-async function fetchOpportunities({ naicsCode, title, limit }) {
+
+async function fetchOpportunities({ naicsCode, title, setAsideCode, limit }) {
   const today = new Date();
   const params = new URLSearchParams({
-    api_key: SAM_KEY, active: 'Yes', limit: String(limit),
+    api_key: SAM_KEY,
+    active: 'Yes',
+    limit: String(limit),
     postedFrom: postedFromDate(90),
     postedTo: `${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getDate().toString().padStart(2, '0')}/${today.getFullYear()}`,
+    typeOfSetAside: setAsideCode,
   });
-  if (naicsCode) params.set('naicsCode', naicsCode);
+  if (naicsCode) params.set('ncode', naicsCode);
   if (title) params.set('title', title);
   const res = await fetch(`${SAM_BASE}?${params.toString()}`);
-  if (!res.ok) { const t = await res.text(); throw new Error(`SAM ${res.status}: ${t.slice(0, 200)}`); }
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(`SAM ${res.status}: ${t.slice(0, 300)}`);
+  }
   const data = await res.json();
-  return (data.opportunitiesData || []).map(mapOpportunity);
+  return (data.opportunitiesData || []).map(o => mapOpportunity(o, setAsideCode));
+}
+
+function requestedSetAsideCodes(value) {
+  const raw = String(value || '').trim();
+  if (!raw || raw.toUpperCase() === 'SMALL_BUSINESS') return SMALL_BUSINESS_SET_ASIDES.map(item => item.code);
+  const codes = raw.split(',').map(code => code.trim()).filter(Boolean);
+  const approved = [];
+  for (const code of codes) {
+    const meta = SET_ASIDE_BY_CODE.get(code.toUpperCase());
+    if (meta && !approved.includes(meta.code)) approved.push(meta.code);
+  }
+  return approved;
 }
 
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: {}, body: '' };
   const denied = opsGuard(event);
   if (denied) return denied;
-  if (!SAM_KEY) return json(500, { ok: false, error: true, message: 'SAM_API_KEY not configured', results: [] });
+  if (!SAM_KEY) return json(500, { ok: false, error: 'SAM_API_KEY not configured', results: [] });
 
   const qs = event.queryStringParameters || {};
-  const naicsParam = (qs.naics || '').trim();
-  const titleParam = (qs.title || '').trim();
-  const limit = Math.min(parseInt(qs.limit || '50', 10), 200);
+  const naicsParam = String(qs.naics || '').trim();
+  const titleParam = String(qs.title || '').trim();
+  const limit = Math.max(1, Math.min(parseInt(qs.limit || '30', 10) || 30, 100));
+  const setAsideCodes = requestedSetAsideCodes(qs.set_aside || qs.setAside || 'SMALL_BUSINESS');
+  if (!setAsideCodes.length) {
+    return json(400, { ok: false, error: 'No supported competitive small-business set-aside code was supplied.', results: [] });
+  }
 
   const naicsCodes = naicsParam ? naicsParam.split(',').map(n => n.trim()).filter(Boolean).slice(0, 10) : [null];
+  const paths = [];
+  for (const setAsideCode of setAsideCodes) {
+    for (const naicsCode of naicsCodes) paths.push({ setAsideCode, naicsCode });
+  }
+
   try {
-    const perCode = Math.max(10, Math.floor(limit / naicsCodes.length));
-    const batches = await Promise.all(naicsCodes.map(n => fetchOpportunities({ naicsCode: n, title: titleParam || undefined, limit: perCode }).catch(e => { console.error('[ngcc-ops-sam-opportunities]', n, e.message); return []; })));
-    const seen = new Set();
+    // Controlled batches keep SAM load bounded while still covering every
+    // approved set-aside class. The final operator result remains capped.
     const results = [];
-    for (const batch of batches) for (const opp of batch) {
-      if (opp.urgency === 'expired' || seen.has(opp.noticeId)) continue;
-      seen.add(opp.noticeId);
-      results.push(opp);
+    const seen = new Set();
+    const execution = [];
+    const perPath = Math.max(5, Math.min(20, Math.ceil(limit / Math.max(1, Math.min(paths.length, 6)))));
+    const concurrency = 4;
+
+    for (let i = 0; i < paths.length && results.length < limit; i += concurrency) {
+      const group = paths.slice(i, i + concurrency);
+      const batches = await Promise.all(group.map(async path => {
+        try {
+          const rows = await fetchOpportunities({
+            naicsCode: path.naicsCode,
+            title: titleParam || undefined,
+            setAsideCode: path.setAsideCode,
+            limit: perPath,
+          });
+          execution.push({ ...path, returned: rows.length, status: 'SUCCESS' });
+          return rows;
+        } catch (error) {
+          console.error('[ngcc-ops-sam-opportunities]', path.setAsideCode, path.naicsCode, error.message);
+          execution.push({ ...path, returned: 0, status: 'FAILED', error: error.message });
+          return [];
+        }
+      }));
+
+      for (const batch of batches) {
+        for (const opp of batch) {
+          if (opp.urgency === 'expired' || !opp.noticeId || seen.has(opp.noticeId)) continue;
+          seen.add(opp.noticeId);
+          results.push(opp);
+          if (results.length >= limit) break;
+        }
+        if (results.length >= limit) break;
+      }
     }
+
     results.sort((a, b) => {
       const order = { hot: 0, warm: 1, ok: 2 };
       const diff = (order[a.urgency] ?? 3) - (order[b.urgency] ?? 3);
@@ -98,9 +173,20 @@ exports.handler = async (event) => {
       if (a.responseDeadline && b.responseDeadline) return new Date(a.responseDeadline) - new Date(b.responseDeadline);
       return 0;
     });
-    return json(200, { ok: true, naicsCodes: naicsCodes.filter(Boolean), title: titleParam || null, total: results.length, returned: Math.min(results.length, limit), results: results.slice(0, limit) });
+
+    return json(200, {
+      ok: true,
+      inventory: 'ACTIVE_COMPETITIVE_SMALL_BUSINESS_SET_ASIDES',
+      source: 'SAM.gov Opportunities API',
+      setAsideCodes,
+      naicsCodes: naicsCodes.filter(Boolean),
+      title: titleParam || null,
+      returned: Math.min(results.length, limit),
+      results: results.slice(0, limit),
+      execution,
+    });
   } catch (error) {
     console.error('[ngcc-ops-sam-opportunities]', error.message);
-    return json(200, { ok: false, error: true, message: error.message, results: [] });
+    return json(500, { ok: false, error: error.message, results: [] });
   }
 };
