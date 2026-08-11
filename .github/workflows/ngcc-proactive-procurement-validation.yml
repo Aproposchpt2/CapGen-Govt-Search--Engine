@@ -1,0 +1,40 @@
+name: NGCC Proactive Procurement Validation
+
+on:
+  push:
+    branches:
+      - agent/ngcc-proactive-procurement-command-center
+    paths:
+      - "netlify/functions/lib/ngcc-procurement-dna.js"
+      - "netlify/functions/ngcc-ops-contract-dna.js"
+      - "netlify/functions/ngcc-ops-business-search-dna.js"
+      - "tests/ngcc-procurement-dna.test.js"
+      - ".github/workflows/ngcc-proactive-procurement-validation.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "netlify/functions/lib/ngcc-procurement-dna.js"
+      - "netlify/functions/ngcc-ops-contract-dna.js"
+      - "netlify/functions/ngcc-ops-business-search-dna.js"
+      - "tests/ngcc-procurement-dna.test.js"
+      - ".github/workflows/ngcc-proactive-procurement-validation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  foundation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - name: Syntax check protected operator functions
+        run: |
+          node --check netlify/functions/lib/ngcc-procurement-dna.js
+          node --check netlify/functions/ngcc-ops-contract-dna.js
+          node --check netlify/functions/ngcc-ops-business-search-dna.js
+      - name: Validate Contract DNA and Business Search DNA
+        run: node tests/ngcc-procurement-dna.test.js
