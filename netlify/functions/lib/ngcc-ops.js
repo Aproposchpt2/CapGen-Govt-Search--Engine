@@ -106,14 +106,16 @@ function opsGuard(event) {
 // per-candidate, via ngcc-ops-find-email.js's web-search agent (this repo's
 // existing enricher-hunter.js uses Hunter.io domain search instead, for its
 // own, different bulk-campaign use case).
-// Pagination uses start/length, not a "size" param -- matching the proven,
-// already-live pattern in import-active-contractors.js (same endpoint, same
-// repo) rather than the unverified param this function originally shipped
-// with. Loops multiple pages so a common NAICS code with hundreds of active
-// registrants ("there will be plenty" -- the whole point of this tool)
-// isn't silently capped at one page of 100.
-const ENTITY_PAGE_LENGTH = 100;
-const ENTITY_MAX_PAGES = 5; // up to 500 entities per search -- raise if a real NAICS code needs more
+// Pagination: page + size (confirmed against GSA's own docs at
+// https://open.gsa.gov/api/entity-api/ after start/length was tried first
+// and rejected outright by SAM.gov's own API with "The search parameters,
+// start, length do not exist" -- that first attempt was based on an
+// unverified sibling file, not confirmed against this endpoint directly.
+// Jeff confirmed 10-20 candidate businesses per contract is plenty -- no
+// need to chase hundreds, so this stays at 2 pages of the documented
+// default size rather than an aggressive multi-page loop.
+const ENTITY_PAGE_SIZE = 10;
+const ENTITY_MAX_PAGES = 2; // up to 20 entities per search
 
 function mapEntity(e) {
   const reg = e.entityRegistration || {};
@@ -128,14 +130,14 @@ function mapEntity(e) {
   };
 }
 
-async function fetchEntityPage({ naicsCode, state, start, length }) {
+async function fetchEntityPage({ naicsCode, state, page, size }) {
   const params = new URLSearchParams({
     api_key: SAM_KEY,
     naicsCode,
     registrationStatus: 'A',
     includeSections: 'entityRegistration,coreData',
-    start: String(start),
-    length: String(length),
+    page: String(page),
+    size: String(size),
   });
   if (state) params.set('physicalAddressProvinceOrStateCode', state);
   const res = await fetch(`https://api.sam.gov/entity-information/v3/entities?${params.toString()}`);
@@ -144,16 +146,15 @@ async function fetchEntityPage({ naicsCode, state, start, length }) {
 }
 
 async function samEntitySearchByNaics({ naicsCode, state, limit }) {
-  const cap = Math.min(limit || ENTITY_PAGE_LENGTH * ENTITY_MAX_PAGES, ENTITY_PAGE_LENGTH * ENTITY_MAX_PAGES);
-  let start = 0, totalRecords = null, entities = [];
+  const cap = Math.min(limit || ENTITY_PAGE_SIZE * ENTITY_MAX_PAGES, ENTITY_PAGE_SIZE * ENTITY_MAX_PAGES);
+  let totalRecords = null, entities = [];
   for (let page = 0; page < ENTITY_MAX_PAGES && entities.length < cap; page++) {
-    const payload = await fetchEntityPage({ naicsCode, state, start, length: ENTITY_PAGE_LENGTH });
-    if (totalRecords === null) totalRecords = payload.totalRecords || payload.totalrecords || null;
+    const payload = await fetchEntityPage({ naicsCode, state, page, size: ENTITY_PAGE_SIZE });
+    if (totalRecords === null) totalRecords = payload.totalRecords ?? payload.totalrecords ?? payload.totalElements ?? null;
     const batch = (payload.entityData || []).map(mapEntity).filter(e => e.businessName);
     entities = entities.concat(batch);
-    start += ENTITY_PAGE_LENGTH;
-    if (batch.length < ENTITY_PAGE_LENGTH) break; // last page
-    if (totalRecords !== null && start >= totalRecords) break;
+    if (batch.length < ENTITY_PAGE_SIZE) break; // last page
+    if (totalRecords !== null && entities.length >= totalRecords) break;
   }
   entities = entities.slice(0, cap);
   return { entities, totalRecords: totalRecords === null ? entities.length : totalRecords };

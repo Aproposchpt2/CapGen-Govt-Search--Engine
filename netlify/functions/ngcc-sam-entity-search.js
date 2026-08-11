@@ -19,7 +19,7 @@ exports.handler = async (event) => {
   try { body = JSON.parse(event.body || '{}'); } catch { return json(400, { ok: false, error: 'Invalid request body.' }); }
   const naicsCode = String(body.naicsCode || '').trim();
   const state = String(body.state || '').trim().toUpperCase();
-  const limit = Math.min(Number(body.limit) || 500, 500);
+  const limit = Math.min(Number(body.limit) || 20, 20);
   if (!naicsCode) return json(400, { ok: false, error: 'naicsCode is required.' });
 
   try {
