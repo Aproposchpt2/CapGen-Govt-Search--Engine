@@ -23,7 +23,7 @@
     <button id="clearReport">Clear</button>
     <button id="downloadReport">Download Job Report (.json)</button>
   </div>
-  <iframe id="cc" src="/ops-command-center-v3.html" title="NGCC Executive Procurement Command Center"></iframe>
+  <iframe id="cc" src="/ops-command-center-stage01-hotfix.html" title="NGCC Executive Procurement Command Center"></iframe>
 <script>
 'use strict';
 (() => {
@@ -34,110 +34,23 @@
   const maxEvents=500;
   const extensionPattern=/(chrome-extension:|moz-extension:|edge-extension:|injectedMethod(?:US|EU)?\.js|message channel closed)/i;
   const safe=v=>{try{return JSON.parse(JSON.stringify(v))}catch{return String(v)}};
-  function add(type,data={}){
-    events.push({ts:new Date().toISOString(),type,...safe(data)});
-    if(events.length>maxEvents)events.splice(0,events.length-maxEvents);
-    statusEl.textContent=`Captured ${events.length} diagnostic event${events.length===1?'':'s'} · latest: ${type}`;
-  }
-  function classifyError(message='',source=''){
-    const text=`${message} ${source}`;
-    return extensionPattern.test(text)?'BROWSER_EXTENSION_OR_INJECTED_SCRIPT':'NGCC_OR_BROWSER_RUNTIME';
-  }
-  function snapshot(){
-    const w=frame.contentWindow;
-    const d=frame.contentDocument;
-    const text=id=>d?.getElementById(id)?.textContent?.trim()||null;
-    const val=id=>d?.getElementById(id)?.value||null;
-    return {
-      mission_number:text('missionNumber'),
-      mission_action:text('missionAction'),
-      overall_percent:text('overallPct'),
-      status:text('mStatus'),
-      current_stage:text('mStage'),
-      candidate_count:text('mCandidates'),
-      verified_contacts:text('mContacts'),
-      outreach_approved:text('mApproved'),
-      responses:text('mResponses'),
-      keyword:val('keyword'),
-      naics:val('naics'),
-      opportunity_message:text('oppsMsg'),
-      execution_title:text('execTitle'),
-      execution_message:text('execMsg'),
-      page_url:w?.location?.href||null
-    };
-  }
+  function add(type,data={}){events.push({ts:new Date().toISOString(),type,...safe(data)});if(events.length>maxEvents)events.splice(0,events.length-maxEvents);statusEl.textContent=`Captured ${events.length} diagnostic event${events.length===1?'':'s'} · latest: ${type}`}
+  function classifyError(message='',source=''){return extensionPattern.test(`${message} ${source}`)?'BROWSER_EXTENSION_OR_INJECTED_SCRIPT':'NGCC_OR_BROWSER_RUNTIME'}
+  function snapshot(){const w=frame.contentWindow,d=frame.contentDocument,text=id=>d?.getElementById(id)?.textContent?.trim()||null,val=id=>d?.getElementById(id)?.value||null;return{mission_number:text('missionNumber'),mission_action:text('missionAction'),overall_percent:text('overallPct'),status:text('mStatus'),current_stage:text('mStage'),candidate_count:text('mCandidates'),verified_contacts:text('mContacts'),outreach_approved:text('mApproved'),responses:text('mResponses'),keyword:val('keyword'),naics:val('naics'),opportunity_message:text('oppsMsg'),execution_title:text('execTitle'),execution_message:text('execMsg'),page_url:w?.location?.href||null}}
   function install(){
-    const w=frame.contentWindow;
-    if(!w||w.__ngccDiagnosticInstalled)return;
-    w.__ngccDiagnosticInstalled=true;
-    add('DIAGNOSTICS_INSTALLED',{url:w.location.href,user_agent:w.navigator.userAgent});
-
+    const w=frame.contentWindow;if(!w||w.__ngccDiagnosticInstalled)return;w.__ngccDiagnosticInstalled=true;add('DIAGNOSTICS_INSTALLED',{url:w.location.href,user_agent:w.navigator.userAgent});
     const originalFetch=w.fetch.bind(w);
-    w.fetch=async function(input,init={}){
-      const url=typeof input==='string'?input:(input?.url||String(input));
-      const method=String(init?.method||'GET').toUpperCase();
-      const begin=performance.now();
-      add('REQUEST_START',{url,method,context:snapshot()});
-      try{
-        const response=await originalFetch(input,init);
-        let responsePreview=null;
-        try{responsePreview=(await response.clone().text()).slice(0,1800)}catch{}
-        add(response.ok?'REQUEST_SUCCESS':'REQUEST_HTTP_FAILURE',{
-          url,method,status:response.status,status_text:response.statusText,duration_ms:Math.round(performance.now()-begin),response_preview:responsePreview,context:snapshot()
-        });
-        return response;
-      }catch(error){
-        add('REQUEST_NETWORK_FAILURE',{url,method,duration_ms:Math.round(performance.now()-begin),message:error?.message||String(error),stack:error?.stack||null,classification:classifyError(error?.message,error?.stack),context:snapshot()});
-        throw error;
-      }
-    };
-
-    w.addEventListener('error',e=>add('WINDOW_ERROR',{
-      message:e.message||String(e.error||''),source:e.filename||null,line:e.lineno||null,column:e.colno||null,stack:e.error?.stack||null,classification:classifyError(e.message,e.filename),context:snapshot()
-    }),true);
-    w.addEventListener('unhandledrejection',e=>{
-      const reason=e.reason;
-      add('UNHANDLED_REJECTION',{message:reason?.message||String(reason||''),stack:reason?.stack||null,classification:classifyError(reason?.message||String(reason||''),reason?.stack||''),context:snapshot()});
-    });
-    w.document.addEventListener('click',e=>{
-      const el=e.target?.closest?.('button,a,.opp');
-      if(!el)return;
-      add('OPERATOR_ACTION',{element:el.tagName,id:el.id||null,text:(el.textContent||'').trim().slice(0,160),dataset:safe(el.dataset||{}),context:snapshot()});
-    },true);
+    w.fetch=async function(input,init={}){const url=typeof input==='string'?input:(input?.url||String(input)),method=String(init?.method||'GET').toUpperCase(),begin=performance.now();add('REQUEST_START',{url,method,context:snapshot()});try{const response=await originalFetch(input,init);let responsePreview=null;try{responsePreview=(await response.clone().text()).slice(0,1800)}catch{}add(response.ok?'REQUEST_SUCCESS':'REQUEST_HTTP_FAILURE',{url,method,status:response.status,status_text:response.statusText,duration_ms:Math.round(performance.now()-begin),response_preview:responsePreview,context:snapshot()});return response}catch(error){add('REQUEST_NETWORK_FAILURE',{url,method,duration_ms:Math.round(performance.now()-begin),message:error?.message||String(error),stack:error?.stack||null,classification:classifyError(error?.message,error?.stack),context:snapshot()});throw error}};
+    w.addEventListener('error',e=>add('WINDOW_ERROR',{message:e.message||String(e.error||''),source:e.filename||null,line:e.lineno||null,column:e.colno||null,stack:e.error?.stack||null,classification:classifyError(e.message,e.filename),context:snapshot()}),true);
+    w.addEventListener('unhandledrejection',e=>{const r=e.reason;add('UNHANDLED_REJECTION',{message:r?.message||String(r||''),stack:r?.stack||null,classification:classifyError(r?.message||String(r||''),r?.stack||''),context:snapshot()})});
+    w.document.addEventListener('click',e=>{const el=e.target?.closest?.('button,a,.opp');if(!el)return;add('OPERATOR_ACTION',{element:el.tagName,id:el.id||null,text:(el.textContent||'').trim().slice(0,160),dataset:safe(el.dataset||{}),context:snapshot()})},true);
     statusEl.textContent='Diagnostics active. Reproduce the issue, then download the JSON report.';
   }
   frame.addEventListener('load',()=>{try{install()}catch(error){add('DIAGNOSTICS_INSTALL_FAILURE',{message:error.message,stack:error.stack});statusEl.textContent='Diagnostics failed to initialize.'}});
   window.addEventListener('error',e=>add('SHELL_ERROR',{message:e.message,source:e.filename,line:e.lineno,column:e.colno,classification:classifyError(e.message,e.filename)}),true);
   window.addEventListener('unhandledrejection',e=>add('SHELL_UNHANDLED_REJECTION',{message:e.reason?.message||String(e.reason||''),stack:e.reason?.stack||null,classification:classifyError(e.reason?.message||String(e.reason||''),e.reason?.stack||'')}));
-
   document.getElementById('clearReport').onclick=()=>{events.length=0;add('REPORT_CLEARED',{context:snapshot()})};
-  document.getElementById('downloadReport').onclick=()=>{
-    let state={};
-    try{state=snapshot()}catch(error){state={snapshot_error:error.message}}
-    const extensionEvents=events.filter(e=>e.classification==='BROWSER_EXTENSION_OR_INJECTED_SCRIPT');
-    const applicationFailures=events.filter(e=>['REQUEST_HTTP_FAILURE','REQUEST_NETWORK_FAILURE','WINDOW_ERROR','UNHANDLED_REJECTION'].includes(e.type)&&e.classification!=='BROWSER_EXTENSION_OR_INJECTED_SCRIPT');
-    const report={
-      report_type:'NGCC_COMMAND_CENTER_DEVELOPMENT_JOB_REPORT',
-      report_version:'1.0',
-      generated_at:new Date().toISOString(),
-      session_started_at:startedAt,
-      production_url:location.origin+'/ops-command-center',
-      command_center_impl:'/ops-command-center-v3.html',
-      browser:{user_agent:navigator.userAgent,language:navigator.language,online:navigator.onLine},
-      current_state:state,
-      summary:{event_count:events.length,application_failure_count:applicationFailures.length,extension_or_injected_script_event_count:extensionEvents.length},
-      application_failures:applicationFailures,
-      extension_or_injected_script_events:extensionEvents,
-      events
-    };
-    const blob=new Blob([JSON.stringify(report,null,2)],{type:'application/json'});
-    const a=document.createElement('a');
-    a.href=URL.createObjectURL(blob);
-    const stamp=new Date().toISOString().replace(/[:.]/g,'-');
-    a.download=`NGCC-CommandCenter-JobReport-${stamp}.json`;
-    document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
-    add('JOB_REPORT_DOWNLOADED',{summary:report.summary});
-  };
+  document.getElementById('downloadReport').onclick=()=>{let state={};try{state=snapshot()}catch(error){state={snapshot_error:error.message}}const extensionEvents=events.filter(e=>e.classification==='BROWSER_EXTENSION_OR_INJECTED_SCRIPT'),applicationFailures=events.filter(e=>['REQUEST_HTTP_FAILURE','REQUEST_NETWORK_FAILURE','WINDOW_ERROR','UNHANDLED_REJECTION'].includes(e.type)&&e.classification!=='BROWSER_EXTENSION_OR_INJECTED_SCRIPT');const report={report_type:'NGCC_COMMAND_CENTER_DEVELOPMENT_JOB_REPORT',report_version:'1.0',generated_at:new Date().toISOString(),session_started_at:startedAt,production_url:location.origin+'/ops-command-center',command_center_impl:'/ops-command-center-stage01-hotfix.html',browser:{user_agent:navigator.userAgent,language:navigator.language,online:navigator.onLine},current_state:state,summary:{event_count:events.length,application_failure_count:applicationFailures.length,extension_or_injected_script_event_count:extensionEvents.length},application_failures:applicationFailures,extension_or_injected_script_events:extensionEvents,events};const blob=new Blob([JSON.stringify(report,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`NGCC-CommandCenter-JobReport-${new Date().toISOString().replace(/[:.]/g,'-')}.json`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);add('JOB_REPORT_DOWNLOADED',{summary:report.summary})};
 })();
 </script>
 </body>
