@@ -77,7 +77,9 @@ jobs:
           grep -Fq 'BROWSER_EXTENSION_OR_INJECTED_SCRIPT' ops-command-center-v5.html
           grep -Fq 'id="contractState"' ops-command-center-v5.html
           grep -Fq 'id="contractorState"' ops-command-center-v5.html
+          grep -Fq 'Start New Task' ops-command-center-v6.html
+          grep -Fq 'Previous mission preserved' ops-command-center-v6.html
           grep -Fq "params.set('state', state)" netlify/functions/ngcc-ops-sam-opportunities.js
           grep -Fq "physicalAddressProvinceOrStateCode" netlify/functions/lib/ngcc-ops.js
           grep -Fq 'Cache-Control: no-store' _headers
-          grep -Fq 'to = "/ops-command-center-v5.html"' netlify.toml
+          grep -Fq 'to = "/ops-command-center-v6.html"' netlify.toml
