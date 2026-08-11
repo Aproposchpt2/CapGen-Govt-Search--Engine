@@ -7,13 +7,16 @@ on:
     paths:
       - "netlify/functions/lib/ngcc-procurement-dna.js"
       - "netlify/functions/lib/ngcc-contract-intelligence.js"
+      - "netlify/functions/lib/ngcc-contractor-discovery.js"
       - "netlify/functions/lib/ngcc-mission-state.js"
       - "netlify/functions/ngcc-ops-contract-dna.js"
       - "netlify/functions/ngcc-ops-derive-naics.js"
       - "netlify/functions/ngcc-ops-business-search-dna.js"
+      - "netlify/functions/ngcc-ops-sam-contractor-discovery.js"
       - "netlify/functions/ngcc-ops-mission-control.js"
       - "supabase/migrations/20260811162000_ngcc_proactive_procurement_missions.sql"
       - "tests/ngcc-procurement-dna.test.js"
+      - "tests/ngcc-contractor-discovery.test.js"
       - "tests/ngcc-mission-state.test.js"
       - ".github/workflows/ngcc-proactive-procurement-validation.yml"
   pull_request:
@@ -22,13 +25,16 @@ on:
     paths:
       - "netlify/functions/lib/ngcc-procurement-dna.js"
       - "netlify/functions/lib/ngcc-contract-intelligence.js"
+      - "netlify/functions/lib/ngcc-contractor-discovery.js"
       - "netlify/functions/lib/ngcc-mission-state.js"
       - "netlify/functions/ngcc-ops-contract-dna.js"
       - "netlify/functions/ngcc-ops-derive-naics.js"
       - "netlify/functions/ngcc-ops-business-search-dna.js"
+      - "netlify/functions/ngcc-ops-sam-contractor-discovery.js"
       - "netlify/functions/ngcc-ops-mission-control.js"
       - "supabase/migrations/20260811162000_ngcc_proactive_procurement_missions.sql"
       - "tests/ngcc-procurement-dna.test.js"
+      - "tests/ngcc-contractor-discovery.test.js"
       - "tests/ngcc-mission-state.test.js"
       - ".github/workflows/ngcc-proactive-procurement-validation.yml"
 
@@ -47,12 +53,16 @@ jobs:
         run: |
           node --check netlify/functions/lib/ngcc-procurement-dna.js
           node --check netlify/functions/lib/ngcc-contract-intelligence.js
+          node --check netlify/functions/lib/ngcc-contractor-discovery.js
           node --check netlify/functions/lib/ngcc-mission-state.js
           node --check netlify/functions/ngcc-ops-contract-dna.js
           node --check netlify/functions/ngcc-ops-derive-naics.js
           node --check netlify/functions/ngcc-ops-business-search-dna.js
+          node --check netlify/functions/ngcc-ops-sam-contractor-discovery.js
           node --check netlify/functions/ngcc-ops-mission-control.js
       - name: Validate Contract DNA and Business Search DNA
         run: node tests/ngcc-procurement-dna.test.js
+      - name: Validate controlled SAM contractor discovery
+        run: node tests/ngcc-contractor-discovery.test.js
       - name: Validate strict sequential mission execution
         run: node tests/ngcc-mission-state.test.js
