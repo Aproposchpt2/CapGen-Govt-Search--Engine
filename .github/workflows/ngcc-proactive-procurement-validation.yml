@@ -1,77 +1,17 @@
 name: NGCC Proactive Procurement Validation
 
 on:
-  push:
-    branches:
-      - agent/ngcc-proactive-procurement-command-center
-    paths:
-      - "ops-command-center.html"
-      - "ops-command-center-v2.html"
-      - "ops-command-center-v3.html"
-      - "ops-command-center-v4.html"
-      - "ops-command-center-stage01-hotfix.html"
-      - "netlify.toml"
-      - "netlify/functions/lib/ngcc-procurement-dna.js"
-      - "netlify/functions/lib/ngcc-contract-intelligence.js"
-      - "netlify/functions/lib/ngcc-contractor-discovery.js"
-      - "netlify/functions/lib/ngcc-contractor-qualification.js"
-      - "netlify/functions/lib/ngcc-contact-discovery.js"
-      - "netlify/functions/lib/ngcc-outreach-control.js"
-      - "netlify/functions/lib/ngcc-response-closeout.js"
-      - "netlify/functions/lib/ngcc-mission-state.js"
-      - "netlify/functions/ngcc-ops-contract-dna.js"
-      - "netlify/functions/ngcc-ops-derive-naics.js"
-      - "netlify/functions/ngcc-ops-business-search-dna.js"
-      - "netlify/functions/ngcc-ops-sam-contractor-discovery.js"
-      - "netlify/functions/ngcc-ops-contractor-qualification.js"
-      - "netlify/functions/ngcc-ops-contact-discovery.js"
-      - "netlify/functions/ngcc-ops-controlled-outreach.js"
-      - "netlify/functions/ngcc-ops-outreach.js"
-      - "netlify/functions/ngcc-ops-response-contract-assistance.js"
-      - "netlify/functions/ngcc-ops-mission-control.js"
-      - "supabase/migrations/20260811162000_ngcc_proactive_procurement_missions.sql"
-      - "tests/ngcc-procurement-dna.test.js"
-      - "tests/ngcc-contractor-discovery.test.js"
-      - "tests/ngcc-contractor-qualification.test.js"
-      - "tests/ngcc-contact-outreach-control.test.js"
-      - "tests/ngcc-response-closeout.test.js"
-      - "tests/ngcc-mission-state.test.js"
-      - ".github/workflows/ngcc-proactive-procurement-validation.yml"
   pull_request:
     branches:
       - main
     paths:
-      - "ops-command-center.html"
-      - "ops-command-center-v2.html"
-      - "ops-command-center-v3.html"
-      - "ops-command-center-v4.html"
-      - "ops-command-center-stage01-hotfix.html"
+      - "ops-command-center*.html"
+      - "_headers"
       - "netlify.toml"
-      - "netlify/functions/lib/ngcc-procurement-dna.js"
-      - "netlify/functions/lib/ngcc-contract-intelligence.js"
-      - "netlify/functions/lib/ngcc-contractor-discovery.js"
-      - "netlify/functions/lib/ngcc-contractor-qualification.js"
-      - "netlify/functions/lib/ngcc-contact-discovery.js"
-      - "netlify/functions/lib/ngcc-outreach-control.js"
-      - "netlify/functions/lib/ngcc-response-closeout.js"
-      - "netlify/functions/lib/ngcc-mission-state.js"
-      - "netlify/functions/ngcc-ops-contract-dna.js"
-      - "netlify/functions/ngcc-ops-derive-naics.js"
-      - "netlify/functions/ngcc-ops-business-search-dna.js"
-      - "netlify/functions/ngcc-ops-sam-contractor-discovery.js"
-      - "netlify/functions/ngcc-ops-contractor-qualification.js"
-      - "netlify/functions/ngcc-ops-contact-discovery.js"
-      - "netlify/functions/ngcc-ops-controlled-outreach.js"
-      - "netlify/functions/ngcc-ops-outreach.js"
-      - "netlify/functions/ngcc-ops-response-contract-assistance.js"
-      - "netlify/functions/ngcc-ops-mission-control.js"
-      - "supabase/migrations/20260811162000_ngcc_proactive_procurement_missions.sql"
-      - "tests/ngcc-procurement-dna.test.js"
-      - "tests/ngcc-contractor-discovery.test.js"
-      - "tests/ngcc-contractor-qualification.test.js"
-      - "tests/ngcc-contact-outreach-control.test.js"
-      - "tests/ngcc-response-closeout.test.js"
-      - "tests/ngcc-mission-state.test.js"
+      - "netlify/functions/lib/ngcc-*.js"
+      - "netlify/functions/ngcc-ops-*.js"
+      - "supabase/migrations/*ngcc*.sql"
+      - "tests/ngcc-*.test.js"
       - ".github/workflows/ngcc-proactive-procurement-validation.yml"
 
 permissions:
@@ -104,6 +44,7 @@ jobs:
           node --check netlify/functions/ngcc-ops-controlled-outreach.js
           node --check netlify/functions/ngcc-ops-response-contract-assistance.js
           node --check netlify/functions/ngcc-ops-mission-control.js
+          node --check netlify/functions/ngcc-ops-mission-evidence.js
       - name: Validate Contract DNA and Business Search DNA
         run: node tests/ngcc-procurement-dna.test.js
       - name: Validate controlled SAM contractor discovery
@@ -128,8 +69,10 @@ jobs:
           grep -Fq 'ngcc-ops-controlled-outreach' ops-command-center-v3.html
           grep -Fq 'ngcc-ops-response-contract-assistance' ops-command-center-v3.html
           grep -Fq 'data-select-contract' ops-command-center-stage01-hotfix.html
-          grep -Fq 'Contract selected. Fresh mission created.' ops-command-center-stage01-hotfix.html
+          grep -Fq 'selected_opportunity_snapshot' ops-command-center-stage01-hotfix.html
+          grep -Fq 'ngcc-ops-mission-evidence' ops-command-center-stage01-hotfix.html
           grep -Fq 'Download Job Report (.json)' ops-command-center-v4.html
           grep -Fq 'REQUEST_HTTP_FAILURE' ops-command-center-v4.html
           grep -Fq 'BROWSER_EXTENSION_OR_INJECTED_SCRIPT' ops-command-center-v4.html
+          grep -Fq 'Cache-Control: no-store' _headers
           grep -Fq 'to = "/ops-command-center-v4.html"' netlify.toml
