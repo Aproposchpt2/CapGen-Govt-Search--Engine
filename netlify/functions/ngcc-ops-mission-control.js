@@ -1,8 +1,8 @@
 'use strict';
 
+const { randomUUID } = require('node:crypto');
 const { json, opsGuard, SUPABASE_URL, SUPABASE_KEY, sbHeaders } = require('./lib/ngcc-ops');
 const {
-  MISSION_STEPS,
   initialStepRows,
   assertSequentialTransition,
   nextStepCode,
@@ -21,7 +21,7 @@ function ensureDb() {
 
 async function db(table, method = 'GET', query = '', body, prefer = '') {
   ensureDb();
-  const response = await fetch(`${String(SUPABASE_URL).replace(/\/+$/, '')}/rest/v1/${table}${query || ''}`, {
+  const response = await fetch(`${String(SUPABASE_URL).replace(/\/+$/, '')}/rest/v1/${table}${query}`, {
     method,
     headers: { ...sbHeaders(), ...(prefer ? { Prefer: prefer } : {}) },
     body: body === undefined ? undefined : JSON.stringify(body),
@@ -35,22 +35,16 @@ async function db(table, method = 'GET', query = '', body, prefer = '') {
 function missionNumber() {
   const d = new Date();
   const date = `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, '0')}${String(d.getUTCDate()).padStart(2, '0')}`;
-  const suffix = crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
-  return `NGCC-FP-${date}-${suffix}`;
+  return `NGCC-FP-${date}-${randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase()}`;
 }
 
 async function loadMission(missionId) {
-  const missionRows = await db(MISSIONS, 'GET', `?id=eq.${encodeURIComponent(missionId)}&select=*&limit=1`);
-  const mission = missionRows[0];
+  const mission = (await db(MISSIONS, 'GET', `?id=eq.${encodeURIComponent(missionId)}&select=*&limit=1`))[0];
   if (!mission) throw new Error('NGCC procurement mission was not found.');
   const steps = await db(STEPS, 'GET', `?mission_id=eq.${encodeURIComponent(missionId)}&select=*&order=sequence_number.asc`);
   const events = await db(EVENTS, 'GET', `?mission_id=eq.${encodeURIComponent(missionId)}&select=*&order=created_at.desc&limit=50`);
   const staleSeconds = Math.max(30, Number(process.env.NGCC_MISSION_STALE_SECONDS || 180));
-  return {
-    mission,
-    steps: steps.map(step => ({ ...step, derived_status: deriveStatus(step, staleSeconds) })),
-    events,
-  };
+  return { mission, steps: steps.map(step => ({ ...step, derived_status: deriveStatus(step, staleSeconds) })), events };
 }
 
 async function createMission(opportunity) {
@@ -58,7 +52,7 @@ async function createMission(opportunity) {
   const title = String(opportunity.title || '').trim();
   if (!noticeId || !title) throw new Error('A SAM notice ID and contract title are required to create a mission.');
   const now = nowIso();
-  const created = await db(MISSIONS, 'POST', '', [{
+  const mission = (await db(MISSIONS, 'POST', '', [{
     mission_number: missionNumber(),
     sam_notice_id: noticeId,
     solicitation_number: opportunity.solicitationNumber || opportunity.solicitation_number || null,
@@ -73,8 +67,7 @@ async function createMission(opportunity) {
     created_at: now,
     updated_at: now,
     last_activity_at: now,
-  }], 'return=representation');
-  const mission = created[0];
+  }], 'return=representation'))[0];
   if (!mission) throw new Error('Mission creation did not return a record.');
 
   await db(STEPS, 'POST', '', initialStepRows(mission.id, opportunity, now), 'return=minimal');
@@ -88,6 +81,11 @@ async function createMission(opportunity) {
   return loadMission(mission.id);
 }
 
+function safeProgress(value, fallback) {
+  const n = Number(value ?? fallback ?? 0);
+  return Math.max(0, Math.min(100, Number.isFinite(n) ? n : 0));
+}
+
 async function transitionMission(body) {
   const missionId = String(body.mission_id || '').trim();
   const stepCode = String(body.step_code || '').trim().toUpperCase();
@@ -97,9 +95,10 @@ async function transitionMission(body) {
   const loaded = await loadMission(missionId);
   const check = assertSequentialTransition(loaded.steps, stepCode, requestedStatus);
   const now = nowIso();
+  const isSuccess = ['SUCCESS', 'ZERO_RESULT', 'COMPLETE'].includes(check.status);
   const patch = {
     status: check.status,
-    progress_percentage: Math.max(0, Math.min(100, Number(body.progress_percentage ?? (check.status === 'RUNNING' ? Math.max(1, check.step.progress_percentage || 0) : check.status === 'SUCCESS' || check.status === 'ZERO_RESULT' || check.status === 'COMPLETE' ? 100 : check.step.progress_percentage || 0)))),
+    progress_percentage: safeProgress(body.progress_percentage, isSuccess ? 100 : check.status === 'RUNNING' ? Math.max(1, check.step.progress_percentage || 0) : check.step.progress_percentage),
     current_activity: body.current_activity || null,
     output_summary: body.output_summary && typeof body.output_summary === 'object' ? body.output_summary : check.step.output_summary || {},
     evidence: Array.isArray(body.evidence) ? body.evidence : check.step.evidence || [],
@@ -110,31 +109,17 @@ async function transitionMission(body) {
     error_message: body.error_message || null,
     updated_at: now,
   };
-  if (check.status === 'RUNNING') {
-    patch.started_at = check.step.started_at || now;
-    patch.last_heartbeat_at = now;
-    patch.completed_at = null;
-  }
-  if (['SUCCESS', 'ZERO_RESULT', 'COMPLETE'].includes(check.status)) {
-    patch.started_at = check.step.started_at || now;
-    patch.last_heartbeat_at = now;
-    patch.completed_at = now;
-    patch.error_code = null;
-    patch.error_message = null;
-  }
-  if (check.status === 'FAILED') {
-    patch.started_at = check.step.started_at || now;
-    patch.last_heartbeat_at = now;
-    patch.completed_at = now;
-    patch.retry_count = Number(check.step.retry_count || 0) + 1;
-  }
+
+  if (check.status === 'RUNNING') Object.assign(patch, { started_at: check.step.started_at || now, last_heartbeat_at: now, completed_at: null });
+  if (isSuccess) Object.assign(patch, { started_at: check.step.started_at || now, last_heartbeat_at: now, completed_at: now, error_code: null, error_message: null });
+  if (check.status === 'FAILED') Object.assign(patch, { started_at: check.step.started_at || now, last_heartbeat_at: now, completed_at: now, retry_count: Number(check.step.retry_count || 0) + 1 });
 
   await db(STEPS, 'PATCH', `?id=eq.${encodeURIComponent(check.step.id)}`, patch, 'return=minimal');
 
   const nextCode = nextStepCode(stepCode);
-  if (['SUCCESS', 'ZERO_RESULT', 'COMPLETE'].includes(check.status) && nextCode) {
+  if (isSuccess && nextCode) {
     const next = loaded.steps.find(step => step.step_code === nextCode);
-    if (next && next.status === 'NOT_STARTED') {
+    if (next?.status === 'NOT_STARTED') {
       await db(STEPS, 'PATCH', `?id=eq.${encodeURIComponent(next.id)}`, {
         status: 'READY', progress_percentage: 0, current_activity: 'Awaiting operator execution', updated_at: now,
       }, 'return=minimal');
@@ -162,6 +147,7 @@ async function transitionMission(body) {
 async function heartbeat(body) {
   const missionId = String(body.mission_id || '').trim();
   const stepCode = String(body.step_code || '').trim().toUpperCase();
+  if (!missionId || !stepCode) throw new Error('mission_id and step_code are required.');
   const loaded = await loadMission(missionId);
   const step = loaded.steps.find(item => item.step_code === stepCode);
   if (!step) throw new Error('Mission step was not found.');
@@ -169,7 +155,7 @@ async function heartbeat(body) {
   const now = nowIso();
   await db(STEPS, 'PATCH', `?id=eq.${encodeURIComponent(step.id)}`, {
     last_heartbeat_at: now,
-    progress_percentage: Math.max(Number(step.progress_percentage || 0), Math.min(99, Number(body.progress_percentage ?? step.progress_percentage ?? 0))),
+    progress_percentage: Math.max(Number(step.progress_percentage || 0), Math.min(99, safeProgress(body.progress_percentage, step.progress_percentage))),
     current_activity: body.current_activity || step.current_activity,
     records_examined: Math.max(0, Number(body.records_examined ?? step.records_examined ?? 0)),
     records_accepted: Math.max(0, Number(body.records_accepted ?? step.records_accepted ?? 0)),
@@ -188,11 +174,14 @@ exports.handler = async event => {
     if (event.httpMethod === 'GET') {
       const qs = event.queryStringParameters || {};
       if (qs.mission_id) return json(200, { ok: true, ...(await loadMission(qs.mission_id)) });
-      const missions = await db(MISSIONS, 'GET', '?select=*&order=last_activity_at.desc&limit=50');
-      return json(200, { ok: true, missions });
+      return json(200, { ok: true, missions: await db(MISSIONS, 'GET', '?select=*&order=last_activity_at.desc&limit=50') });
     }
     if (event.httpMethod !== 'POST') return json(405, { ok: false, error: 'GET or POST only.' });
-    const body = JSON.parse(event.body || '{}');
+
+    let body;
+    try { body = JSON.parse(event.body || '{}'); }
+    catch { return json(400, { ok: false, error: 'Invalid JSON.' }); }
+
     const action = String(body.action || '').trim().toLowerCase();
     if (action === 'create') return json(201, { ok: true, ...(await createMission(body.opportunity || {})) });
     if (action === 'transition') return json(200, { ok: true, ...(await transitionMission(body)) });
@@ -200,7 +189,8 @@ exports.handler = async event => {
     return json(400, { ok: false, error: 'Unknown mission-control action.' });
   } catch (error) {
     console.error('[ngcc-ops-mission-control]', error);
-    const status = /locked|cannot|requires action|not search-ready/i.test(error.message) ? 409 : /required|Invalid JSON|not found/i.test(error.message) ? 400 : 500;
-    return json(status, { ok: false, error: error.message });
+    const message = String(error?.message || 'Mission-control failure.');
+    const status = /locked|cannot|requires action/i.test(message) ? 409 : /required|not found/i.test(message) ? 400 : 500;
+    return json(status, { ok: false, error: message });
   }
 };
