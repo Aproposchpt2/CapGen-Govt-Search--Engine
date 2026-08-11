@@ -1,6 +1,11 @@
 'use strict';
 
-const { ENGINE_VERSION: AOIE_ENGINE_VERSION, SCORING_VERSION: AOIE_SCORING_VERSION } = require('./aoie-federal');
+const {
+  ENGINE_VERSION: AOIE_ENGINE_VERSION,
+  ONTOLOGY_VERSION: AOIE_ONTOLOGY_VERSION,
+  SCORING_VERSION: AOIE_SCORING_VERSION,
+  DEFAULT_WEIGHTS: AOIE_DEFAULT_WEIGHTS,
+} = require('./aoie-federal');
 
 const QUALIFICATION_VERSION = 'ngcc-contractor-qualification-v1';
 const WEIGHTS = {
@@ -42,6 +47,17 @@ function verificationItems(contractDna = {}, searchDna = {}, candidate = {}) {
   if(geographicRestrictions.length){const state=candidate.state||'',matched=containsStateRestriction(geographicRestrictions,state);items.push({code:'GEOGRAPHIC_RESTRICTION',requirement:geographicRestrictions.join('; '),status:matched?'SUPPORTED':'UNVERIFIED',reason:matched?`Candidate state ${state} appears in the stated geographic restriction evidence.`:'Candidate business location does not by itself prove compliance with the stated place-of-performance or geographic restriction.'});}
   return items;
 }
+function aoieLineage(){
+  return {
+    source_asset:'netlify/functions/lib/aoie-federal.js',
+    engine_version:AOIE_ENGINE_VERSION,
+    ontology_version:AOIE_ONTOLOGY_VERSION,
+    scoring_version:AOIE_SCORING_VERSION,
+    source_scoring_dimensions:Object.keys(AOIE_DEFAULT_WEIGHTS||{}),
+    reused_architecture:['WEIGHTED_SIGNALS','HARD_DISQUALIFIERS','SEPARATE_CONFIDENCE','EXPLAINABLE_EVIDENCE'],
+    adaptation:'Contractor qualification reverses the AOIE business-to-opportunity comparison direction. The electronics-specific ontology is not generalized beyond its validated domain; NGCC uses Contract DNA and SAM evidence as the domain-neutral feature layer.',
+  };
+}
 function qualifyCandidate({ candidate = {}, contractDna = {}, businessSearchDna = {} } = {}) {
   const reasons=[], evidence=[], signals={}, paths=candidatePaths(candidate), strongest=strongestPath(candidate);
   signals.naics_path=strongest?pathScore(strongest):0;
@@ -65,8 +81,8 @@ function qualifyCandidate({ candidate = {}, contractDna = {}, businessSearchDna 
   let qualificationStatus;
   if(explicitMismatch.length)qualificationStatus='DISQUALIFIED';else if(unresolved.length)qualificationStatus='REVIEW_REQUIRED';else if(score>=QUALIFIED_THRESHOLD)qualificationStatus='QUALIFIED';else qualificationStatus='REVIEW_REQUIRED';
   const confidence=paths.length>1&&hasUei&&hasCage?'HIGH':paths.length&&hasUei?'MODERATE':'LOW';
-  return {qualification_version:QUALIFICATION_VERSION,aoie_lineage:{engine_version:AOIE_ENGINE_VERSION,scoring_version:AOIE_SCORING_VERSION,pattern:'weighted_signals+hard_gates+explainable_evidence'},candidate_number:candidate.candidate_number||null,uei:candidate.ueiSAM||candidate.uei||null,cage_code:candidate.cageCode||candidate.cage_code||null,business_name:candidate.businessName||candidate.business_name||null,city:candidate.city||null,state:candidate.state||null,qualification_score:score,qualification_status:qualificationStatus,confidence,signal_scores:signals,matched_search_paths:paths,explanation:{why_ranked:reasons,verification_required:verification,evidence},operator_disposition:'PENDING'};
+  return {qualification_version:QUALIFICATION_VERSION,aoie_lineage:aoieLineage(),candidate_number:candidate.candidate_number||null,uei:candidate.ueiSAM||candidate.uei||null,cage_code:candidate.cageCode||candidate.cage_code||null,business_name:candidate.businessName||candidate.business_name||null,city:candidate.city||null,state:candidate.state||null,qualification_score:score,qualification_status:qualificationStatus,confidence,signal_scores:signals,matched_search_paths:paths,explanation:{why_ranked:reasons,verification_required:verification,evidence},operator_disposition:'PENDING'};
 }
 function rankCandidates({candidates=[],contractDna={},businessSearchDna={}}={}){return(Array.isArray(candidates)?candidates:[]).map(candidate=>qualifyCandidate({candidate,contractDna,businessSearchDna})).sort((a,b)=>b.qualification_score-a.qualification_score||a.business_name.localeCompare(b.business_name)).map((candidate,index)=>({rank:index+1,...candidate}));}
 function qualificationSummary(ranked=[]){const counts={QUALIFIED:0,REVIEW_REQUIRED:0,DISQUALIFIED:0};ranked.forEach(item=>{counts[item.qualification_status]=(counts[item.qualification_status]||0)+1;});return{total:ranked.length,qualified:counts.QUALIFIED||0,review_required:counts.REVIEW_REQUIRED||0,disqualified:counts.DISQUALIFIED||0,top_score:ranked[0]?.qualification_score??null};}
-module.exports={QUALIFICATION_VERSION,WEIGHTS,QUALIFIED_THRESHOLD,qualifyCandidate,rankCandidates,qualificationSummary};
+module.exports={QUALIFICATION_VERSION,WEIGHTS,QUALIFIED_THRESHOLD,aoieLineage,qualifyCandidate,rankCandidates,qualificationSummary};
