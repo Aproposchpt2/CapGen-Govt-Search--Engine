@@ -8,6 +8,7 @@ on:
       - "ops-command-center.html"
       - "ops-command-center-v2.html"
       - "ops-command-center-v3.html"
+      - "ops-command-center-stage01-hotfix.html"
       - "netlify.toml"
       - "netlify/functions/lib/ngcc-procurement-dna.js"
       - "netlify/functions/lib/ngcc-contract-intelligence.js"
@@ -42,6 +43,7 @@ on:
       - "ops-command-center.html"
       - "ops-command-center-v2.html"
       - "ops-command-center-v3.html"
+      - "ops-command-center-stage01-hotfix.html"
       - "netlify.toml"
       - "netlify/functions/lib/ngcc-procurement-dna.js"
       - "netlify/functions/lib/ngcc-contract-intelligence.js"
@@ -123,4 +125,6 @@ jobs:
           grep -Fq 'ngcc-ops-contact-discovery' ops-command-center-v3.html
           grep -Fq 'ngcc-ops-controlled-outreach' ops-command-center-v3.html
           grep -Fq 'ngcc-ops-response-contract-assistance' ops-command-center-v3.html
-          grep -Fq 'to = "/ops-command-center-v3.html"' netlify.toml
+          grep -Fq 'data-select-contract' ops-command-center-stage01-hotfix.html
+          grep -Fq 'Contract selected. Fresh mission created.' ops-command-center-stage01-hotfix.html
+          grep -Fq 'to = "/ops-command-center-stage01-hotfix.html"' netlify.toml
