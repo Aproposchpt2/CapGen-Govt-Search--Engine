@@ -143,6 +143,11 @@
   status = 200
 
 [[headers]]
+  for = "/ops-command-center-stage01-hotfix.html"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+
+[[headers]]
   for = "/*"
   [headers.values]
     X-Frame-Options = "DENY"
