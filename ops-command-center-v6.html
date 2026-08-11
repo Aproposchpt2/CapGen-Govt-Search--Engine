@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>NGCC Command Center</title></head>
+<body>
+<script>
+(async()=>{
+  try{
+    const res=await fetch('/ops-command-center-v5.html?v6=1',{cache:'no-store'});
+    if(!res.ok)throw new Error(`Unable to load command center (${res.status}).`);
+    let shell=await res.text();
+    const marker='    document.open();';
+    if(!shell.includes(marker))throw new Error('NGCC v5 composition marker not found.');
+    const patch=`
+    // v6 operator workflow: preserve the current mission and open a clean Stage 01 workspace.
+    html = html.replace(
+      '<a class="btn secondary" href="/ops-dashboard">Ops Dashboard</a>',
+      '<button id="startNewTask" type="button" class="btn warn">Start New Task</button><a class="btn secondary" href="/ops-dashboard">Ops Dashboard</a>'
+    );
+    const newTaskScript = \`<script id="ngcc-start-new-task-script">(()=>{const btn=document.getElementById('startNewTask');if(!btn)return;btn.addEventListener('click',()=>{const prior=ctx?.mission?.mission_number||ctx?.mission?.id||null;sessionStorage.setItem('ngcc_new_task_workspace','1');ctx=null;evidence={};['keyword','naics','contractState','contractorState'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});const opps=document.getElementById('opps');if(opps)opps.innerHTML='';const oppsMsg=document.getElementById('oppsMsg');if(oppsMsg){oppsMsg.className='msg ok';oppsMsg.textContent=prior?'Previous mission preserved. New task workspace ready — search SAM.gov and select a contract to create the next mission.':'New task workspace ready — search SAM.gov and select a contract to create the next mission.'}const execMsg=document.getElementById('execMsg');if(execMsg){execMsg.className='msg';execMsg.textContent=''}render();window.scrollTo({top:0,behavior:'smooth'});});})();<\\/script>\`;
+    html = html.replace('</body>', newTaskScript + '</body>');
+`;
+    shell=shell.replace(marker,patch+marker);
+    document.open();document.write(shell);document.close();
+  }catch(error){document.body.innerHTML='<pre style="padding:24px;color:#900">'+String(error?.stack||error)+'</pre>';}
+})();
+</script>
+</body>
+</html>
