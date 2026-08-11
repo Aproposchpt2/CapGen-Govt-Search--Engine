@@ -19,12 +19,12 @@ exports.handler = async (event) => {
   try { body = JSON.parse(event.body || '{}'); } catch { return json(400, { ok: false, error: 'Invalid request body.' }); }
   const naicsCode = String(body.naicsCode || '').trim();
   const state = String(body.state || '').trim().toUpperCase();
-  const limit = Math.min(Number(body.limit) || 25, 100);
+  const limit = Math.min(Number(body.limit) || 500, 500);
   if (!naicsCode) return json(400, { ok: false, error: 'naicsCode is required.' });
 
   try {
-    const entities = await samEntitySearchByNaics({ naicsCode, state: state || undefined, limit });
-    return json(200, { ok: true, naicsCode, state: state || null, count: entities.length, entities });
+    const { entities, totalRecords } = await samEntitySearchByNaics({ naicsCode, state: state || undefined, limit });
+    return json(200, { ok: true, naicsCode, state: state || null, count: entities.length, total_records: totalRecords, truncated: totalRecords > entities.length, entities });
   } catch (error) {
     console.error('[ngcc-sam-entity-search]', error.message);
     return json(200, { ok: false, error: error.message });

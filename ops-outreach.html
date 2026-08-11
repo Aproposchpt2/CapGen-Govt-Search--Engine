@@ -236,6 +236,8 @@ $('findContractorsBtn').onclick = async () => {
     const d = await request('/.netlify/functions/ngcc-sam-entity-search', { method: 'POST', body: JSON.stringify({ naicsCode: selectedOpp.naicsCode, state: $('stateFilter').value.trim() }) });
     contractors = (d.entities || []).map(e => ({ ...e, email: null, source_url: null, confidence: null, searched: false, checked: false, sendStatus: null }));
     if (!contractors.length) m.textContent = 'No active SAM.gov registrants found for this NAICS code.';
+    else if (d.truncated) { m.className = 'msg'; m.textContent = `Showing ${contractors.length} of ${d.total_records} active registrants for this NAICS code (capped per search — narrow by state, or ask to raise the cap if you need the full list).`; }
+    else { m.className = 'msg ok'; m.textContent = `${contractors.length} active registrant(s) found — this is the full set for this NAICS code.`; }
     renderContractors();
   } catch (e) {
     m.className = 'msg err'; m.textContent = e.message;
