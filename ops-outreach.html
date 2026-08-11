@@ -96,21 +96,34 @@ td small{color:rgba(255,255,255,.4)}
 
   <div class="card">
     <p class="eyebrow">Step 1 · Contract</p>
-    <h2>Find a federal opportunity by NAICS</h2>
-    <p class="desc">SAM.gov Opportunities — the same source already used on the public site.</p>
+    <h2>Browse federal opportunities</h2>
+    <p class="desc">SAM.gov Opportunities — the same source already used on the public site. No NAICS code required to start; leave both blank to browse the most recent open postings.</p>
     <div class="row">
-      <div><label for="naics">NAICS code</label><input id="naics" placeholder="e.g. 541512"></div>
+      <div><label for="keyword">Keyword (optional)</label><input id="keyword" placeholder="e.g. janitorial"></div>
+      <div><label for="naics">NAICS code (optional)</label><input id="naics" placeholder="e.g. 541512"></div>
       <div style="flex:0 0 auto"><button class="btn" id="findOppsBtn">Search Opportunities</button></div>
     </div>
     <div class="msg" id="oppsMsg"></div>
     <div id="oppsList"></div>
   </div>
 
+  <div id="naicsCard" class="card hidden">
+    <p class="eyebrow">Step 2 · Requirements → NAICS</p>
+    <h2>Derive the matching NAICS code</h2>
+    <p class="desc">Reads the contract's real requirements text (not just the code SAM.gov happened to assign) and confirms or corrects the NAICS code(s) that actually match the work.</p>
+    <div id="naicsResult" class="contract-banner hidden"></div>
+    <div class="row">
+      <div><label for="naicsOverride">NAICS to search contractors with</label><input id="naicsOverride" placeholder="Derive first, or type one directly"></div>
+      <div style="flex:0 0 auto"><button class="btn" id="deriveNaicsBtn">Derive from Requirements</button></div>
+    </div>
+    <div class="msg" id="naicsMsg"></div>
+  </div>
+
   <div id="contractorsCard" class="card hidden">
-    <p class="eyebrow">Step 2 · Contract Selected</p>
+    <p class="eyebrow">Step 3 · Contract Selected</p>
     <div id="contractBanner" class="contract-banner"></div>
     <h2>Registered contractors <span class="count-chip" id="contractorCount">0</span></h2>
-    <p class="desc">SAM.gov Entity Management, filtered by this contract's NAICS code — the same source, for the contractor side.</p>
+    <p class="desc">SAM.gov Entity Management, filtered by the NAICS code above — the same source, for the contractor side.</p>
     <div class="row">
       <div><label for="stateFilter">State filter (optional)</label><input id="stateFilter" placeholder="e.g. NV" maxlength="2"></div>
       <div style="flex:0 0 auto"><button class="btn" id="findContractorsBtn">Find Registered Contractors</button></div>
@@ -179,15 +192,19 @@ function urgencyPill(u) {
 $('findOppsBtn').onclick = async () => {
   const m = $('oppsMsg'); m.className = 'msg'; m.textContent = '';
   const naics = $('naics').value.trim();
-  if (!naics) { m.className = 'msg err'; m.textContent = 'Enter a NAICS code.'; return; }
+  const keyword = $('keyword').value.trim();
   $('findOppsBtn').disabled = true; $('findOppsBtn').textContent = 'Searching…';
   $('oppsList').innerHTML = '';
+  $('naicsCard').classList.add('hidden');
   $('contractorsCard').classList.add('hidden');
   try {
-    const d = await request(`/.netlify/functions/ngcc-ops-sam-opportunities?naics=${encodeURIComponent(naics)}&limit=50`);
+    const params = new URLSearchParams({ limit: '50' });
+    if (naics) params.set('naics', naics);
+    if (keyword) params.set('title', keyword);
+    const d = await request(`/.netlify/functions/ngcc-ops-sam-opportunities?${params.toString()}`);
     if (d.error) throw new Error(d.message || 'SAM.gov search failed.');
-    if (!d.results.length) { m.className = 'msg'; m.textContent = 'No active opportunities found for that NAICS code.'; return; }
-    $('oppsList').innerHTML = d.results.map((o, i) => `<div class="opp-item" data-i="${i}"><div class="opp-title">${esc(o.title)}</div><div class="opp-meta">${esc(o.agency)} · NAICS ${esc(o.naicsCode)} · Deadline ${esc(o.responseDeadline||'Unavailable')} ${urgencyPill(o.urgency)}</div></div>`).join('');
+    if (!d.results.length) { m.className = 'msg'; m.textContent = 'No active opportunities found.'; return; }
+    $('oppsList').innerHTML = d.results.map((o, i) => `<div class="opp-item" data-i="${i}"><div class="opp-title">${esc(o.title)}</div><div class="opp-meta">${esc(o.agency)} · NAICS ${esc(o.naicsCode||'Unavailable')} · Deadline ${esc(o.responseDeadline||'Unavailable')} ${urgencyPill(o.urgency)}</div></div>`).join('');
     [...$('oppsList').children].forEach((el, i) => el.onclick = () => selectOpportunity(d.results[i], el));
   } catch (e) {
     m.className = 'msg err'; m.textContent = e.message;
@@ -198,7 +215,11 @@ function selectOpportunity(opp, el) {
   selectedOpp = opp;
   [...$('oppsList').children].forEach(c => c.classList.remove('active'));
   el.classList.add('active');
-  $('contractBanner').innerHTML = `<strong>${esc(opp.title)}</strong><br>${esc(opp.agency)} · NAICS ${esc(opp.naicsCode)} · Deadline ${esc(opp.responseDeadline||'Unavailable')}<br><a href="${esc(opp.samUrl)}" target="_blank" rel="noopener" style="color:#C3D0E8">View on SAM.gov ↗</a>`;
+  $('contractBanner').innerHTML = `<strong>${esc(opp.title)}</strong><br>${esc(opp.agency)} · NAICS ${esc(opp.naicsCode||'Unavailable')} · Deadline ${esc(opp.responseDeadline||'Unavailable')}<br><a href="${esc(opp.samUrl)}" target="_blank" rel="noopener" style="color:#C3D0E8">View on SAM.gov ↗</a>`;
+  $('naicsCard').classList.remove('hidden');
+  $('naicsResult').classList.add('hidden');
+  $('naicsMsg').className = 'msg'; $('naicsMsg').textContent = '';
+  $('naicsOverride').value = opp.naicsCode || '';
   $('contractorsCard').classList.remove('hidden');
   $('contractorsTable').innerHTML = '';
   $('contractorCount').textContent = '0';
@@ -206,8 +227,29 @@ function selectOpportunity(opp, el) {
   $('sendBtn').disabled = true;
   contractors = [];
   renderContractors();
-  $('contractorsCard').scrollIntoView({ behavior: 'smooth' });
+  $('naicsCard').scrollIntoView({ behavior: 'smooth' });
+  deriveNaics();
 }
+
+async function deriveNaics() {
+  if (!selectedOpp) return;
+  const m = $('naicsMsg'); m.className = 'msg'; m.textContent = '';
+  $('deriveNaicsBtn').disabled = true; $('deriveNaicsBtn').textContent = 'Reading requirements…';
+  try {
+    const d = await request('/.netlify/functions/ngcc-ops-derive-naics', {
+      method: 'POST',
+      body: JSON.stringify({ notice_id: selectedOpp.noticeId, title: selectedOpp.title, agency: selectedOpp.agency, naics_code: selectedOpp.naicsCode }),
+    });
+    const box = $('naicsResult');
+    box.classList.remove('hidden');
+    const extra = d.additional_naics && d.additional_naics.length ? `<br>Also consider: ${d.additional_naics.map(esc).join(', ')}` : '';
+    box.innerHTML = `<strong>Derived NAICS: ${esc(d.primary_naics || 'Unavailable')}</strong>${d.confirms_sam_code ? ' <span class="pill ok">Matches SAM.gov code</span>' : ' <span class="pill warm">Corrects SAM.gov code</span>'}<br>${esc(d.rationale || '')}${extra}${d.description_error ? `<br><small style="color:var(--red)">Could not fetch full requirements text (${esc(d.description_error)}) — derived from title only.</small>` : ''}`;
+    if (d.primary_naics) $('naicsOverride').value = d.primary_naics;
+  } catch (e) {
+    m.className = 'msg err'; m.textContent = e.message;
+  } finally { $('deriveNaicsBtn').disabled = false; $('deriveNaicsBtn').textContent = 'Derive from Requirements'; }
+}
+$('deriveNaicsBtn').onclick = deriveNaics;
 
 function renderContractors() {
   $('contractorCount').textContent = contractors.length;
@@ -231,9 +273,11 @@ window.__toggle = (i, checked) => { contractors[i].checked = checked; renderCont
 $('findContractorsBtn').onclick = async () => {
   const m = $('contractorsMsg'); m.className = 'msg'; m.textContent = '';
   if (!selectedOpp) return;
+  const naicsCode = $('naicsOverride').value.trim() || selectedOpp.naicsCode;
+  if (!naicsCode) { m.className = 'msg err'; m.textContent = 'No NAICS code to search with — derive one above or type one in.'; return; }
   $('findContractorsBtn').disabled = true; $('findContractorsBtn').textContent = 'Searching SAM.gov…';
   try {
-    const d = await request('/.netlify/functions/ngcc-sam-entity-search', { method: 'POST', body: JSON.stringify({ naicsCode: selectedOpp.naicsCode, state: $('stateFilter').value.trim() }) });
+    const d = await request('/.netlify/functions/ngcc-sam-entity-search', { method: 'POST', body: JSON.stringify({ naicsCode, state: $('stateFilter').value.trim() }) });
     contractors = (d.entities || []).map(e => ({ ...e, email: null, source_url: null, confidence: null, searched: false, checked: false, sendStatus: null }));
     if (!contractors.length) m.textContent = 'No active SAM.gov registrants found for this NAICS code.';
     else if (d.truncated) { m.className = 'msg'; m.textContent = `Showing ${contractors.length} of ${d.total_records} active registrants for this NAICS code (capped per search — narrow by state, or ask to raise the cap if you need the full list).`; }
