@@ -6,8 +6,10 @@ on:
       - agent/ngcc-proactive-procurement-command-center
     paths:
       - "netlify/functions/lib/ngcc-procurement-dna.js"
+      - "netlify/functions/lib/ngcc-contract-intelligence.js"
       - "netlify/functions/lib/ngcc-mission-state.js"
       - "netlify/functions/ngcc-ops-contract-dna.js"
+      - "netlify/functions/ngcc-ops-derive-naics.js"
       - "netlify/functions/ngcc-ops-business-search-dna.js"
       - "netlify/functions/ngcc-ops-mission-control.js"
       - "supabase/migrations/20260811162000_ngcc_proactive_procurement_missions.sql"
@@ -19,8 +21,10 @@ on:
       - main
     paths:
       - "netlify/functions/lib/ngcc-procurement-dna.js"
+      - "netlify/functions/lib/ngcc-contract-intelligence.js"
       - "netlify/functions/lib/ngcc-mission-state.js"
       - "netlify/functions/ngcc-ops-contract-dna.js"
+      - "netlify/functions/ngcc-ops-derive-naics.js"
       - "netlify/functions/ngcc-ops-business-search-dna.js"
       - "netlify/functions/ngcc-ops-mission-control.js"
       - "supabase/migrations/20260811162000_ngcc_proactive_procurement_missions.sql"
@@ -42,8 +46,10 @@ jobs:
       - name: Syntax check protected operator functions
         run: |
           node --check netlify/functions/lib/ngcc-procurement-dna.js
+          node --check netlify/functions/lib/ngcc-contract-intelligence.js
           node --check netlify/functions/lib/ngcc-mission-state.js
           node --check netlify/functions/ngcc-ops-contract-dna.js
+          node --check netlify/functions/ngcc-ops-derive-naics.js
           node --check netlify/functions/ngcc-ops-business-search-dna.js
           node --check netlify/functions/ngcc-ops-mission-control.js
       - name: Validate Contract DNA and Business Search DNA
