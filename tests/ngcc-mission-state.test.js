@@ -2,6 +2,7 @@
 
 const assert = require('node:assert/strict');
 const {
+  MISSION_STEPS,
   initialStepRows,
   assertSequentialTransition,
   nextStepCode,
@@ -18,6 +19,19 @@ function freshSteps() {
   return initialStepRows('mission-1', { noticeId: 'SAM-001', title: 'Test Contract' }, '2026-08-11T16:00:00.000Z')
     .map((step, index) => ({ ...step, id: `step-${index + 1}` }));
 }
+
+test('canonical mission stages match the approved command-center workflow', () => {
+  assert.deepEqual(MISSION_STEPS.map(([code]) => code), [
+    'OPPORTUNITY_DISCOVERY',
+    'CONTRACT_DNA',
+    'BUSINESS_SEARCH_DNA',
+    'SAM_CONTRACTOR_DISCOVERY',
+    'CONTRACTOR_QUALIFICATION',
+    'CONTACT_DISCOVERY',
+    'BUSINESS_OUTREACH',
+    'RESPONSE_CONTRACT_ASSISTANCE',
+  ]);
+});
 
 test('fresh mission unlocks only Contract DNA', () => {
   const steps = freshSteps();
@@ -50,6 +64,14 @@ test('stage cannot report success without execution', () => {
 
 test('successful Contract DNA points to Business Search DNA', () => {
   assert.equal(nextStepCode('CONTRACT_DNA'), 'BUSINESS_SEARCH_DNA');
+});
+
+test('successful contact discovery points to business outreach', () => {
+  assert.equal(nextStepCode('CONTACT_DISCOVERY'), 'BUSINESS_OUTREACH');
+});
+
+test('successful outreach points to response and contract assistance', () => {
+  assert.equal(nextStepCode('BUSINESS_OUTREACH'), 'RESPONSE_CONTRACT_ASSISTANCE');
 });
 
 test('stale RUNNING heartbeat derives STALLED without rewriting stored state', () => {
