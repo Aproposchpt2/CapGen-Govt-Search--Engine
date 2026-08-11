@@ -52,7 +52,13 @@ assert.equal(one.qualification_status, 'REVIEW_REQUIRED', 'unknown set-aside/man
 assert.ok(one.qualification_score > 0, 'review-required candidates may still have a meaningful evidence score');
 assert.ok(one.explanation.verification_required.some(item => item.code === 'SET_ASIDE_ELIGIBILITY'));
 assert.ok(one.explanation.verification_required.some(item => item.code === 'MANUFACTURER_SUPPLIER_RESTRICTION'));
+assert.equal(one.aoie_lineage.source_asset, 'netlify/functions/lib/aoie-federal.js');
 assert.ok(one.aoie_lineage.engine_version, 'AOIE engine lineage must be retained');
+assert.ok(one.aoie_lineage.ontology_version, 'AOIE ontology lineage must be retained even though domain-specific ontology is not generalized');
+assert.ok(one.aoie_lineage.scoring_version, 'AOIE scoring lineage must be retained');
+assert.ok(one.aoie_lineage.source_scoring_dimensions.includes('capability'));
+assert.ok(one.aoie_lineage.reused_architecture.includes('HARD_DISQUALIFIERS'));
+assert.match(one.aoie_lineage.adaptation, /electronics-specific ontology is not generalized/i);
 
 const ranked = rankCandidates({ candidates: [relatedOnly, primary, corroborated], contractDna, businessSearchDna: searchDna });
 assert.equal(ranked[0].business_name, 'Multi Path LLC', 'multi-path corroboration should improve ranking');
