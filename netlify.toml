@@ -141,6 +141,7 @@
   from = "/ops-command-center"
   to = "/ops-command-center-v4.html"
   status = 200
+  force = true
 
 [[headers]]
   for = "/ops-command-center-stage01-hotfix.html"
