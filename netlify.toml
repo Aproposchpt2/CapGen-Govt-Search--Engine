@@ -139,7 +139,7 @@
 
 [[redirects]]
   from = "/ops-command-center"
-  to = "/ops-command-center-v2.html"
+  to = "/ops-command-center-v3.html"
   status = 200
 
 [[headers]]
