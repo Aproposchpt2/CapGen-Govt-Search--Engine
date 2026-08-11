@@ -10,11 +10,6 @@ const { json, opsGuard } = require('./lib/ngcc-ops');
 const SAM_BASE = 'https://api.sam.gov/opportunities/v2/search';
 const SAM_KEY = process.env.SAM_API_KEY;
 
-// SAM.gov Get Opportunities Public API accepts one typeOfSetAside value per
-// request. These are the competitive set-aside classifications documented by
-// GSA. Sole-source classifications are intentionally excluded from the
-// default proactive-outreach inventory because they are not open competitive
-// set-aside opportunities.
 const SMALL_BUSINESS_SET_ASIDES = Object.freeze([
   { code: 'SBA', label: 'Total Small Business Set-Aside' },
   { code: 'SBP', label: 'Partial Small Business Set-Aside' },
@@ -53,6 +48,10 @@ function mapOpportunity(o, requestedSetAsideCode) {
   const deadline = formatDate(o.responseDeadLine || o.responseDeadline) || o.responseDeadLine || o.responseDeadline || null;
   const responseCode = String(o.setAsideCode || o.typeOfSetAside || requestedSetAsideCode || '').trim();
   const setAsideMeta = SET_ASIDE_BY_CODE.get(responseCode.toUpperCase());
+  const place = o.placeOfPerformance || o.data?.placeOfPerformance || {};
+  const stateObj = place.state || {};
+  const state = String(stateObj.code || stateObj.stateCode || place.stateCode || '').trim().toUpperCase();
+  const stateName = String(stateObj.name || stateObj.state || place.stateName || '').trim();
   return {
     noticeId: o.noticeId || o.solicitationNumber || '',
     solicitationNumber: o.solicitationNumber || '',
@@ -66,6 +65,9 @@ function mapOpportunity(o, requestedSetAsideCode) {
     urgency: urgency(deadline),
     postedDate: formatDate(o.postedDate) || o.postedDate || null,
     description: (o.description || '').slice(0, 1200),
+    state,
+    stateName,
+    placeOfPerformance: place,
     samUrl: o.uiLink || `https://sam.gov/opp/${o.noticeId}/view`,
     type: o.type || 'Solicitation',
     active: o.active,
@@ -73,7 +75,7 @@ function mapOpportunity(o, requestedSetAsideCode) {
   };
 }
 
-async function fetchOpportunities({ naicsCode, title, setAsideCode, limit }) {
+async function fetchOpportunities({ naicsCode, title, state, setAsideCode, limit }) {
   const today = new Date();
   const params = new URLSearchParams({
     api_key: SAM_KEY,
@@ -85,6 +87,7 @@ async function fetchOpportunities({ naicsCode, title, setAsideCode, limit }) {
   });
   if (naicsCode) params.set('ncode', naicsCode);
   if (title) params.set('title', title);
+  if (state) params.set('state', state);
   const res = await fetch(`${SAM_BASE}?${params.toString()}`);
   if (!res.ok) {
     const t = await res.text();
@@ -115,6 +118,10 @@ exports.handler = async (event) => {
   const qs = event.queryStringParameters || {};
   const naicsParam = String(qs.naics || '').trim();
   const titleParam = String(qs.title || '').trim();
+  const stateParam = String(qs.state || '').trim().toUpperCase();
+  if (stateParam && !/^[A-Z]{2}$/.test(stateParam)) {
+    return json(400, { ok: false, error: 'State must be a two-character state or territory code.', results: [] });
+  }
   const limit = Math.max(1, Math.min(parseInt(qs.limit || '30', 10) || 30, 100));
   const setAsideCodes = requestedSetAsideCodes(qs.set_aside || qs.setAside || 'SMALL_BUSINESS');
   if (!setAsideCodes.length) {
@@ -128,8 +135,6 @@ exports.handler = async (event) => {
   }
 
   try {
-    // Controlled batches keep SAM load bounded while still covering every
-    // approved set-aside class. The final operator result remains capped.
     const results = [];
     const seen = new Set();
     const execution = [];
@@ -143,14 +148,15 @@ exports.handler = async (event) => {
           const rows = await fetchOpportunities({
             naicsCode: path.naicsCode,
             title: titleParam || undefined,
+            state: stateParam || undefined,
             setAsideCode: path.setAsideCode,
             limit: perPath,
           });
-          execution.push({ ...path, returned: rows.length, status: 'SUCCESS' });
+          execution.push({ ...path, state: stateParam || null, returned: rows.length, status: 'SUCCESS' });
           return rows;
         } catch (error) {
-          console.error('[ngcc-ops-sam-opportunities]', path.setAsideCode, path.naicsCode, error.message);
-          execution.push({ ...path, returned: 0, status: 'FAILED', error: error.message });
+          console.error('[ngcc-ops-sam-opportunities]', path.setAsideCode, path.naicsCode, stateParam, error.message);
+          execution.push({ ...path, state: stateParam || null, returned: 0, status: 'FAILED', error: error.message });
           return [];
         }
       }));
@@ -181,6 +187,7 @@ exports.handler = async (event) => {
       setAsideCodes,
       naicsCodes: naicsCodes.filter(Boolean),
       title: titleParam || null,
+      state: stateParam || null,
       returned: Math.min(results.length, limit),
       results: results.slice(0, limit),
       execution,
