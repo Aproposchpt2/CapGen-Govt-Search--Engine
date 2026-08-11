@@ -8,6 +8,7 @@ on:
       - "ops-command-center.html"
       - "ops-command-center-v2.html"
       - "ops-command-center-v3.html"
+      - "ops-command-center-v4.html"
       - "ops-command-center-stage01-hotfix.html"
       - "netlify.toml"
       - "netlify/functions/lib/ngcc-procurement-dna.js"
@@ -43,6 +44,7 @@ on:
       - "ops-command-center.html"
       - "ops-command-center-v2.html"
       - "ops-command-center-v3.html"
+      - "ops-command-center-v4.html"
       - "ops-command-center-stage01-hotfix.html"
       - "netlify.toml"
       - "netlify/functions/lib/ngcc-procurement-dna.js"
@@ -127,4 +129,7 @@ jobs:
           grep -Fq 'ngcc-ops-response-contract-assistance' ops-command-center-v3.html
           grep -Fq 'data-select-contract' ops-command-center-stage01-hotfix.html
           grep -Fq 'Contract selected. Fresh mission created.' ops-command-center-stage01-hotfix.html
-          grep -Fq 'to = "/ops-command-center-stage01-hotfix.html"' netlify.toml
+          grep -Fq 'Download Job Report (.json)' ops-command-center-v4.html
+          grep -Fq 'REQUEST_HTTP_FAILURE' ops-command-center-v4.html
+          grep -Fq 'BROWSER_EXTENSION_OR_INJECTED_SCRIPT' ops-command-center-v4.html
+          grep -Fq 'to = "/ops-command-center-v4.html"' netlify.toml
