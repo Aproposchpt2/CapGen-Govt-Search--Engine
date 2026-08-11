@@ -35,6 +35,7 @@ jobs:
           node --check netlify/functions/lib/ngcc-outreach-control.js
           node --check netlify/functions/lib/ngcc-response-closeout.js
           node --check netlify/functions/lib/ngcc-mission-state.js
+          node --check netlify/functions/ngcc-ops-sam-opportunities.js
           node --check netlify/functions/ngcc-ops-contract-dna.js
           node --check netlify/functions/ngcc-ops-derive-naics.js
           node --check netlify/functions/ngcc-ops-business-search-dna.js
@@ -68,11 +69,15 @@ jobs:
           grep -Fq 'ngcc-ops-contact-discovery' ops-command-center-v3.html
           grep -Fq 'ngcc-ops-controlled-outreach' ops-command-center-v3.html
           grep -Fq 'ngcc-ops-response-contract-assistance' ops-command-center-v3.html
-          grep -Fq 'data-select-contract' ops-command-center-stage01-hotfix.html
-          grep -Fq 'selected_opportunity_snapshot' ops-command-center-stage01-hotfix.html
-          grep -Fq 'ngcc-ops-mission-evidence' ops-command-center-stage01-hotfix.html
-          grep -Fq 'Download Job Report (.json)' ops-command-center-v4.html
-          grep -Fq 'REQUEST_HTTP_FAILURE' ops-command-center-v4.html
-          grep -Fq 'BROWSER_EXTENSION_OR_INJECTED_SCRIPT' ops-command-center-v4.html
+          grep -Fq 'data-select-contract' ops-command-center-v5.html
+          grep -Fq 'selected_opportunity_snapshot' ops-command-center-v5.html
+          grep -Fq 'ngcc-ops-mission-evidence' ops-command-center-v5.html
+          grep -Fq 'Download Job Report (.json)' ops-command-center-v5.html
+          grep -Fq 'REQUEST_HTTP_FAILURE' ops-command-center-v5.html
+          grep -Fq 'BROWSER_EXTENSION_OR_INJECTED_SCRIPT' ops-command-center-v5.html
+          grep -Fq 'id="contractState"' ops-command-center-v5.html
+          grep -Fq 'id="contractorState"' ops-command-center-v5.html
+          grep -Fq "params.set('state', state)" netlify/functions/ngcc-ops-sam-opportunities.js
+          grep -Fq "physicalAddressProvinceOrStateCode" netlify/functions/lib/ngcc-ops.js
           grep -Fq 'Cache-Control: no-store' _headers
-          grep -Fq 'to = "/ops-command-center-v4.html"' netlify.toml
+          grep -Fq 'to = "/ops-command-center-v5.html"' netlify.toml
