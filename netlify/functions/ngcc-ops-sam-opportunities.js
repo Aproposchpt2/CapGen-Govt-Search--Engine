@@ -79,12 +79,13 @@ function mapOpportunity(o, requestedSetAsideCode) {
   };
 }
 
-async function fetchOpportunities({ naicsCode, title, state, setAsideCode, limit }) {
+async function fetchOpportunities({ naicsCode, title, state, setAsideCode, limit, pageIndex }) {
   const today = new Date();
   const params = new URLSearchParams({
     api_key: SAM_KEY,
     active: 'Yes',
     limit: String(limit),
+    offset: String(Math.max(0, pageIndex || 0)),
     postedFrom: postedFromDate(90),
     postedTo: `${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getDate().toString().padStart(2, '0')}/${today.getFullYear()}`,
   });
@@ -99,7 +100,12 @@ async function fetchOpportunities({ naicsCode, title, state, setAsideCode, limit
     throw new Error(`SAM ${res.status}: ${t.slice(0, 300)}`);
   }
   const data = await res.json();
-  return (data.opportunitiesData || []).map(o => mapOpportunity(o, setAsideCode));
+  return {
+    rows: (data.opportunitiesData || []).map(o => mapOpportunity(o, setAsideCode)),
+    totalRecords: Math.max(0, Number(data.totalRecords || 0)),
+    limit: Math.max(1, Number(data.limit || limit || 1)),
+    offset: Math.max(0, Number(data.offset ?? pageIndex ?? 0)),
+  };
 }
 
 function requestedSetAsideCodes(value) {
@@ -130,6 +136,8 @@ exports.handler = async (event) => {
   }
 
   const limit = Math.max(1, Math.min(parseInt(qs.limit || '30', 10) || 30, 100));
+  const page = Math.max(1, Math.min(parseInt(qs.page || '1', 10) || 1, 1000));
+  const pageIndex = page - 1;
   const setAsideCodes = requestedSetAsideCodes(qs.set_aside || qs.setAside || '');
   if (!setAsideCodes.length) {
     return json(400, { ok: false, error: 'Unsupported set-aside code supplied.', results: [] });
@@ -145,28 +153,35 @@ exports.handler = async (event) => {
     const results = [];
     const seen = new Set();
     const execution = [];
-    const perPath = Math.max(10, Math.min(100, Math.ceil(limit / Math.max(1, Math.min(paths.length, 4))) * 2));
+    const pageSignals = [];
+    const perPath = paths.length === 1
+      ? limit
+      : Math.max(10, Math.min(100, Math.ceil(limit / Math.max(1, Math.min(paths.length, 4))) * 2));
     const concurrency = 4;
 
     for (let i = 0; i < paths.length && results.length < limit; i += concurrency) {
       const group = paths.slice(i, i + concurrency);
       const batches = await Promise.all(group.map(async path => {
         try {
-          const rows = await fetchOpportunities({
+          const batch = await fetchOpportunities({
             naicsCode: path.naicsCode,
             title: titleParam || undefined,
             state: stateParam || undefined,
             setAsideCode: path.setAsideCode || undefined,
             limit: perPath,
+            pageIndex,
           });
           execution.push({
             ...path,
             setAsideCode: path.setAsideCode || null,
             state: stateParam || null,
-            returned: rows.length,
+            returned: batch.rows.length,
+            totalRecords: batch.totalRecords,
+            samOffset: batch.offset,
             status: 'SUCCESS',
           });
-          return rows;
+          pageSignals.push({ totalRecords: batch.totalRecords, limit: batch.limit, offset: batch.offset });
+          return batch.rows;
         } catch (error) {
           console.error('[ngcc-ops-sam-opportunities]', path.setAsideCode || 'ANY', path.naicsCode, stateParam, error.message);
           execution.push({
@@ -174,6 +189,8 @@ exports.handler = async (event) => {
             setAsideCode: path.setAsideCode || null,
             state: stateParam || null,
             returned: 0,
+            totalRecords: 0,
+            samOffset: pageIndex,
             status: 'FAILED',
             error: error.message,
           });
@@ -200,6 +217,9 @@ exports.handler = async (event) => {
       return 0;
     });
 
+    const hasNext = pageSignals.some(signal => signal.totalRecords > ((signal.offset + 1) * signal.limit));
+    const totalRecords = pageSignals.length === 1 ? pageSignals[0].totalRecords : null;
+
     return json(200, {
       ok: true,
       inventory: setAsideCodes[0] ? 'ACTIVE_FEDERAL_OPPORTUNITIES_FILTERED_BY_SET_ASIDE' : 'ACTIVE_FEDERAL_OPPORTUNITIES',
@@ -209,6 +229,11 @@ exports.handler = async (event) => {
       title: titleParam || null,
       state: stateParam || null,
       returned: Math.min(results.length, limit),
+      page,
+      page_size: limit,
+      total_records: totalRecords,
+      has_previous: page > 1,
+      has_next: hasNext,
       results: results.slice(0, limit),
       execution,
     });
