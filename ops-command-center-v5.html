@@ -10,7 +10,7 @@
 <script>
 (async()=>{
   try {
-    const res = await fetch('/ops-command-center-v3.html?v5=3', { cache: 'no-store' });
+    const res = await fetch('/ops-command-center-v3.html?v5=4', { cache: 'no-store' });
     if (!res.ok) throw new Error(`Unable to load command center (${res.status}).`);
     let html = await res.text();
 
@@ -21,8 +21,8 @@
     if (!html.includes(originalSave) || !html.includes(originalLoad)) throw new Error('Mission evidence patch markers were not found.');
     html = html.replace(originalSave, patchedSave).replace(originalLoad, patchedLoad);
 
-    html = html.replace('Select one federal contract', 'Select one small-business set-aside contract');
-    html = html.replace('Search SAM.gov</button>', 'Search SAM.gov Set-Asides</button>');
+    // Preserve the generic federal-opportunity scope. Keyword, NAICS, and state
+    // define the SAM.gov search; no small-business set-aside filter is forced.
     html = html.replace("<br><small>${esc(s.current_activity||'')}</small></div>", "<div class=\"progress\"><i style=\"width:${Math.max(0,Math.min(100,Number(s.progress_percentage||0)))}%\"></i></div><small>${Math.max(0,Math.min(100,Number(s.progress_percentage||0)))}% · ${esc(s.current_activity||'')}</small></div>");
 
     // State filters are intentionally separate: contract state means SAM.gov
@@ -46,15 +46,14 @@
     const end = html.indexOf(endMarker, start);
     if (start < 0 || end < 0) throw new Error('Stage 01 command-center patch markers were not found.');
 
-    const replacement = `$('searchOpps').onclick=async()=>{const p=new URLSearchParams({limit:'30',set_aside:'SMALL_BUSINESS'});if($('keyword').value.trim())p.set('title',$('keyword').value.trim());if($('naics').value.trim())p.set('naics',$('naics').value.trim());if($('contractState')?.value)p.set('state',$('contractState').value);$('searchOpps').disabled=true;$('opps').innerHTML='';$('oppsMsg').className='msg';try{const d=await req('/.netlify/functions/ngcc-ops-sam-opportunities?'+p);const results=d.results||[];$('oppsMsg').textContent=results.length+' active competitive small-business set-aside opportunities returned'+(d.state?' for '+d.state:'')+'. Select one contract to create a fresh mission.';$('opps').innerHTML=results.map((o,i)=>'<div class="opp" data-contract-card="'+i+'"><div><b>'+esc(o.title)+'</b><br><small>'+esc(o.organizationName||o.agency||'')+' · '+esc(o.setAside||o.setAsideCode||'Small Business Set-Aside')+' · '+esc(o.naicsCode||'NAICS unavailable')+(o.state?' · '+esc(o.state):'')+' · '+esc(o.responseDeadline||o.response_date||'')+'</small></div><div class="controls" style="margin-bottom:0"><button type="button" class="btn secondary" data-select-contract="'+i+'">Select Contract</button></div></div>').join('');document.querySelectorAll('[data-select-contract]').forEach(btn=>btn.onclick=async e=>{e.preventDefault();e.stopPropagation();const i=Number(btn.dataset.selectContract);const opp=results[i];if(!opp)return;document.querySelectorAll('[data-contract-card]').forEach(card=>{card.style.borderColor='';card.style.background='';});const card=document.querySelector('[data-contract-card="'+i+'"]');if(card){card.style.borderColor='var(--gold)';card.style.background='rgba(213,174,85,.08)';}document.querySelectorAll('[data-select-contract]').forEach(b=>{b.disabled=true;});btn.textContent='Creating Mission…';await createMission(opp,btn);});}catch(e){$('oppsMsg').className='msg err';$('oppsMsg').textContent=e.message}finally{$('searchOpps').disabled=false}};
-async function createMission(opp,button){try{const contractState=$('contractState')?.value||opp.state||'';if($('contractorState')&&!$('contractorState').value&&contractState)$('contractorState').value=contractState;const contractorState=$('contractorState')?.value||'';ctx=await req('/.netlify/functions/ngcc-ops-mission-control',{method:'POST',body:JSON.stringify({action:'create',opportunity:opp})});evidence={opportunity:opp,contract_state:contractState,contractor_state:contractorState,ranked_candidates:[],contacts:[],outreach_result:null,reconciliation:null,closeout:null};saveEvidence();render();$('oppsMsg').className='msg ok';$('oppsMsg').textContent='Contract selected. Fresh mission created. Stage 02 — Contract DNA is READY; all later stages remain locked.';if(button){button.textContent='Selected';button.classList.remove('secondary');button.classList.add('warn');}document.querySelectorAll('[data-select-contract]').forEach(b=>{if(b!==button){b.disabled=false;b.textContent='Select Contract';}});}catch(e){$('oppsMsg').className='msg err';$('oppsMsg').textContent=e.message;document.querySelectorAll('[data-select-contract]').forEach(b=>{b.disabled=false;if(b.textContent!=='Selected')b.textContent='Select Contract';});}}\n`;
+    const replacement = `$('searchOpps').onclick=async()=>{const p=new URLSearchParams({limit:'30'});if($('keyword').value.trim())p.set('title',$('keyword').value.trim());if($('naics').value.trim())p.set('naics',$('naics').value.trim());if($('contractState')?.value)p.set('state',$('contractState').value);$('searchOpps').disabled=true;$('opps').innerHTML='';$('oppsMsg').className='msg';try{const d=await req('/.netlify/functions/ngcc-ops-sam-opportunities?'+p);const results=d.results||[];window.ngccContractDrawer?.setResults(results,{state:d.state||'',title:d.title||'',naics:(d.naicsCodes||[]).join(', ')});$('oppsMsg').textContent=results.length+' active SAM.gov opportunities returned'+(d.state?' for '+d.state:'')+'. Select a contract from the drawer.';if(results.length)window.ngccContractDrawer?.open();else window.ngccContractDrawer?.close();}catch(e){$('oppsMsg').className='msg err';$('oppsMsg').textContent=e.message;window.ngccContractDrawer?.setResults([]);}finally{$('searchOpps').disabled=false}};
+async function createMission(opp,button){try{const contractState=$('contractState')?.value||opp.state||'';if($('contractorState')&&!$('contractorState').value&&contractState)$('contractorState').value=contractState;const contractorState=$('contractorState')?.value||'';ctx=await req('/.netlify/functions/ngcc-ops-mission-control',{method:'POST',body:JSON.stringify({action:'create',opportunity:opp})});evidence={opportunity:opp,contract_state:contractState,contractor_state:contractorState,ranked_candidates:[],contacts:[],outreach_result:null,reconciliation:null,closeout:null};saveEvidence();render();$('oppsMsg').className='msg ok';$('oppsMsg').textContent='Contract selected. Fresh mission created. Stage 02 — Contract DNA is READY; all later stages remain locked.';if(button){button.textContent='Selected ✓';button.disabled=true;}window.ngccContractDrawer?.close();}catch(e){$('oppsMsg').className='msg err';$('oppsMsg').textContent=e.message;if(button){button.disabled=false;button.textContent='Select Contract';}}}
+`;
     html = html.slice(0, start) + replacement + html.slice(end);
 
     const stateFilterScript = `<script id="ngcc-state-filter-script">(()=>{const states=[['AL','Alabama'],['AK','Alaska'],['AZ','Arizona'],['AR','Arkansas'],['CA','California'],['CO','Colorado'],['CT','Connecticut'],['DE','Delaware'],['DC','District of Columbia'],['FL','Florida'],['GA','Georgia'],['HI','Hawaii'],['ID','Idaho'],['IL','Illinois'],['IN','Indiana'],['IA','Iowa'],['KS','Kansas'],['KY','Kentucky'],['LA','Louisiana'],['ME','Maine'],['MD','Maryland'],['MA','Massachusetts'],['MI','Michigan'],['MN','Minnesota'],['MS','Mississippi'],['MO','Missouri'],['MT','Montana'],['NE','Nebraska'],['NV','Nevada'],['NH','New Hampshire'],['NJ','New Jersey'],['NM','New Mexico'],['NY','New York'],['NC','North Carolina'],['ND','North Dakota'],['OH','Ohio'],['OK','Oklahoma'],['OR','Oregon'],['PA','Pennsylvania'],['RI','Rhode Island'],['SC','South Carolina'],['SD','South Dakota'],['TN','Tennessee'],['TX','Texas'],['UT','Utah'],['VT','Vermont'],['VA','Virginia'],['WA','Washington'],['WV','West Virginia'],['WI','Wisconsin'],['WY','Wyoming'],['PR','Puerto Rico'],['GU','Guam'],['VI','U.S. Virgin Islands'],['AS','American Samoa'],['MP','Northern Mariana Islands']];const fill=id=>{const el=document.getElementById(id);if(!el)return;const current=el.value;el.innerHTML='<option value="">All States</option>'+states.map(([c,n])=>'<option value="'+c+'">'+n+' ('+c+')</option>').join('');el.value=current||''};fill('contractState');fill('contractorState');const cs=document.getElementById('contractState'),rs=document.getElementById('contractorState');if(typeof evidence!=='undefined'){if(evidence.contract_state&&cs)cs.value=evidence.contract_state;if(evidence.contractor_state&&rs)rs.value=evidence.contractor_state}if(cs)cs.addEventListener('change',()=>{if(rs&&!rs.value&&cs.value)rs.value=cs.value;if(typeof evidence!=='undefined'&&ctx?.mission?.id){evidence.contract_state=cs.value;if(rs&&rs.value)evidence.contractor_state=rs.value;saveEvidence()}});if(rs)rs.addEventListener('change',()=>{if(typeof evidence!=='undefined'&&ctx?.mission?.id){evidence.contractor_state=rs.value;saveEvidence()}})})();<\/script>`;
     html = html.replace('</body>', stateFilterScript + '</body>');
 
-    // Preserve the v5 workflow, but separate operator construction controls
-    // from mission-stage monitoring in a controlled two-panel layout.
     const dashboardLink = '<a class="btn secondary" href="/ops-dashboard">Ops Dashboard</a>';
     if (!html.includes(dashboardLink)) throw new Error('Start New Task button marker not found.');
     html = html.replace(dashboardLink, '<button id="startNewTask" type="button" class="btn warn">Start New Task</button>' + dashboardLink);
@@ -74,25 +73,64 @@ async function createMission(opp,button){try{const contractState=$('contractStat
       .ngcc-control-panel>section.card{margin-bottom:14px;background:rgba(255,255,255,.045)}
       .ngcc-control-panel .row{display:grid;grid-template-columns:1fr;gap:10px}
       .ngcc-control-panel .row>div{min-width:0;flex:none}
-      .ngcc-control-panel #searchOpps,.ngcc-control-panel #execute{width:100%;min-width:0}
+      .ngcc-control-panel #searchOpps,.ngcc-control-panel #execute,#openNgccContractDrawer{width:100%;min-width:0}
       .ngcc-control-panel #execMsg{display:block;margin:9px 0 0}
-      .ngcc-control-panel .opp{background:rgba(0,0,0,.12)}
+      .ngcc-control-panel #opps{display:none!important}
       .ngcc-monitor-panel{min-width:0}
       .ngcc-monitor-panel .sidebar{position:static;top:auto;width:100%;margin:0 0 14px}
       .ngcc-monitor-panel .metrics{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:14px}
       .ngcc-monitor-panel .metric strong{font-size:18px}
       .ngcc-results-workspace{display:grid;gap:16px;margin-top:2px}
       .brand{margin-bottom:16px}
+      .ngcc-drawer-backdrop{position:fixed;z-index:99980;inset:46px 0 0;background:rgba(2,6,23,.66);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+      .ngcc-contract-drawer{position:fixed;z-index:99990;top:46px;right:0;bottom:0;width:clamp(430px,42vw,680px);max-width:100vw;background:linear-gradient(160deg,#08162d,#0b2141);border-left:1px solid rgba(125,211,252,.3);box-shadow:-24px 0 70px rgba(0,0,0,.5);transform:translateX(102%);transition:transform .24s cubic-bezier(.22,.8,.2,1);display:flex;flex-direction:column;color:#eef4fb;overflow:hidden}
+      .ngcc-contract-drawer.open{transform:translateX(0)}
+      .ngcc-drawer-header{display:flex;justify-content:space-between;gap:16px;padding:20px 22px 15px;border-bottom:1px solid rgba(255,255,255,.12)}
+      .ngcc-drawer-header h2{margin:2px 0 4px;font-size:25px}
+      .ngcc-drawer-header p{margin:0;color:#aebccf}
+      .ngcc-drawer-close{width:44px;height:44px;flex:none;border-radius:10px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:#fff;font-size:27px;cursor:pointer}
+      .ngcc-drawer-tools{padding:14px 22px;border-bottom:1px solid rgba(255,255,255,.09)}
+      .ngcc-drawer-tools label{display:block;color:#9fb2c9;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+      .ngcc-drawer-tools input{width:100%;padding:12px 13px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:rgba(2,6,23,.5);color:#eef4fb;font:inherit}
+      .ngcc-drawer-summary{margin:9px 0 0;color:#aebccf;font-size:11px}
+      .ngcc-drawer-list{min-height:0;flex:1;padding:13px 14px 24px;overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:8px}
+      .ngcc-drawer-item{display:grid;grid-template-columns:42px minmax(0,1fr) auto;align-items:start;gap:12px;width:100%;padding:13px;border-radius:12px;border:1px solid rgba(255,255,255,.11);background:rgba(255,255,255,.045);color:#eef4fb;text-align:left;font:inherit}
+      .ngcc-drawer-item:hover{background:rgba(125,211,252,.09);border-color:rgba(125,211,252,.44)}
+      .ngcc-drawer-index{width:36px;height:36px;border-radius:9px;display:grid;place-items:center;background:rgba(125,211,252,.12);color:#7dd3fc;font-size:10px;font-weight:900}
+      .ngcc-drawer-copy{min-width:0}
+      .ngcc-drawer-copy small{display:block;color:#9fb2c9;font-size:10px;font-weight:800;margin-bottom:4px}
+      .ngcc-drawer-copy strong{display:block;color:#fff;font-size:14px;line-height:1.35}
+      .ngcc-drawer-meta{display:block!important;margin-top:5px!important;color:#aebccf!important;font-weight:500!important}
+      .ngcc-drawer-select{align-self:center;white-space:nowrap}
+      body.ngcc-drawer-open{overflow:hidden}
       @media(max-width:1050px){
         .ngcc-command-grid{grid-template-columns:1fr}
         .ngcc-control-panel{position:static;max-height:none;overflow:visible}
         .ngcc-monitor-panel .metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+      }
+      @media(max-width:700px){
+        .ngcc-contract-drawer{width:100vw}
+        .ngcc-drawer-item{grid-template-columns:36px minmax(0,1fr)}
+        .ngcc-drawer-select{grid-column:2;justify-self:start}
       }
       @media(max-width:620px){.ngcc-monitor-panel .metrics{grid-template-columns:1fr}}
     </style>`;
     html = html.replace('</head>', operatorCss + '</head>');
 
     const operatorWorkflowScript = `<script id="ngcc-v5-operator-workflow">(()=>{
+      const escDrawer=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      let drawerResults=[];
+      const backdrop=document.createElement('div');backdrop.id='ngccContractDrawerBackdrop';backdrop.className='ngcc-drawer-backdrop';backdrop.hidden=true;
+      const drawer=document.createElement('aside');drawer.id='ngccContractDrawer';drawer.className='ngcc-contract-drawer';drawer.setAttribute('aria-hidden','true');
+      drawer.innerHTML='<div class="ngcc-drawer-header"><div><div class="tag">SAM.GOV CONTRACT QUEUE</div><h2>Select a federal contract</h2><p>Review the current scoped results and select one contract.</p></div><button id="closeNgccContractDrawer" class="ngcc-drawer-close" type="button" aria-label="Close contract drawer">×</button></div><div class="ngcc-drawer-tools"><label for="ngccDrawerFilter">Filter current results</label><input id="ngccDrawerFilter" type="search" placeholder="Search solicitation, agency, title, NAICS…"><div id="ngccDrawerSummary" class="ngcc-drawer-summary">Run a SAM.gov search to load contracts.</div></div><div id="ngccDrawerList" class="ngcc-drawer-list"><p class="muted">No contracts loaded.</p></div>';
+      document.body.append(backdrop,drawer);
+      const list=drawer.querySelector('#ngccDrawerList'),filter=drawer.querySelector('#ngccDrawerFilter'),summary=drawer.querySelector('#ngccDrawerSummary');
+      const close=()=>{drawer.classList.remove('open');drawer.setAttribute('aria-hidden','true');backdrop.hidden=true;document.body.classList.remove('ngcc-drawer-open')};
+      const open=()=>{if(!drawerResults.length)return;backdrop.hidden=false;drawer.classList.add('open');drawer.setAttribute('aria-hidden','false');document.body.classList.add('ngcc-drawer-open');setTimeout(()=>filter?.focus(),60)};
+      const render=()=>{const q=String(filter?.value||'').trim().toLowerCase();const rows=drawerResults.map((o,i)=>({o,i})).filter(({o})=>!q||[o.title,o.organizationName,o.agency,o.solicitationNumber,o.noticeId,o.naicsCode,o.state,o.setAside].join(' ').toLowerCase().includes(q));if(!rows.length){list.innerHTML='<p class="muted">No contracts match this filter.</p>';return}list.innerHTML=rows.map(({o,i})=>'<div class="ngcc-drawer-item"><span class="ngcc-drawer-index">'+String(i+1).padStart(2,'0')+'</span><span class="ngcc-drawer-copy"><small>'+escDrawer(o.state||'—')+' · '+escDrawer(o.solicitationNumber||o.noticeId||'No solicitation')+' · '+escDrawer(o.organizationName||o.agency||'Agency unavailable')+'</small><strong>'+escDrawer(o.title||'Untitled opportunity')+'</strong><small class="ngcc-drawer-meta">NAICS '+escDrawer(o.naicsCode||'—')+(o.setAside?' · '+escDrawer(o.setAside):'')+' · Deadline '+escDrawer(o.responseDeadline||'Unavailable')+'</small></span><button type="button" class="btn secondary ngcc-drawer-select" data-ngcc-contract="'+i+'">Select Contract</button></div>').join('');list.querySelectorAll('[data-ngcc-contract]').forEach(btn=>btn.onclick=async()=>{const opp=drawerResults[Number(btn.dataset.ngccContract)];if(!opp)return;list.querySelectorAll('[data-ngcc-contract]').forEach(b=>b.disabled=true);btn.textContent='Creating Mission…';await createMission(opp,btn)});};
+      window.ngccContractDrawer={setResults(results,scope={}){drawerResults=Array.isArray(results)?results:[];filter.value='';const bits=[];if(scope.state)bits.push('State '+scope.state);if(scope.naics)bits.push('NAICS '+scope.naics);if(scope.title)bits.push('Keyword '+scope.title);summary.textContent=drawerResults.length+' contract'+(drawerResults.length===1?'':'s')+' loaded'+(bits.length?' · '+bits.join(' · '):'');render();const reopen=document.getElementById('openNgccContractDrawer');if(reopen){reopen.hidden=!drawerResults.length;reopen.textContent='Browse '+drawerResults.length+' Contract'+(drawerResults.length===1?'':'s')}},open,close};
+      drawer.querySelector('#closeNgccContractDrawer').onclick=close;backdrop.onclick=close;filter.oninput=render;document.addEventListener('keydown',e=>{if(e.key==='Escape'&&drawer.classList.contains('open'))close()});
+
       const app=document.getElementById('app');
       const originalLayout=app?.querySelector('.layout');
       const sidebar=originalLayout?.querySelector('.sidebar');
@@ -101,11 +139,17 @@ async function createMission(opp,button){try{const contractState=$('contractStat
       const stageOne=[...(workspace?.querySelectorAll('section.card')||[])].find(section=>section.querySelector('#searchOpps'));
       const execution=[...(workspace?.querySelectorAll('section.card')||[])].find(section=>section.querySelector('#execute'));
       const startBtn=document.getElementById('startNewTask');
+      if(stageOne){
+        const h2=stageOne.querySelector('h2');if(h2)h2.textContent='Select one federal contract';
+        const searchButton=stageOne.querySelector('#searchOpps');if(searchButton)searchButton.textContent='Search SAM.gov';
+        const opps=stageOne.querySelector('#opps');if(opps)opps.hidden=true;
+        const reopen=document.createElement('button');reopen.id='openNgccContractDrawer';reopen.type='button';reopen.className='btn secondary';reopen.hidden=true;reopen.textContent='Browse Contracts';reopen.onclick=open;stageOne.appendChild(reopen);
+      }
       if(app&&originalLayout&&sidebar&&workspace&&metrics&&stageOne&&execution){
         const grid=document.createElement('div');grid.className='ngcc-command-grid';
         const left=document.createElement('aside');left.className='ngcc-control-panel';
         const right=document.createElement('main');right.className='ngcc-monitor-panel';
-        const leftHeading=document.createElement('div');leftHeading.className='ngcc-panel-heading';leftHeading.innerHTML='<div class="tag">Task Execution</div><h2>Mission Controls</h2><p class="muted">Scope the opportunity and execute the server-authorized next stage.</p>';
+        const leftHeading=document.createElement('div');leftHeading.className='ngcc-panel-heading';leftHeading.innerHTML='<div class="tag">Task Execution</div><h2>Mission Controls</h2><p class="muted">Define the SAM.gov scope and execute the server-authorized next stage.</p>';
         const actions=document.createElement('div');actions.className='ngcc-control-actions';if(startBtn)actions.appendChild(startBtn);
         const rightHeading=document.createElement('div');rightHeading.className='ngcc-panel-heading';rightHeading.innerHTML='<div class="tag">Mission Monitor</div><h2>Stage Progress</h2><p class="muted">Mission state, stage completion, and operating metrics.</p>';
         left.append(leftHeading,actions,stageOne,execution);
@@ -118,7 +162,7 @@ async function createMission(opp,button){try{const contractState=$('contractStat
       }
       const btn=document.getElementById('startNewTask');
       if(!btn)return;
-      btn.onclick=()=>{const prior=ctx?.mission?.mission_number||ctx?.mission?.id||null;ctx=null;evidence={};['keyword','naics','contractState','contractorState','closeNote'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});const closeDecision=document.getElementById('closeDecision');if(closeDecision)closeDecision.value='';const opps=document.getElementById('opps');if(opps)opps.innerHTML='';const stageOutput=document.getElementById('stageOutput');if(stageOutput)stageOutput.innerHTML='';const execMsg=document.getElementById('execMsg');if(execMsg){execMsg.className='msg';execMsg.textContent=''}const closeMsg=document.getElementById('closeMsg');if(closeMsg){closeMsg.className='msg';closeMsg.textContent=''}render();const oppsMsg=document.getElementById('oppsMsg');if(oppsMsg){oppsMsg.className='msg ok';oppsMsg.textContent=prior?'Previous mission preserved. New task workspace ready — search SAM.gov and select a contract to create the next mission.':'New task workspace ready — search SAM.gov and select a contract to create the next mission.'}window.scrollTo({top:0,behavior:'smooth'});};
+      btn.onclick=()=>{const prior=ctx?.mission?.mission_number||ctx?.mission?.id||null;ctx=null;evidence={};['keyword','naics','contractState','contractorState','closeNote'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});const closeDecision=document.getElementById('closeDecision');if(closeDecision)closeDecision.value='';const opps=document.getElementById('opps');if(opps)opps.innerHTML='';const stageOutput=document.getElementById('stageOutput');if(stageOutput)stageOutput.innerHTML='';const execMsg=document.getElementById('execMsg');if(execMsg){execMsg.className='msg';execMsg.textContent=''}const closeMsg=document.getElementById('closeMsg');if(closeMsg){closeMsg.className='msg';closeMsg.textContent=''}window.ngccContractDrawer?.setResults([]);window.ngccContractDrawer?.close();render();const oppsMsg=document.getElementById('oppsMsg');if(oppsMsg){oppsMsg.className='msg ok';oppsMsg.textContent=prior?'Previous mission preserved. New task workspace ready — define a SAM.gov scope and search for the next contract.':'New task workspace ready — define a SAM.gov scope and search for a contract.'}window.scrollTo({top:0,behavior:'smooth'});};
     })();<\/script>`;
     html = html.replace('</body>', operatorWorkflowScript + '</body>');
 
@@ -146,7 +190,7 @@ async function createMission(opp,button){try{const contractState=$('contractStat
       window.addEventListener('unhandledrejection',e=>{const r=e.reason;add('UNHANDLED_REJECTION',{message:r?.message||String(r||''),stack:r?.stack||null,classification:classify(r?.message||String(r||''),r?.stack||''),context:snapshot()})});
       document.addEventListener('click',e=>{const el=e.target?.closest?.('button,a,.opp');if(!el)return;add('OPERATOR_ACTION',{element:el.tagName,id:el.id||null,text:(el.textContent||'').trim().slice(0,160),dataset:safe(el.dataset||{}),context:snapshot()})},true);
       document.getElementById('ngccClearReport').onclick=()=>{events.length=0;add('REPORT_CLEARED',{context:snapshot()})};
-      document.getElementById('ngccDownloadReport').onclick=()=>{const extensionEvents=events.filter(e=>e.classification==='BROWSER_EXTENSION_OR_INJECTED_SCRIPT');const applicationFailures=events.filter(e=>['REQUEST_HTTP_FAILURE','REQUEST_NETWORK_FAILURE','WINDOW_ERROR','UNHANDLED_REJECTION'].includes(e.type)&&e.classification!=='BROWSER_EXTENSION_OR_INJECTED_SCRIPT');const report={report_type:'NGCC_COMMAND_CENTER_DEVELOPMENT_JOB_REPORT',report_version:'1.3',generated_at:new Date().toISOString(),session_started_at:startedAt,production_url:location.origin+'/ops-command-center',command_center_impl:'/ops-command-center-v5.html',browser:{user_agent:navigator.userAgent,language:navigator.language,online:navigator.onLine},current_state:snapshot(),summary:{event_count:events.length,application_failure_count:applicationFailures.length,extension_or_injected_script_event_count:extensionEvents.length},application_failures:applicationFailures,extension_or_injected_script_events:extensionEvents,events};const blob=new Blob([JSON.stringify(report,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`NGCC-CommandCenter-JobReport-${new Date().toISOString().replace(/[:.]/g,'-')}.json`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);add('JOB_REPORT_DOWNLOADED',{summary:report.summary})};
+      document.getElementById('ngccDownloadReport').onclick=()=>{const extensionEvents=events.filter(e=>e.classification==='BROWSER_EXTENSION_OR_INJECTED_SCRIPT');const applicationFailures=events.filter(e=>['REQUEST_HTTP_FAILURE','REQUEST_NETWORK_FAILURE','WINDOW_ERROR','UNHANDLED_REJECTION'].includes(e.type)&&e.classification!=='BROWSER_EXTENSION_OR_INJECTED_SCRIPT');const report={report_type:'NGCC_COMMAND_CENTER_DEVELOPMENT_JOB_REPORT',report_version:'1.4',generated_at:new Date().toISOString(),session_started_at:startedAt,production_url:location.origin+'/ops-command-center',command_center_impl:'/ops-command-center-v5.html',browser:{user_agent:navigator.userAgent,language:navigator.language,online:navigator.onLine},current_state:snapshot(),summary:{event_count:events.length,application_failure_count:applicationFailures.length,extension_or_injected_script_event_count:extensionEvents.length},application_failures:applicationFailures,extension_or_injected_script_events:extensionEvents,events};const blob=new Blob([JSON.stringify(report,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`NGCC-CommandCenter-JobReport-${new Date().toISOString().replace(/[:.]/g,'-')}.json`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);add('JOB_REPORT_DOWNLOADED',{summary:report.summary})};
       add('DIAGNOSTICS_INSTALLED',{mode:'same-document',context:snapshot()});
       if(statusEl)statusEl.textContent='Diagnostics active. Reproduce the issue, then download the JSON report.';
     },0);
