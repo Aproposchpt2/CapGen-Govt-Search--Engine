@@ -10,6 +10,7 @@ on:
       - "netlify.toml"
       - "netlify/functions/lib/ngcc-*.js"
       - "netlify/functions/ngcc-ops-*.js"
+      - "netlify/functions/ngcc-federal-*.js"
       - "supabase/migrations/*ngcc*.sql"
       - "tests/ngcc-*.test.js"
       - ".github/workflows/ngcc-proactive-procurement-validation.yml"
@@ -35,6 +36,7 @@ jobs:
           node --check netlify/functions/lib/ngcc-outreach-control.js
           node --check netlify/functions/lib/ngcc-response-closeout.js
           node --check netlify/functions/lib/ngcc-mission-state.js
+          node --check netlify/functions/lib/ngcc-federal-workspace.js
           node --check netlify/functions/ngcc-ops-sam-opportunities.js
           node --check netlify/functions/ngcc-ops-contract-dna.js
           node --check netlify/functions/ngcc-ops-derive-naics.js
@@ -46,6 +48,9 @@ jobs:
           node --check netlify/functions/ngcc-ops-response-contract-assistance.js
           node --check netlify/functions/ngcc-ops-mission-control.js
           node --check netlify/functions/ngcc-ops-mission-evidence.js
+          node --check netlify/functions/ngcc-federal-claim.js
+          node --check netlify/functions/ngcc-federal-workspace.js
+          node --check netlify/functions/ngcc-federal-package.js
       - name: Validate Contract DNA and Business Search DNA
         run: node tests/ngcc-procurement-dna.test.js
       - name: Validate controlled SAM contractor discovery
@@ -58,7 +63,7 @@ jobs:
         run: node tests/ngcc-response-closeout.test.js
       - name: Validate strict sequential mission execution
         run: node tests/ngcc-mission-state.test.js
-      - name: Validate Executive Command Center wiring
+      - name: Validate Executive Command Center and federal workspace wiring
         run: |
           grep -Fq 'NGCC Executive Procurement Command Center' ops-command-center-v3.html
           grep -Fq 'ngcc-ops-mission-control' ops-command-center-v3.html
@@ -80,6 +85,10 @@ jobs:
           grep -Fq 'Start New Task' ops-command-center-v6.html
           grep -Fq 'Previous mission preserved' ops-command-center-v6.html
           grep -Fq "params.set('state', state)" netlify/functions/ngcc-ops-sam-opportunities.js
+          grep -Fq 'resourceLinks' netlify/functions/ngcc-ops-sam-opportunities.js
+          grep -Fq 'Opportunity Reference' netlify/functions/ngcc-ops-outreach.js
+          grep -Fq 'ngcc-federal-claim' netlify/functions/ngcc-federal-claim.js
+          grep -Fq 'PUBLIC_PACKAGE_ACQUIRED' netlify/functions/ngcc-federal-package.js
           grep -Fq "physicalAddressProvinceOrStateCode" netlify/functions/lib/ngcc-ops.js
           grep -Fq 'Cache-Control: no-store' _headers
-          grep -Fq 'to = "/ops-command-center-v6.html"' netlify.toml
+          grep -Fq 'to = "/ops-command-center-v5.html"' netlify.toml
