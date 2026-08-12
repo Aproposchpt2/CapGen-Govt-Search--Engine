@@ -62,7 +62,7 @@ exports.handler = async event => {
   try {
     const outreach = await loadOutreachForClaim(noticeId, email);
     if (!outreach) return json(404, { ok: false, error: 'This complimentary federal opportunity could not be verified for that business email.' });
-    if (!['sent', 'delivered', 'replied'].includes(String(outreach.status || '').toLowerCase())) {
+    if (String(outreach.status || '').toLowerCase() !== 'sent') {
       return json(409, { ok: false, error: 'This opportunity introduction is not currently available for claim.' });
     }
     if (normalize(businessName) !== normalize(outreach.business_name)) {
@@ -93,7 +93,6 @@ exports.handler = async event => {
     }], 'return=representation');
 
     await sb('ngcc_outreach_events', 'PATCH', `?outreach_id=eq.${encodeURIComponent(outreach.outreach_id)}`, {
-      status: 'replied',
       provider_payload: {
         ...currentPayload,
         claim_reference: expectedReference,
@@ -106,6 +105,7 @@ exports.handler = async event => {
         workspace_access_expires_at: workspace.expires_at,
         marketplace_claim_id: claimRows?.[0]?.id || null,
       },
+      updated_at: claimedAt,
     }, 'return=minimal');
 
     try { await notifyOperator({ outreach, name, businessName, email, reference: expectedReference, workspaceExpiresAt: workspace.expires_at }); }
