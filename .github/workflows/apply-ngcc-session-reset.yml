@@ -1,0 +1,33 @@
+name: Apply NGCC session reset
+
+on:
+  push:
+    paths:
+      - '.github/workflows/apply-ngcc-session-reset.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Apply controlled NGCC patch
+        run: node .github/scripts/apply-ngcc-session-reset.js
+
+      - name: Commit production fix and remove temporary patch tooling
+        run: |
+          rm -f .github/workflows/apply-ngcc-session-reset.yml
+          rm -f .github/scripts/apply-ngcc-session-reset.js
+          git config user.name 'Aproposchpt2'
+          git config user.email '157073040+Aproposchpt2@users.noreply.github.com'
+          git add ops-command-center-v5.html .github/workflows/apply-ngcc-session-reset.yml .github/scripts/apply-ngcc-session-reset.js
+          git commit -m 'Fix NGCC new-task session reset'
+          git push origin main
