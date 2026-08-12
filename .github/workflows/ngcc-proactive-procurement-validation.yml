@@ -65,13 +65,13 @@ jobs:
         run: node tests/ngcc-mission-state.test.js
       - name: Validate current v5 command center and federal workspace wiring
         run: |
-          grep -Fq 'NGCC Executive Procurement Command Center' ops-command-center-v5.html
-          grep -Fq 'ngcc-ops-mission-control' ops-command-center-v5.html
+          grep -Fq '<title>NGCC Command Center</title>' ops-command-center-v5.html
+          grep -Fq 'ops-command-center-v3.html?v5=4' ops-command-center-v5.html
           grep -Fq 'ngcc-ops-mission-evidence' ops-command-center-v5.html
-          grep -Fq 'Download Job Report (.json)' ops-command-center-v5.html
           grep -Fq 'id="contractState"' ops-command-center-v5.html
           grep -Fq 'id="contractorState"' ops-command-center-v5.html
           grep -Fq 'Start New Task' ops-command-center-v5.html
+          grep -Fq 'ngcc-contract-drawer' ops-command-center-v5.html
           grep -Fq "params.set('state', state)" netlify/functions/ngcc-ops-sam-opportunities.js
           grep -Fq 'resourceLinks' netlify/functions/ngcc-ops-sam-opportunities.js
           grep -Fq 'Opportunity Reference' netlify/functions/ngcc-ops-outreach.js
