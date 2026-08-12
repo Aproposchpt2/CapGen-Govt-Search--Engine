@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>NGCC Executive Procurement Command Center</title>
+  <style>
+    html,body{width:100%;height:100%;margin:0;background:#071a3c;overflow:hidden}
+    #ngccFrame{display:block;width:100%;height:100%;border:0;background:#071a3c}
+  </style>
+</head>
+<body>
+  <iframe id="ngccFrame" src="/ops-command-center-v5.html" title="NGCC Executive Procurement Command Center"></iframe>
+  <script>
+  (()=>{
+    const frame=document.getElementById('ngccFrame');
+    let installed=false;
+    let attempts=0;
+
+    function installFloatingExecution(){
+      if(installed)return;
+      attempts+=1;
+      let doc;
+      try{doc=frame.contentDocument||frame.contentWindow?.document}catch{}
+      if(!doc){if(attempts<120)setTimeout(installFloatingExecution,50);return}
+
+      const app=doc.getElementById('app');
+      const grid=doc.querySelector('.ngcc-command-grid');
+      const controlPanel=doc.querySelector('.ngcc-control-panel');
+      const executeButton=doc.getElementById('execute');
+      const execution=executeButton?.closest('section.card');
+      if(!app||!grid||!controlPanel||!execution){
+        if(attempts<120)setTimeout(installFloatingExecution,50);
+        return;
+      }
+
+      const style=doc.createElement('style');
+      style.id='ngcc-floating-execution-style';
+      style.textContent=`
+        .ngcc-control-panel{position:static!important;top:auto!important;max-height:none!important;overflow:visible!important;padding-right:0!important}
+        .ngcc-floating-execution-host{position:sticky;top:58px;z-index:9000;margin:0 0 16px}
+        .ngcc-floating-execution-host>section.card{margin:0!important;padding:14px 16px!important;background:linear-gradient(135deg,rgba(20,48,91,.98),rgba(11,34,68,.98))!important;border:1px solid rgba(213,174,85,.62)!important;box-shadow:0 14px 34px rgba(0,0,0,.34);display:grid!important;grid-template-columns:minmax(260px,1.35fr) minmax(220px,.78fr) minmax(190px,.55fr);grid-template-areas:'tag label action' 'title select action' 'desc note action' 'msg msg msg';column-gap:16px;row-gap:5px;align-items:center;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+        .ngcc-floating-execution-host .tag{grid-area:tag;margin:0!important}
+        .ngcc-floating-execution-host #execTitle{grid-area:title;margin:0!important;font-size:21px!important;line-height:1.2}
+        .ngcc-floating-execution-host #execDesc{grid-area:desc;margin:0!important;line-height:1.35}
+        .ngcc-floating-execution-host section.card>label{grid-area:label;margin:0!important}
+        .ngcc-floating-execution-host #contractorState{grid-area:select;margin:0!important;width:100%}
+        .ngcc-floating-execution-host section.card>small{grid-area:note;margin:0!important;line-height:1.25}
+        .ngcc-floating-execution-host #execute{grid-area:action;width:100%!important;min-width:0!important;min-height:68px;height:100%;margin:0!important;align-self:stretch}
+        .ngcc-floating-execution-host #execMsg{grid-area:msg;margin:5px 0 0!important;min-height:0}
+        .ngcc-control-panel .ngcc-panel-heading p{max-width:380px}
+        @media(max-width:900px){
+          .ngcc-floating-execution-host{top:52px}
+          .ngcc-floating-execution-host>section.card{grid-template-columns:1fr;grid-template-areas:'tag' 'title' 'desc' 'label' 'select' 'note' 'action' 'msg';row-gap:7px}
+          .ngcc-floating-execution-host #execute{min-height:44px}
+        }
+      `;
+      doc.head.appendChild(style);
+
+      const host=doc.createElement('div');
+      host.id='ngccFloatingExecutionHost';
+      host.className='ngcc-floating-execution-host';
+      host.setAttribute('aria-label','Current stage execution control');
+      app.insertBefore(host,grid);
+      host.appendChild(execution);
+
+      const controlCopy=controlPanel.querySelector('.ngcc-panel-heading p');
+      if(controlCopy)controlCopy.textContent='Define the SAM.gov opportunity scope. Current-stage execution remains visible above the mission workspace.';
+
+      installed=true;
+      doc.documentElement.dataset.ngccFloatingExecution='ready';
+    }
+
+    frame.addEventListener('load',()=>{
+      installed=false;
+      attempts=0;
+      setTimeout(installFloatingExecution,0);
+    });
+  })();
+  </script>
+</body>
+</html>
