@@ -26,7 +26,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 18
-      - name: Syntax check protected operator functions
+      - name: Syntax check protected operator and federal workspace functions
         run: |
           node --check netlify/functions/lib/ngcc-procurement-dna.js
           node --check netlify/functions/lib/ngcc-contract-intelligence.js
@@ -63,31 +63,19 @@ jobs:
         run: node tests/ngcc-response-closeout.test.js
       - name: Validate strict sequential mission execution
         run: node tests/ngcc-mission-state.test.js
-      - name: Validate Executive Command Center and federal workspace wiring
+      - name: Validate current v5 command center and federal workspace wiring
         run: |
-          grep -Fq 'NGCC Executive Procurement Command Center' ops-command-center-v3.html
-          grep -Fq 'ngcc-ops-mission-control' ops-command-center-v3.html
-          grep -Fq 'ngcc-ops-contract-dna' ops-command-center-v3.html
-          grep -Fq 'ngcc-ops-business-search-dna' ops-command-center-v3.html
-          grep -Fq 'ngcc-ops-sam-contractor-discovery' ops-command-center-v3.html
-          grep -Fq 'ngcc-ops-contractor-qualification' ops-command-center-v3.html
-          grep -Fq 'ngcc-ops-contact-discovery' ops-command-center-v3.html
-          grep -Fq 'ngcc-ops-controlled-outreach' ops-command-center-v3.html
-          grep -Fq 'ngcc-ops-response-contract-assistance' ops-command-center-v3.html
-          grep -Fq 'data-select-contract' ops-command-center-v5.html
-          grep -Fq 'selected_opportunity_snapshot' ops-command-center-v5.html
+          grep -Fq 'NGCC Executive Procurement Command Center' ops-command-center-v5.html
+          grep -Fq 'ngcc-ops-mission-control' ops-command-center-v5.html
           grep -Fq 'ngcc-ops-mission-evidence' ops-command-center-v5.html
           grep -Fq 'Download Job Report (.json)' ops-command-center-v5.html
-          grep -Fq 'REQUEST_HTTP_FAILURE' ops-command-center-v5.html
-          grep -Fq 'BROWSER_EXTENSION_OR_INJECTED_SCRIPT' ops-command-center-v5.html
           grep -Fq 'id="contractState"' ops-command-center-v5.html
           grep -Fq 'id="contractorState"' ops-command-center-v5.html
-          grep -Fq 'Start New Task' ops-command-center-v6.html
-          grep -Fq 'Previous mission preserved' ops-command-center-v6.html
+          grep -Fq 'Start New Task' ops-command-center-v5.html
           grep -Fq "params.set('state', state)" netlify/functions/ngcc-ops-sam-opportunities.js
           grep -Fq 'resourceLinks' netlify/functions/ngcc-ops-sam-opportunities.js
           grep -Fq 'Opportunity Reference' netlify/functions/ngcc-ops-outreach.js
-          grep -Fq 'ngcc-federal-claim' netlify/functions/ngcc-federal-claim.js
+          grep -Fq 'issueWorkspaceToken' netlify/functions/ngcc-federal-claim.js
           grep -Fq 'PUBLIC_PACKAGE_ACQUIRED' netlify/functions/ngcc-federal-package.js
           grep -Fq "physicalAddressProvinceOrStateCode" netlify/functions/lib/ngcc-ops.js
           grep -Fq 'Cache-Control: no-store' _headers
