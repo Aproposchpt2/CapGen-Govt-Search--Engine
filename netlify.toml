@@ -134,19 +134,12 @@
   to = "/ops-dashboard.html"
   status = 200
 
-# Canonical NGCC procurement command center — floating execution shell over stable v5.
+# Canonical NGCC procurement command center — stable v5 implementation.
 [[redirects]]
   from = "/ops-command-center"
-  to = "/ops-command-center-v7.html"
+  to = "/ops-command-center-v5.html"
   status = 200
   force = true
-
-# v7 embeds the stable v5 implementation on the same origin so it can reposition
-# the current-stage execution card without changing any mission/backend behavior.
-[[headers]]
-  for = "/ops-command-center-v5.html"
-  [headers.values]
-    X-Frame-Options = "SAMEORIGIN"
 
 [[headers]]
   for = "/ops-command-center-stage01-hotfix.html"
@@ -156,6 +149,6 @@
 [[headers]]
   for = "/*"
   [headers.values]
-    X-Frame-Options = "SAMEORIGIN"
+    X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
