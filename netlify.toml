@@ -1,4 +1,5 @@
 [build]
+  command = "node scripts/apply-ngcc-tablet-sticky-execution.cjs"
   publish = "."
   functions = "netlify/functions"
 
