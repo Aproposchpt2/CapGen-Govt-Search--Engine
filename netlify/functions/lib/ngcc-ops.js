@@ -30,6 +30,8 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABA
 const SAM_KEY = process.env.SAM_API_KEY;
 const SESSION_SECRET = process.env.AUTH_TOKEN_SECRET || '';
 const OPS_PASSWORD = process.env.NGCC_OPS_PASSWORD || '';
+const TEST_OPS_PASSWORD = process.env.NGCC_TEST_OPS_PASSWORD || '';
+const TEST_OPS_EXPIRES_AT = process.env.NGCC_TEST_OPS_EXPIRES_AT || '';
 const MAILING_ADDRESS = process.env.MAILING_ADDRESS || '';
 const TEST_RECIPIENT = process.env.RESEND_TO_EMAIL || '';
 const RESEND_FROM = process.env.RESEND_FROM_EMAIL || 'NGCC <noreply@ai4businesses.org>';
@@ -71,30 +73,53 @@ function sha256Hex(message) {
   return crypto.createHash('sha256').update(message).digest('hex');
 }
 
-function issueOpsSession() {
-  const exp = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS;
-  const sig = hmacHex(SESSION_SECRET, `ops.${exp}`);
-  return { token: `${exp}.${sig}`, expires_at: new Date(exp * 1000).toISOString() };
+function issueOpsSession({ role = 'operator', expiresAt } = {}) {
+  const sessionExp = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS;
+  const fixedExp = expiresAt ? Math.floor(new Date(expiresAt).getTime() / 1000) : sessionExp;
+  const exp = Math.min(sessionExp, fixedExp);
+  if (!Number.isFinite(exp) || exp <= Math.floor(Date.now() / 1000)) {
+    throw new Error('Temporary operator access has expired.');
+  }
+  const safeRole = role === 'test_operator' ? 'test_operator' : 'operator';
+  const sig = hmacHex(SESSION_SECRET, `ops.${safeRole}.${exp}`);
+  return { token: `${exp}.${safeRole}.${sig}`, role: safeRole, expires_at: new Date(exp * 1000).toISOString() };
 }
 
 // Verifies the Authorization: Bearer <exp>.<hmac> header. Stateless — no DB
 // round trip, so a leaked/expired token simply stops working at `exp`
 // rather than needing a revocation list.
-function verifyOpsSession(event) {
+function verifyOpsSessionDetails(event) {
   const headers = event.headers || {};
   const header = headers.authorization || headers.Authorization || '';
   const token = header.startsWith('Bearer ') ? header.slice(7).trim() : '';
-  const [expStr, sig] = token.split('.');
-  if (!expStr || !sig) return false;
+  const parts = token.split('.');
+  if (parts.length !== 2 && parts.length !== 3) return null;
+  const [expStr, roleOrSig, versionedSig] = parts;
   const exp = Number(expStr);
-  if (!Number.isFinite(exp) || exp < Math.floor(Date.now() / 1000)) return false;
-  const expected = hmacHex(SESSION_SECRET, `ops.${exp}`);
-  return expected === sig;
+  if (!Number.isFinite(exp) || exp < Math.floor(Date.now() / 1000)) return null;
+
+  // Accept unexpired legacy operator tokens while moving new sessions to
+  // explicit roles. Test sessions are always role-bound and time-limited.
+  const role = parts.length === 2 ? 'operator' : roleOrSig;
+  const sig = parts.length === 2 ? roleOrSig : versionedSig;
+  if (!['operator', 'test_operator'].includes(role) || !sig) return null;
+  const message = parts.length === 2 ? `ops.${exp}` : `ops.${role}.${exp}`;
+  const expected = hmacHex(SESSION_SECRET, message);
+  const suppliedBuffer = Buffer.from(sig, 'utf8');
+  const expectedBuffer = Buffer.from(expected, 'utf8');
+  if (suppliedBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(suppliedBuffer, expectedBuffer)) return null;
+  return { role, exp, expires_at: new Date(exp * 1000).toISOString() };
 }
 
-function opsGuard(event) {
+function verifyOpsSession(event) {
+  return Boolean(verifyOpsSessionDetails(event));
+}
+
+function opsGuard(event, allowedRoles = ['operator', 'test_operator']) {
   if (!sameOrigin(event)) return json(403, { ok: false, error: 'Same-origin request required.' });
-  if (!verifyOpsSession(event)) return json(401, { ok: false, error: 'Operator session required. Sign in again.' });
+  const session = verifyOpsSessionDetails(event);
+  if (!session) return json(401, { ok: false, error: 'Operator session required. Sign in again.' });
+  if (!allowedRoles.includes(session.role)) return json(403, { ok: false, error: 'This operator role is not authorized for the requested action.' });
   return null;
 }
 
@@ -161,8 +186,8 @@ async function samEntitySearchByNaics({ naicsCode, state, limit }) {
 }
 
 module.exports = {
-  SUPABASE_URL, SUPABASE_KEY, SAM_KEY, SESSION_SECRET, OPS_PASSWORD, MAILING_ADDRESS,
+  SUPABASE_URL, SUPABASE_KEY, SAM_KEY, SESSION_SECRET, OPS_PASSWORD, TEST_OPS_PASSWORD, TEST_OPS_EXPIRES_AT, MAILING_ADDRESS,
   TEST_RECIPIENT, RESEND_FROM, RESEND_KEY, OPENAI_KEY, SITE_ORIGIN,
-  json, sbHeaders, sameOrigin, hmacHex, sha256Hex, issueOpsSession, verifyOpsSession, opsGuard,
+  json, sbHeaders, sameOrigin, hmacHex, sha256Hex, issueOpsSession, verifyOpsSessionDetails, verifyOpsSession, opsGuard,
   samEntitySearchByNaics,
 };
