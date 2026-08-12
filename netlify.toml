@@ -134,10 +134,10 @@
   to = "/ops-dashboard.html"
   status = 200
 
-# Canonical NGCC procurement command center.
+# Canonical NGCC procurement command center — stable rollback target.
 [[redirects]]
   from = "/ops-command-center"
-  to = "/ops-command-center-v6.html"
+  to = "/ops-command-center-v5.html"
   status = 200
   force = true
 
