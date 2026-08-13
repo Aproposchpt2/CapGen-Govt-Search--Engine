@@ -42,7 +42,7 @@ exports.handler = async event => {
   const businessSearchDna = body.business_search_dna && typeof body.business_search_dna === 'object' ? body.business_search_dna : null;
 
   try {
-    const { results, summary } = await discoverSelectedContacts(selected, {
+    const { results, summary, outcome } = await discoverSelectedContacts(selected, {
       limit: body.limit || MAX_SELECTED_CONTACTS,
       contractDna,
       timeout_ms: body.timeout_ms,
@@ -68,34 +68,28 @@ exports.handler = async event => {
           : candidate;
       });
 
-      reranked = rankCandidates({
-        candidates: enriched,
-        contractDna,
-        businessSearchDna,
-      }).map(candidate => ({
-        ...candidate,
-        operator_selected: selectedKeys.has(candidateKey(candidate)),
-      }));
+      reranked = rankCandidates({ candidates: enriched, contractDna, businessSearchDna })
+        .map(candidate => ({ ...candidate, operator_selected: selectedKeys.has(candidateKey(candidate)) }));
       qualification = qualificationSummary(reranked);
     }
 
     const rankedByKey = new Map((reranked || []).map(candidate => [candidateKey(candidate), candidate]));
     const contacts = results.map(result => {
       const refreshed = rankedByKey.get(candidateKey(result));
-      return refreshed
-        ? {
-            ...result,
-            qualification_rank: refreshed.rank || result.qualification_rank || null,
-            qualification_score: refreshed.contract_qualification_score ?? refreshed.qualification_score ?? result.qualification_score ?? null,
-            qualification_status: refreshed.qualification_status || result.qualification_status || null,
-          }
-        : result;
+      return refreshed ? {
+        ...result,
+        qualification_rank: refreshed.rank || result.qualification_rank || null,
+        qualification_score: refreshed.contract_qualification_score ?? refreshed.qualification_score ?? result.qualification_score ?? null,
+        qualification_status: refreshed.qualification_status || result.qualification_status || null,
+      } : result;
     });
 
     return json(200, {
       ok: true,
       stage: 'CONTACT_DISCOVERY',
-      status: contacts.length ? 'SUCCESS' : 'ZERO_RESULT',
+      status: outcome.status,
+      retry_required: outcome.retry_required,
+      status_message: outcome.message,
       records_examined: selected.length,
       records_accepted: summary.VERIFIED || 0,
       records_rejected: (summary.NOT_FOUND || 0) + (summary.FAILED || 0),
@@ -105,11 +99,9 @@ exports.handler = async event => {
       qualification_summary: qualification,
       website_research_count: summary.WEBSITE_FOUND || 0,
       capability_refresh_count: summary.CAPABILITY_REFRESHED || 0,
-      policy: 'Stage 06 performs website-first research on operator-selected businesses. It locates the official website, reviews current public capability evidence, and searches for an explicitly published public email. Positive contact results require a verifiable email plus source URL. No guessed addresses or capabilities are permitted.',
-      qualification_policy: contractDna && businessSearchDna
-        ? 'Current official-website evidence may refresh the selected business Contract Qualification. Missing website evidence remains UNVERIFIED/INSUFFICIENT_EVIDENCE and never becomes a synthetic fit score.'
-        : 'Contract context was not supplied, so Stage 06 performed contact discovery without refreshing Contract Qualification.',
-      next_gate: 'Operator must separately approve verified contacts before Stage 07 outreach.'
+      next_gate: outcome.retry_required
+        ? 'Stage 06 remains retryable. Review the result and select another candidate if needed.'
+        : 'Verified contact evidence is available for operator review.'
     });
   } catch (error) {
     console.error('[ngcc-ops-contact-discovery]', error);
