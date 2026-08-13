@@ -12,8 +12,29 @@ const DIMENSION_KEYS = [
   'supplier_role',
 ];
 
+// Stage 05 is a synchronous operator action. Current public-web verification is
+// deliberately bounded so that evidence research cannot hold the entire stage
+// open until the platform/proxy inactivity ceiling is reached. Candidates not
+// researched in this pass remain UNVERIFIED/INSUFFICIENT_EVIDENCE; they are
+// never treated as mismatches merely because the bounded pass did not reach them.
+const DEFAULT_VERIFICATION_LIMIT = 5;
+const MAX_VERIFICATION_LIMIT = 8;
+const DEFAULT_VERIFICATION_TIMEOUT_MS = 35000;
+
 function clean(value) {
   return String(value ?? '').trim();
+}
+
+function normalizeVerificationLimit(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return DEFAULT_VERIFICATION_LIMIT;
+  return Math.max(1, Math.min(Math.floor(parsed), MAX_VERIFICATION_LIMIT));
+}
+
+function normalizeVerificationTimeout(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return DEFAULT_VERIFICATION_TIMEOUT_MS;
+  return Math.max(5000, Math.min(Math.floor(parsed), DEFAULT_VERIFICATION_TIMEOUT_MS));
 }
 
 function extractResponseText(data) {
@@ -128,10 +149,12 @@ function candidateVerificationProfile(candidate = {}) {
 }
 
 async function verifyCandidateCapabilities(candidates = [], contractDna = {}, options = {}) {
-  const targets = (Array.isArray(candidates) ? candidates : []).slice(0, Math.max(1, Math.min(Number(options.limit || 20), 20)));
+  const limit = normalizeVerificationLimit(options.limit);
+  const timeoutMs = normalizeVerificationTimeout(options.timeout_ms);
+  const targets = (Array.isArray(candidates) ? candidates : []).slice(0, limit);
   const fallback = new Map(targets.map(candidate => [candidateKey(candidate), emptyVerification(candidate)]));
-  if (!targets.length) return { status: 'ZERO_RESULT', verifications: fallback, error: null };
-  if (!OPENAI_KEY) return { status: 'CONFIGURATION_UNAVAILABLE', verifications: fallback, error: 'OPENAI_API_KEY is not configured.' };
+  if (!targets.length) return { status: 'ZERO_RESULT', verifications: fallback, error: null, target_count: 0, limit, timeout_ms: timeoutMs };
+  if (!OPENAI_KEY) return { status: 'CONFIGURATION_UNAVAILABLE', verifications: fallback, error: 'OPENAI_API_KEY is not configured.', target_count: targets.length, limit, timeout_ms: timeoutMs };
 
   const contract = contractVerificationProfile(contractDna);
   const candidateProfiles = targets.map(candidateVerificationProfile);
@@ -153,6 +176,7 @@ CRITICAL RULES:
 7. Certifications/licenses must be contract-relevant. Do not treat generic SAM registration as a professional certification.
 8. Evaluate each business independently. Do not copy conclusions across candidates.
 9. Do not create a fit score. Return evidence states only; NGCC calculates scores separately.
+10. Work only on the supplied candidates. If a fact cannot be established quickly from a reliable current public source, mark it UNVERIFIED rather than continuing broad research.
 
 Return ONLY valid JSON in exactly this shape:
 {
@@ -177,21 +201,24 @@ Return ONLY valid JSON in exactly this shape:
   ]
 }`;
 
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(new Error('Capability verification timebox exceeded.')), timeoutMs);
   try {
     const response = await fetch('https://api.openai.com/v1/responses', {
       method: 'POST',
+      signal: controller.signal,
       headers: { Authorization: `Bearer ${OPENAI_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: process.env.OPENAI_MODEL || 'gpt-5.6-terra',
         input: [
           {
             role: 'system',
-            content: 'Use current public web sources. Be conservative. NAICS/SAM data is retrieval evidence, not proof of operational capability. Return only valid JSON.',
+            content: 'Use current public web sources. Be conservative and efficient. NAICS/SAM data is retrieval evidence, not proof of operational capability. Return only valid JSON.',
           },
           { role: 'user', content: prompt },
         ],
-        tools: [{ type: 'web_search', search_context_size: 'medium' }],
-        max_output_tokens: 8000,
+        tools: [{ type: 'web_search', search_context_size: 'low' }],
+        max_output_tokens: 5000,
       }),
     });
     const raw = await response.text();
@@ -205,19 +232,35 @@ Return ONLY valid JSON in exactly this shape:
       const row = byKey.get(key);
       results.set(key, row ? normalizeVerification(row, candidate) : emptyVerification(candidate, 'NOT_FOUND', 'No candidate-specific public verification result was returned.'));
     }
-    return { status: 'SUCCESS', verifications: results, error: null };
+    return { status: 'SUCCESS', verifications: results, error: null, target_count: targets.length, limit, timeout_ms: timeoutMs };
   } catch (error) {
+    const timedOut = controller.signal.aborted || clean(error?.name).toUpperCase() === 'ABORTERROR';
+    const status = timedOut ? 'TIMEBOX_EXCEEDED' : 'FAILED';
+    const note = timedOut
+      ? `Current public capability verification exceeded the ${timeoutMs} ms synchronous research timebox; unresolved evidence remains UNVERIFIED.`
+      : clean(error.message || error);
     return {
-      status: 'FAILED',
-      verifications: new Map(targets.map(candidate => [candidateKey(candidate), emptyVerification(candidate, 'FAILED', clean(error.message || error))])),
-      error: clean(error.message || error),
+      status,
+      verifications: new Map(targets.map(candidate => [candidateKey(candidate), emptyVerification(candidate, status, note)])),
+      error: note,
+      target_count: targets.length,
+      limit,
+      timeout_ms: timeoutMs,
     };
+  } finally {
+    clearTimeout(timer);
   }
 }
 
 module.exports = {
   DIMENSION_KEYS,
+  DEFAULT_VERIFICATION_LIMIT,
+  MAX_VERIFICATION_LIMIT,
+  DEFAULT_VERIFICATION_TIMEOUT_MS,
+  normalizeVerificationLimit,
+  normalizeVerificationTimeout,
   candidateKey,
+  emptyVerification,
   normalizeStatus,
   normalizeDimension,
   normalizeVerification,
