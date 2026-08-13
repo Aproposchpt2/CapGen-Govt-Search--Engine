@@ -1,6 +1,7 @@
 'use strict';
 
 const { json, opsGuard } = require('./lib/ngcc-ops');
+const { candidateKey, verifyCandidateCapabilities } = require('./lib/ngcc-contractor-capability-verification');
 const { rankCandidates, qualificationSummary } = require('./lib/ngcc-contractor-qualification');
 
 exports.handler = async event => {
@@ -25,18 +26,30 @@ exports.handler = async event => {
   }
 
   try {
-    const ranked = rankCandidates({ candidates, contractDna, businessSearchDna });
+    const shouldVerify = body.verify_capabilities !== false;
+    const verification = shouldVerify
+      ? await verifyCandidateCapabilities(candidates, contractDna, { limit: 20 })
+      : { status: 'SKIPPED', verifications: new Map(), error: null };
+
+    const enriched = candidates.map(candidate => ({
+      ...candidate,
+      capability_verification: verification.verifications.get(candidateKey(candidate)) || candidate.capability_verification || null,
+    }));
+
+    const ranked = rankCandidates({ candidates: enriched, contractDna, businessSearchDna });
     const summary = qualificationSummary(ranked);
     return json(200, {
       ok: true,
       stage: 'CONTRACTOR_QUALIFICATION',
       status: ranked.length ? 'SUCCESS' : 'ZERO_RESULT',
       records_examined: candidates.length,
-      records_accepted: summary.qualified + summary.review_required,
+      records_accepted: summary.qualified + summary.review_required + summary.insufficient_evidence,
       records_rejected: summary.disqualified,
       summary,
+      capability_verification_status: verification.status,
+      capability_verification_error: verification.error || null,
       ranked_candidates: ranked,
-      qualification_policy: 'Unknown contract-specific eligibility evidence remains REVIEW_REQUIRED; it is never converted into a false qualification.',
+      qualification_policy: 'SAM/NAICS evidence establishes discovery relevance only. Contract Qualification is scored only when current capability evidence is affirmatively supported and minimum evidence coverage is reached. Missing evidence remains INSUFFICIENT_EVIDENCE; it is never converted into a false 50% fit score.',
       persistence: 'NONE — qualification results belong to the active mission execution state only',
     });
   } catch (error) {

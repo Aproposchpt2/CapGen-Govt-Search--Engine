@@ -38,7 +38,7 @@ const RESEND_FROM = process.env.RESEND_FROM_EMAIL || 'NGCC <noreply@ai4businesse
 const RESEND_KEY = process.env.RESEND_API_KEY;
 const OPENAI_KEY = process.env.OPENAI_API_KEY;
 const SITE_ORIGIN = 'https://ngcc.aproposgroupllc.com';
-const SESSION_TTL_SECONDS = 12 * 3600; // 12h — operator re-enters the password once per work session
+const SESSION_TTL_SECONDS = 12 * 3600;
 
 function json(statusCode, body, extraHeaders) {
   return {
@@ -52,9 +52,6 @@ function sbHeaders() {
   return { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' };
 }
 
-// Same-origin check for the internal ops endpoints — this tool is never
-// meant to be called cross-origin, unlike the existing public/campaign
-// functions in this repo which intentionally use CORS *.
 function sameOrigin(event) {
   const headers = event.headers || {};
   const origin = headers.origin || headers.Origin || headers.referer || headers.Referer || '';
@@ -85,9 +82,6 @@ function issueOpsSession({ role = 'operator', expiresAt } = {}) {
   return { token: `${exp}.${safeRole}.${sig}`, role: safeRole, expires_at: new Date(exp * 1000).toISOString() };
 }
 
-// Verifies the Authorization: Bearer <exp>.<hmac> header. Stateless — no DB
-// round trip, so a leaked/expired token simply stops working at `exp`
-// rather than needing a revocation list.
 function verifyOpsSessionDetails(event) {
   const headers = event.headers || {};
   const header = headers.authorization || headers.Authorization || '';
@@ -98,8 +92,6 @@ function verifyOpsSessionDetails(event) {
   const exp = Number(expStr);
   if (!Number.isFinite(exp) || exp < Math.floor(Date.now() / 1000)) return null;
 
-  // Accept unexpired legacy operator tokens while moving new sessions to
-  // explicit roles. Test sessions are always role-bound and time-limited.
   const role = parts.length === 2 ? 'operator' : roleOrSig;
   const sig = parts.length === 2 ? roleOrSig : versionedSig;
   if (!['operator', 'test_operator'].includes(role) || !sig) return null;
@@ -123,35 +115,50 @@ function opsGuard(event, allowedRoles = ['operator', 'test_operator']) {
   return null;
 }
 
-// Public-tier SAM.gov Entity Management search, filtered by NAICS code.
-// Confirmed against GSA's own API docs (2026-08-09): point-of-contact
-// email/phone/fax only exist at the FOUO tier, which is not reachable with
-// a non-federal Personal API Key — this deliberately only requests
-// entityRegistration + coreData (public tier). Email is found separately,
-// per-candidate, via ngcc-ops-find-email.js's web-search agent (this repo's
-// existing enricher-hunter.js uses Hunter.io domain search instead, for its
-// own, different bulk-campaign use case).
-// Pagination: page + size (confirmed against GSA's own docs at
-// https://open.gsa.gov/api/entity-api/ after start/length was tried first
-// and rejected outright by SAM.gov's own API with "The search parameters,
-// start, length do not exist" -- that first attempt was based on an
-// unverified sibling file, not confirmed against this endpoint directly.
-// Jeff confirmed 10-20 candidate businesses per contract is plenty -- no
-// need to chase hundreds, so this stays at 2 pages of the documented
-// default size rather than an aggressive multi-page loop.
 const ENTITY_PAGE_SIZE = 10;
-const ENTITY_MAX_PAGES = 2; // up to 20 entities per search
+const ENTITY_MAX_PAGES = 2;
+
+function list(value) {
+  return Array.isArray(value) ? value : [];
+}
 
 function mapEntity(e) {
   const reg = e.entityRegistration || {};
   const core = e.coreData || {};
+  const assertions = e.assertions || {};
+  const goods = assertions.goodsAndServices || {};
+  const businessTypes = core.businessTypes || {};
   const addr = core.physicalAddress || core.mailingAddress || {};
+
+  const registeredNaics = list(goods.naicsList).map(item => ({
+    naics_code: String(item.naicsCode || '').trim(),
+    description: String(item.naicsDescription || item.naicsName || '').trim() || null,
+    is_primary: String(item.naicsCode || '').trim() === String(goods.primaryNaics || '').trim() || item.isPrimary === true || String(item.isPrimary || '').toUpperCase() === 'Y',
+    sba_small_business: item.sbaSmallBusiness ?? item.isSmallBusiness ?? null,
+  })).filter(item => item.naics_code);
+
+  const registeredPscs = list(goods.pscList).map(item => ({
+    psc_code: String(item.pscCode || '').trim(),
+    description: String(item.pscDescription || '').trim() || null,
+  })).filter(item => item.psc_code);
+
+  const classifications = [
+    ...list(businessTypes.businessTypeList).map(item => item.businessTypeDesc),
+    ...list(businessTypes.sbaBusinessTypeList).map(item => item.sbaBusinessTypeDesc),
+  ].map(value => String(value || '').trim()).filter(Boolean);
+
   return {
     ueiSAM: reg.ueiSAM || '',
     businessName: reg.legalBusinessName || reg.entityName || '',
     cageCode: reg.cageCode || '',
     city: addr.city || '',
     state: addr.stateOrProvinceCode || '',
+    registration_status: reg.registrationStatus || '',
+    sam_last_update_date: reg.lastUpdateDate || null,
+    primary_naics: goods.primaryNaics || null,
+    registered_naics: registeredNaics,
+    registered_pscs: registeredPscs,
+    business_classifications: [...new Set(classifications)],
   };
 }
 
@@ -160,25 +167,29 @@ async function fetchEntityPage({ naicsCode, state, page, size }) {
     api_key: SAM_KEY,
     naicsCode,
     registrationStatus: 'A',
-    includeSections: 'entityRegistration,coreData',
+    includeSections: 'entityRegistration,coreData,assertions',
     page: String(page),
     size: String(size),
   });
   if (state) params.set('physicalAddressProvinceOrStateCode', state);
   const res = await fetch(`https://api.sam.gov/entity-information/v3/entities?${params.toString()}`);
-  if (!res.ok) { const t = await res.text(); throw new Error(`SAM entity search ${res.status}: ${t.slice(0, 300)}`); }
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(`SAM entity search ${res.status}: ${t.slice(0, 300)}`);
+  }
   return res.json();
 }
 
 async function samEntitySearchByNaics({ naicsCode, state, limit }) {
   const cap = Math.min(limit || ENTITY_PAGE_SIZE * ENTITY_MAX_PAGES, ENTITY_PAGE_SIZE * ENTITY_MAX_PAGES);
-  let totalRecords = null, entities = [];
+  let totalRecords = null;
+  let entities = [];
   for (let page = 0; page < ENTITY_MAX_PAGES && entities.length < cap; page++) {
     const payload = await fetchEntityPage({ naicsCode, state, page, size: ENTITY_PAGE_SIZE });
     if (totalRecords === null) totalRecords = payload.totalRecords ?? payload.totalrecords ?? payload.totalElements ?? null;
     const batch = (payload.entityData || []).map(mapEntity).filter(e => e.businessName);
     entities = entities.concat(batch);
-    if (batch.length < ENTITY_PAGE_SIZE) break; // last page
+    if (batch.length < ENTITY_PAGE_SIZE) break;
     if (totalRecords !== null && entities.length >= totalRecords) break;
   }
   entities = entities.slice(0, cap);
@@ -186,8 +197,27 @@ async function samEntitySearchByNaics({ naicsCode, state, limit }) {
 }
 
 module.exports = {
-  SUPABASE_URL, SUPABASE_KEY, SAM_KEY, SESSION_SECRET, OPS_PASSWORD, TEST_OPS_PASSWORD, TEST_OPS_EXPIRES_AT, MAILING_ADDRESS,
-  TEST_RECIPIENT, RESEND_FROM, RESEND_KEY, OPENAI_KEY, SITE_ORIGIN,
-  json, sbHeaders, sameOrigin, hmacHex, sha256Hex, issueOpsSession, verifyOpsSessionDetails, verifyOpsSession, opsGuard,
+  SUPABASE_URL,
+  SUPABASE_KEY,
+  SAM_KEY,
+  SESSION_SECRET,
+  OPS_PASSWORD,
+  TEST_OPS_PASSWORD,
+  TEST_OPS_EXPIRES_AT,
+  MAILING_ADDRESS,
+  TEST_RECIPIENT,
+  RESEND_FROM,
+  RESEND_KEY,
+  OPENAI_KEY,
+  SITE_ORIGIN,
+  json,
+  sbHeaders,
+  sameOrigin,
+  hmacHex,
+  sha256Hex,
+  issueOpsSession,
+  verifyOpsSessionDetails,
+  verifyOpsSession,
+  opsGuard,
   samEntitySearchByNaics,
 };
