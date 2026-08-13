@@ -17,9 +17,9 @@ const DIMENSION_KEYS = [
 // open until the platform/proxy inactivity ceiling is reached. Candidates not
 // researched in this pass remain UNVERIFIED/INSUFFICIENT_EVIDENCE; they are
 // never treated as mismatches merely because the bounded pass did not reach them.
-const DEFAULT_VERIFICATION_LIMIT = 5;
-const MAX_VERIFICATION_LIMIT = 8;
-const DEFAULT_VERIFICATION_TIMEOUT_MS = 35000;
+const DEFAULT_VERIFICATION_LIMIT = 3;
+const MAX_VERIFICATION_LIMIT = 5;
+const DEFAULT_VERIFICATION_TIMEOUT_MS = 15000;
 
 function clean(value) {
   return String(value ?? '').trim();
@@ -78,8 +78,6 @@ function normalizeDimension(value) {
   const input = value && typeof value === 'object' ? value : {};
   const sources = (Array.isArray(input.sources) ? input.sources : []).map(normalizeSource).filter(Boolean);
   let status = normalizeStatus(input.status);
-  // Positive or negative conclusions require a citable public source. Absence
-  // of evidence must remain UNVERIFIED; it is never converted into a mismatch.
   if ((status === 'SUPPORTED' || status === 'MISMATCH') && !sources.length) status = 'UNVERIFIED';
   return {
     status,
@@ -218,7 +216,7 @@ Return ONLY valid JSON in exactly this shape:
           { role: 'user', content: prompt },
         ],
         tools: [{ type: 'web_search', search_context_size: 'low' }],
-        max_output_tokens: 5000,
+        max_output_tokens: 3500,
       }),
     });
     const raw = await response.text();
