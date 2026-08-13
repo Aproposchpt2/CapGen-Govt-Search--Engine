@@ -4,12 +4,20 @@ const { OPENAI_KEY } = require('./ngcc-ops');
 const {
   candidateKey,
   contractVerificationProfile,
-  emptyVerification,
   normalizeVerification,
 } = require('./ngcc-contractor-capability-verification');
 
 const MAX_SELECTED_CONTACTS = 5;
-const DEFAULT_WEBSITE_RESEARCH_TIMEOUT_MS = 16000;
+const DEFAULT_WEBSITE_RESEARCH_TIMEOUT_MS = 20000;
+const CAPABILITY_DIMENSIONS = new Set([
+  'current_capability_alignment',
+  'mandatory_requirements',
+  'certifications_licenses',
+  'past_performance',
+  'set_aside_classification',
+  'geography_capacity',
+  'supplier_role',
+]);
 
 function extractResponseText(data) {
   if (typeof data?.output_text === 'string') return data.output_text;
@@ -120,62 +128,107 @@ function mergeCapabilityVerifications(existing, fresh, candidate = {}) {
   }, candidate);
 }
 
+function capabilityEvidenceVerification(items, candidate = {}) {
+  const rows = Array.isArray(items) ? items : [];
+  const dimensions = {};
+  const sources = [];
+
+  for (const row of rows) {
+    const dimension = String(row?.dimension || '').trim().toLowerCase();
+    const status = String(row?.status || '').trim().toUpperCase();
+    const url = cleanUrl(row?.url);
+    if (!CAPABILITY_DIMENSIONS.has(dimension)) continue;
+    if (!['SUPPORTED', 'MISMATCH'].includes(status) || !url) continue;
+    const source = {
+      url,
+      title: String(row?.title || '').trim() || null,
+      note: String(row?.reason || '').trim() || null,
+    };
+    dimensions[dimension] = {
+      status,
+      reason: String(row?.reason || '').trim() || null,
+      sources: [source],
+    };
+    sources.push(source);
+  }
+
+  if (!Object.keys(dimensions).length) return null;
+  return normalizeVerification({
+    status: 'PARTIAL',
+    verified_at: new Date().toISOString(),
+    sources,
+    dimensions,
+  }, candidate);
+}
+
 function websiteResearchPrompt(candidate = {}, contractDna = null) {
   const businessName = String(candidate.business_name || candidate.businessName || '').trim();
   const location = [candidate.city, candidate.state].filter(Boolean).join(', ') || 'Unavailable';
   const contract = contractDna && typeof contractDna === 'object' ? contractVerificationProfile(contractDna) : null;
-  return `Perform WEBSITE-FIRST research for the federal contractor "${businessName}" located in ${location}.
+  const compactContract = contract ? {
+    title: contract.title,
+    primary_requirement: contract.primary_requirement,
+    products_services: contract.products_services,
+    required_capabilities: contract.required_capabilities,
+    required_certifications: contract.required_certifications,
+    required_experience: contract.required_experience,
+    supplier_role: contract.supplier_role,
+    place_of_performance: contract.place_of_performance,
+    set_aside: contract.set_aside,
+    mandatory_requirements: contract.mandatory_requirements,
+  } : null;
 
-REQUIRED RESEARCH SEQUENCE:
-1. Locate the business's current OFFICIAL website. Distinguish it from directories, lead-generation pages, social profiles, and similarly named businesses.
-2. Review the official website's current home, services/capabilities, about, contact, contracts/government, and footer pages when available.
-3. Find a PUBLIC email actually published by the business. Prefer business development, contracts, proposals, government sales, capture, estimating, or a general business email.
-4. If the official website does not publish an email, you may use another OFFICIAL PUBLIC AUTHORITY source that explicitly publishes the email. Never guess, infer, construct, or pattern-generate an address.
-5. If CONTRACT context is supplied, use the official website and authoritative public sources to verify the business's CURRENT capability for that specific requirement. SAM/NAICS registration alone is discovery evidence, not proof of capability.
-6. SUPPORTED or MISMATCH capability conclusions require a source URL. Missing or ambiguous evidence must remain UNVERIFIED.
+  return `Research the current public web presence of this federal contractor. CONTACT DISCOVERY IS THE PRIMARY TASK.
 
-BUSINESS:\n${JSON.stringify({
-    key: candidateKey(candidate),
-    uei: candidate.uei || candidate.ueiSAM || null,
-    cage_code: candidate.cage_code || candidate.cageCode || null,
-    business_name: businessName,
-    city: candidate.city || null,
-    state: candidate.state || null,
-    registered_naics: candidate.registered_naics || [],
-  }, null, 2)}
+BUSINESS: ${businessName}
+LOCATION: ${location}
+UEI: ${candidate.uei || candidate.ueiSAM || 'Unavailable'}
+CAGE: ${candidate.cage_code || candidate.cageCode || 'Unavailable'}
+CONTRACT: ${compactContract ? JSON.stringify(compactContract) : 'Not supplied'}
 
-CONTRACT:\n${contract ? JSON.stringify(contract, null, 2) : 'Not supplied — perform contact discovery only.'}
+DO THIS IN ORDER:
+1. Find the business's current OFFICIAL website. Reject directories, social profiles, lead-generation pages, and similarly named businesses.
+2. Check the official website home/contact/footer and relevant services or capabilities pages.
+3. Find a PUBLIC email actually published by that business. Prefer contracts, proposals, government sales, business development, estimating, or general contact email.
+4. If the official website has no published email, an email may be accepted only from another official public authority source that explicitly publishes it.
+5. Never guess, infer, construct, or pattern-generate an email address.
+6. If contract context is present, record ONLY capability evidence actually supported or contradicted by a cited official/current source. Missing evidence stays absent; do not create UNVERIFIED rows.
 
-Return ONLY valid JSON in exactly this shape:
+Return ONLY valid JSON:
 {
   "official_website_url":"https://... or null",
-  "website_pages_checked":[{"url":"https://...","note":"what was checked"}],
+  "website_pages_checked":[{"url":"https://...","note":"short note"}],
   "email":"published email or null",
-  "contact_name":"",
-  "contact_role":"",
-  "source_url":"URL where the email is visibly published or null",
+  "contact_name":"name or null",
+  "contact_role":"role or null",
+  "source_url":"exact page publishing email or null",
   "source_type":"OFFICIAL_WEBSITE|OFFICIAL_PUBLIC_AUTHORITY|NONE",
   "confidence":"HIGH|MEDIUM|LOW",
-  "evidence_note":"",
-  "capability_verification": {
-    "key":"candidate key exactly as supplied",
-    "uei":"",
-    "business_name":"",
-    "status":"VERIFIED|PARTIAL|NOT_FOUND",
-    "verified_at":"ISO-8601 timestamp",
-    "sources":[{"url":"https://...","title":"","note":""}],
-    "dimensions": {
-      "current_capability_alignment":{"status":"SUPPORTED|MISMATCH|UNVERIFIED","reason":"","sources":[]},
-      "mandatory_requirements":{"status":"SUPPORTED|MISMATCH|UNVERIFIED","reason":"","sources":[]},
-      "certifications_licenses":{"status":"SUPPORTED|MISMATCH|UNVERIFIED","reason":"","sources":[]},
-      "past_performance":{"status":"SUPPORTED|MISMATCH|UNVERIFIED","reason":"","sources":[]},
-      "set_aside_classification":{"status":"SUPPORTED|MISMATCH|UNVERIFIED","reason":"","sources":[]},
-      "geography_capacity":{"status":"SUPPORTED|MISMATCH|UNVERIFIED","reason":"","sources":[]},
-      "supplier_role":{"status":"SUPPORTED|MISMATCH|UNVERIFIED","reason":"","sources":[]}
-    }
-  }
+  "evidence_note":"short explanation",
+  "capability_evidence":[
+    {"dimension":"current_capability_alignment|mandatory_requirements|certifications_licenses|past_performance|set_aside_classification|geography_capacity|supplier_role","status":"SUPPORTED|MISMATCH","reason":"short reason","url":"https://...","title":"source title"}
+  ]
+}`;
 }
-If CONTRACT context is not supplied, set capability_verification=null.`;
+
+function contactDiscoveryOutcome(summary = {}) {
+  const verified = Number(summary.VERIFIED || 0);
+  const failed = Number(summary.FAILED || 0);
+  if (verified > 0) {
+    return { status: 'SUCCESS', retry_required: false, message: `${verified} verified public contact(s) found.` };
+  }
+  if (failed > 0) {
+    return {
+      status: 'RETRY_REQUIRED',
+      retry_required: true,
+      message: 'Website/contact research did not complete successfully. Review the evidence note, select a business, and retry Stage 06.',
+    };
+  }
+  return {
+    status: 'RETRY_REQUIRED',
+    retry_required: true,
+    message: 'No verified public email was found for the selected business. Select another candidate or retry Stage 06; no address was guessed.',
+  };
 }
 
 async function discoverPublicContact(candidate = {}, options = {}) {
@@ -198,12 +251,12 @@ async function discoverPublicContact(candidate = {}, options = {}) {
         input: [
           {
             role: 'system',
-            content: 'Use current public web sources. Start with the business official website. Never invent contact information or capability evidence. Return only valid JSON.',
+            content: 'Use current public web sources. Find the official business website and a published public email first. Never invent contact information or capability evidence. Return only valid JSON.',
           },
           { role: 'user', content: websiteResearchPrompt(candidate, contractDna) },
         ],
-        tools: [{ type: 'web_search', search_context_size: 'medium' }],
-        max_output_tokens: contractDna ? 2800 : 1500,
+        tools: [{ type: 'web_search', search_context_size: 'low' }],
+        max_output_tokens: 1400,
       }),
     });
     const raw = await response.text();
@@ -218,10 +271,9 @@ async function discoverPublicContact(candidate = {}, options = {}) {
       sourceUrl && officialWebsiteUrl && sameHost(sourceUrl, officialWebsiteUrl)
     );
     const verified = Boolean(email && sourceUrl && acceptedSource);
-    const rawVerification = contractDna && parsed.capability_verification && typeof parsed.capability_verification === 'object'
-      ? normalizeVerification(parsed.capability_verification, candidate)
+    const capabilityVerification = contractDna
+      ? capabilityEvidenceVerification(parsed.capability_evidence, candidate)
       : null;
-    const capabilityVerification = rawVerification && knownCapabilityEvidence(rawVerification) ? rawVerification : null;
 
     return {
       key: candidateKey(candidate),
@@ -308,7 +360,7 @@ async function discoverSelectedContacts(candidates = [], options = {}) {
     return acc;
   }, { total: 0, VERIFIED: 0, NOT_FOUND: 0, FAILED: 0, WEBSITE_FOUND: 0, CAPABILITY_REFRESHED: 0 });
 
-  return { results, summary };
+  return { results, summary, outcome: contactDiscoveryOutcome(summary) };
 }
 
 module.exports = {
@@ -321,5 +373,7 @@ module.exports = {
   normalizeResearchTimeout,
   knownCapabilityEvidence,
   mergeCapabilityVerifications,
+  capabilityEvidenceVerification,
+  contactDiscoveryOutcome,
   websiteResearchPrompt,
 };
