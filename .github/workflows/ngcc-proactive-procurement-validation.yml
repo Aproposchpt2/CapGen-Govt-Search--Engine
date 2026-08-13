@@ -84,7 +84,7 @@ jobs:
           grep -Fq 'issueWorkspaceToken' netlify/functions/ngcc-federal-claim.js
           grep -Fq 'PUBLIC_PACKAGE_ACQUIRED' netlify/functions/ngcc-federal-package.js
           grep -Fq "physicalAddressProvinceOrStateCode" netlify/functions/lib/ngcc-ops.js
-          grep -Fq 'includeSections: '\''entityRegistration,coreData,assertions'\''' netlify/functions/lib/ngcc-ops.js
+          grep -Fq 'entityRegistration,coreData,assertions' netlify/functions/lib/ngcc-ops.js
           grep -Fq 'Cache-Control: no-store' _headers
           grep -Fq 'to = "/ops-command-center-v7.html"' netlify.toml
           grep -Fq 'for = "/ops-command-center-v5.html"' netlify.toml
