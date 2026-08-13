@@ -64,7 +64,7 @@ jobs:
         run: node tests/ngcc-contractor-capability-verification.test.js
       - name: Validate explainable contractor qualification
         run: node tests/ngcc-contractor-qualification.test.js
-      - name: Validate Stage 06/07 operator gates
+      - name: Validate Stage 06/07 website and outreach gates
         run: node tests/ngcc-contact-outreach-control.test.js
       - name: Validate Stage 08 response and closeout
         run: node tests/ngcc-response-closeout.test.js
@@ -89,6 +89,13 @@ jobs:
           grep -Fq 'Discovery Match' ops-command-center-v5.html
           grep -Fq 'Contract Qualification' ops-command-center-v5.html
           grep -Fq 'Not scored' ops-command-center-v5.html
+          grep -Fq 'Website & Contact Discovery' ops-command-center-v3.html
+          grep -Fq 'Agent is locating official business websites' ops-command-center-v3.html
+          grep -Fq 'contract_dna:evidence.contract_dna' ops-command-center-v3.html
+          grep -Fq 'official_website_url' ops-command-center-v3.html
+          grep -Fq 'WEBSITE-FIRST research' netlify/functions/lib/ngcc-contact-discovery.js
+          grep -Fq 'capability_refresh_count' netlify/functions/ngcc-ops-contact-discovery.js
+          grep -Fq "['CONTACT_DISCOVERY', 'Website & Contact Discovery']" netlify/functions/lib/ngcc-mission-state.js
           grep -Fq "params.set('state', state)" netlify/functions/ngcc-ops-sam-opportunities.js
           grep -Fq 'resourceLinks' netlify/functions/ngcc-ops-sam-opportunities.js
           grep -Fq 'Opportunity Reference' netlify/functions/ngcc-ops-outreach.js
