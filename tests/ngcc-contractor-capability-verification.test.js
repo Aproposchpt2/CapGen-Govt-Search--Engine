@@ -12,6 +12,10 @@ const {
   normalizeVerification,
   contractVerificationProfile,
 } = require('../netlify/functions/lib/ngcc-contractor-capability-verification');
+const {
+  HARD_RESPONSE_TIMEBOX_MS,
+  timeoutVerification,
+} = require('../netlify/functions/ngcc-ops-contractor-qualification');
 
 const candidate = {
   ueiSAM: 'TESTUEI123',
@@ -21,14 +25,19 @@ const candidate = {
 
 assert.equal(candidateKey(candidate), 'TESTUEI123');
 
-assert.equal(DEFAULT_VERIFICATION_LIMIT, 5, 'live Stage 05 research should default to a bounded top-five pass');
-assert.equal(MAX_VERIFICATION_LIMIT, 8, 'operator-requested live verification must remain bounded');
-assert.equal(normalizeVerificationLimit(undefined), 5);
-assert.equal(normalizeVerificationLimit(20), 8, 'requested verification count must be capped');
+assert.equal(DEFAULT_VERIFICATION_LIMIT, 3, 'live Stage 05 research should default to a bounded top-three pass');
+assert.equal(MAX_VERIFICATION_LIMIT, 5, 'operator-requested live verification must remain tightly bounded');
+assert.equal(normalizeVerificationLimit(undefined), 3);
+assert.equal(normalizeVerificationLimit(20), 5, 'requested verification count must be capped');
 assert.equal(normalizeVerificationLimit(0), 1, 'a live verification pass must have at least one target');
-assert.equal(DEFAULT_VERIFICATION_TIMEOUT_MS, 35000, 'public-web verification must finish before the synchronous proxy inactivity ceiling');
-assert.equal(normalizeVerificationTimeout(999999), 35000, 'timeout must not exceed the controlled Stage 05 timebox');
+assert.equal(DEFAULT_VERIFICATION_TIMEOUT_MS, 15000, 'public-web verification must abort well before the synchronous proxy inactivity ceiling');
+assert.equal(normalizeVerificationTimeout(999999), 15000, 'timeout must not exceed the controlled verifier timebox');
 assert.equal(normalizeVerificationTimeout(100), 5000, 'timeout must retain a practical minimum');
+assert.equal(HARD_RESPONSE_TIMEBOX_MS, 18000, 'Stage 05 endpoint must fail soft before the proxy inactivity ceiling');
+const timeoutFallback = timeoutVerification([candidate], 3);
+assert.equal(timeoutFallback.status, 'TIMEBOX_EXCEEDED');
+assert.equal(timeoutFallback.verifications.get('TESTUEI123').status, 'TIMEBOX_EXCEEDED');
+assert.equal(timeoutFallback.verifications.get('TESTUEI123').dimensions.current_capability_alignment.status, 'UNVERIFIED');
 
 const unsupportedPositive = normalizeDimension({
   status: 'SUPPORTED',
