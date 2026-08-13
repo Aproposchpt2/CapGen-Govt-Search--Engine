@@ -55,6 +55,7 @@ jobs:
           node --check netlify/functions/ngcc-federal-package.js
           node --check scripts/apply-ngcc-tablet-sticky-execution.cjs
           node --check scripts/apply-ngcc-qualification-v2-ui.cjs
+          node --check tests/ngcc-command-center-build.test.js
       - name: Validate Contract DNA and Business Search DNA
         run: node tests/ngcc-procurement-dna.test.js
       - name: Validate controlled SAM contractor discovery
@@ -73,6 +74,8 @@ jobs:
         run: |
           node scripts/apply-ngcc-tablet-sticky-execution.cjs
           node scripts/apply-ngcc-qualification-v2-ui.cjs
+      - name: Parse built command-center JavaScript
+        run: node tests/ngcc-command-center-build.test.js
       - name: Validate certified v5 command center and federal workspace wiring
         run: |
           grep -Fq '<title>NGCC Command Center</title>' ops-command-center-v5.html
