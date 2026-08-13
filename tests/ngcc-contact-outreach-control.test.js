@@ -1,11 +1,64 @@
 'use strict';
 
 const assert = require('node:assert/strict');
-const { isPublicEmailCandidate } = require('../netlify/functions/lib/ngcc-contact-discovery');
+const {
+  isPublicEmailCandidate,
+  normalizeContactLimit,
+  knownCapabilityEvidence,
+  mergeCapabilityVerifications,
+  websiteResearchPrompt,
+} = require('../netlify/functions/lib/ngcc-contact-discovery');
 const { selectApprovedOutreachContacts, toLegacyOutreachCandidate } = require('../netlify/functions/lib/ngcc-outreach-control');
 
 assert.equal(isPublicEmailCandidate('contracts@example.com'), 'contracts@example.com');
 assert.equal(isPublicEmailCandidate('not-an-email'), null);
+assert.equal(normalizeContactLimit(999), 5);
+assert.equal(normalizeContactLimit(0), 1);
+
+const prompt = websiteResearchPrompt(
+  { business_name: 'Ready LLC', city: 'Orlando', state: 'FL', uei: 'UEI1' },
+  { title: 'Facilities Support', requirement: { primary_requirement: 'Provide recurring facility support services' } }
+);
+assert.match(prompt, /Locate the business's current OFFICIAL website/);
+assert.match(prompt, /PUBLIC email actually published/);
+assert.match(prompt, /SAM\/NAICS registration alone is discovery evidence/);
+
+const existingVerification = {
+  status: 'PARTIAL',
+  verified_at: '2026-08-13T18:00:00.000Z',
+  sources: [{ url: 'https://sam.gov/entity/UEI1', title: 'SAM', note: '' }],
+  dimensions: {
+    current_capability_alignment: { status: 'UNVERIFIED', reason: 'Not yet verified', sources: [] },
+    mandatory_requirements: { status: 'UNVERIFIED', reason: '', sources: [] },
+    certifications_licenses: { status: 'UNVERIFIED', reason: '', sources: [] },
+    past_performance: { status: 'UNVERIFIED', reason: '', sources: [] },
+    set_aside_classification: { status: 'UNVERIFIED', reason: '', sources: [] },
+    geography_capacity: { status: 'UNVERIFIED', reason: '', sources: [] },
+    supplier_role: { status: 'UNVERIFIED', reason: '', sources: [] },
+  },
+};
+const websiteVerification = {
+  status: 'PARTIAL',
+  verified_at: '2026-08-13T19:00:00.000Z',
+  sources: [{ url: 'https://ready.example/services', title: 'Services', note: 'Current service page' }],
+  dimensions: {
+    current_capability_alignment: {
+      status: 'SUPPORTED',
+      reason: 'Official service page describes the required service.',
+      sources: [{ url: 'https://ready.example/services', title: 'Services', note: '' }],
+    },
+    mandatory_requirements: { status: 'UNVERIFIED', reason: '', sources: [] },
+    certifications_licenses: { status: 'UNVERIFIED', reason: '', sources: [] },
+    past_performance: { status: 'UNVERIFIED', reason: '', sources: [] },
+    set_aside_classification: { status: 'UNVERIFIED', reason: '', sources: [] },
+    geography_capacity: { status: 'UNVERIFIED', reason: '', sources: [] },
+    supplier_role: { status: 'UNVERIFIED', reason: '', sources: [] },
+  },
+};
+assert.equal(knownCapabilityEvidence(websiteVerification), true);
+const merged = mergeCapabilityVerifications(existingVerification, websiteVerification, { business_name: 'Ready LLC', state: 'FL', uei: 'UEI1' });
+assert.equal(merged.dimensions.current_capability_alignment.status, 'SUPPORTED');
+assert.ok(merged.dimensions.current_capability_alignment.sources.some(source => source.url === 'https://ready.example/services'));
 
 const contacts = [
   {
@@ -52,4 +105,4 @@ assert.equal(legacy.contact_email, 'contracts@ready.example');
 assert.equal(legacy.ueiSAM, 'UEI1');
 assert.equal(legacy.contact_source_url, 'https://ready.example/contact');
 
-console.log('NGCC Stage 06/07 control tests passed.');
+console.log('NGCC Stage 06/07 website/contact control tests passed.');
