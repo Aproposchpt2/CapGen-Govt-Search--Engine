@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - "ops-command-center*.html"
+      - "scripts/apply-ngcc-tablet-sticky-execution.cjs"
       - "_headers"
       - "netlify.toml"
       - "netlify/functions/lib/ngcc-*.js"
@@ -52,6 +53,7 @@ jobs:
           node --check netlify/functions/ngcc-federal-claim.js
           node --check netlify/functions/ngcc-federal-workspace.js
           node --check netlify/functions/ngcc-federal-package.js
+          node --check scripts/apply-ngcc-tablet-sticky-execution.cjs
       - name: Validate Contract DNA and Business Search DNA
         run: node tests/ngcc-procurement-dna.test.js
       - name: Validate controlled SAM contractor discovery
@@ -66,7 +68,7 @@ jobs:
         run: node tests/ngcc-response-closeout.test.js
       - name: Validate strict sequential mission execution
         run: node tests/ngcc-mission-state.test.js
-      - name: Validate current v5 command center, floating shell, and federal workspace wiring
+      - name: Validate certified v5 command center and federal workspace wiring
         run: |
           grep -Fq '<title>NGCC Command Center</title>' ops-command-center-v5.html
           grep -Fq 'ops-command-center-v3.html?v5=4' ops-command-center-v5.html
@@ -75,9 +77,8 @@ jobs:
           grep -Fq 'id="contractorState"' ops-command-center-v5.html
           grep -Fq 'Start New Task' ops-command-center-v5.html
           grep -Fq 'ngcc-contract-drawer' ops-command-center-v5.html
-          grep -Fq 'ngccFloatingExecutionHost' ops-command-center-v7.html
-          grep -Fq 'position:sticky;top:58px' ops-command-center-v7.html
-          grep -Fq '/ops-command-center-v5.html' ops-command-center-v7.html
+          grep -Fq "executionDock.className='ngcc-execution-dock'" scripts/apply-ngcc-tablet-sticky-execution.cjs
+          grep -Fq 'position:sticky;top:54px' scripts/apply-ngcc-tablet-sticky-execution.cjs
           grep -Fq "params.set('state', state)" netlify/functions/ngcc-ops-sam-opportunities.js
           grep -Fq 'resourceLinks' netlify/functions/ngcc-ops-sam-opportunities.js
           grep -Fq 'Opportunity Reference' netlify/functions/ngcc-ops-outreach.js
@@ -86,6 +87,5 @@ jobs:
           grep -Fq "physicalAddressProvinceOrStateCode" netlify/functions/lib/ngcc-ops.js
           grep -Fq 'entityRegistration,coreData,assertions' netlify/functions/lib/ngcc-ops.js
           grep -Fq 'Cache-Control: no-store' _headers
-          grep -Fq 'to = "/ops-command-center-v7.html"' netlify.toml
-          grep -Fq 'for = "/ops-command-center-v5.html"' netlify.toml
-          grep -Fq 'X-Frame-Options = "SAMEORIGIN"' netlify.toml
+          grep -Fq 'to = "/ops-command-center-v5.html"' netlify.toml
+          grep -Fq 'X-Frame-Options = "DENY"' netlify.toml
