@@ -18,8 +18,8 @@
 //                        codebase as of 2026-08-09. Reused here as the HMAC
 //                        key for both the ops session token and the
 //                        unsubscribe link token.
-//   MAILING_ADDRESS    — already set. Used in the outreach email footer for
-//                        CAN-SPAM compliance.
+//   MAILING_ADDRESS    — authoritative APROPOS commercial mailing address.
+//                        Used in the outreach email footer for CAN-SPAM compliance.
 //   RESEND_TO_EMAIL    — already set. Used as the TEST MODE recipient.
 'use strict';
 
@@ -32,9 +32,9 @@ const SESSION_SECRET = process.env.AUTH_TOKEN_SECRET || '';
 const OPS_PASSWORD = process.env.NGCC_OPS_PASSWORD || '';
 const TEST_OPS_PASSWORD = process.env.NGCC_TEST_OPS_PASSWORD || '';
 const TEST_OPS_EXPIRES_AT = process.env.NGCC_TEST_OPS_EXPIRES_AT || '';
-const MAILING_ADDRESS = process.env.MAILING_ADDRESS || '';
+const MAILING_ADDRESS = process.env.MAILING_ADDRESS || 'APROPOS GROUP LLC, 5892 Losee Rd., Ste 132, North Las Vegas, NV 89081';
 const TEST_RECIPIENT = process.env.RESEND_TO_EMAIL || '';
-const RESEND_FROM = process.env.RESEND_FROM_EMAIL || 'NGCC <noreply@ai4businesses.org>';
+const RESEND_FROM = process.env.NGCC_OPPORTUNITY_FROM_EMAIL || 'National Government Contract Center <opportunities@aproposcontracts.com>';
 const RESEND_KEY = process.env.RESEND_API_KEY;
 const OPENAI_KEY = process.env.OPENAI_API_KEY;
 const SITE_ORIGIN = 'https://ngcc.aproposgroupllc.com';
