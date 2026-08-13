@@ -9,6 +9,42 @@ const {
 } = require('./lib/ngcc-contractor-capability-verification');
 const { rankCandidates, qualificationSummary } = require('./lib/ngcc-contractor-qualification');
 
+const HARD_RESPONSE_TIMEBOX_MS = 18000;
+
+function timeoutVerification(targets, verificationLimit) {
+  const note = `Current public capability verification did not complete within the ${HARD_RESPONSE_TIMEBOX_MS} ms Stage 05 response timebox; unresolved evidence remains UNVERIFIED.`;
+  return {
+    status: 'TIMEBOX_EXCEEDED',
+    verifications: new Map((targets || []).map(candidate => [candidateKey(candidate), emptyVerification(candidate, 'TIMEBOX_EXCEEDED', note)])),
+    error: note,
+    target_count: (targets || []).length,
+    limit: verificationLimit,
+    timeout_ms: HARD_RESPONSE_TIMEBOX_MS,
+  };
+}
+
+async function runBoundedVerification(targets, contractDna, verificationLimit) {
+  let timer;
+  const verificationPromise = verifyCandidateCapabilities(targets, contractDna, {
+    limit: verificationLimit,
+    timeout_ms: 15000,
+  }).catch(error => ({
+    ...timeoutVerification(targets, verificationLimit),
+    status: 'FAILED',
+    error: String(error?.message || error || 'Capability verification failed.'),
+  }));
+
+  const hardTimeout = new Promise(resolve => {
+    timer = setTimeout(() => resolve(timeoutVerification(targets, verificationLimit)), HARD_RESPONSE_TIMEBOX_MS);
+  });
+
+  try {
+    return await Promise.race([verificationPromise, hardTimeout]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 exports.handler = async event => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: {}, body: '' };
   const denied = opsGuard(event);
@@ -47,8 +83,11 @@ exports.handler = async event => {
       .filter(candidate => targetKeys.has(candidateKey(candidate)))
       .slice(0, verificationLimit);
 
+    // The endpoint has its own hard response timebox in addition to the verifier's
+    // network abort. This makes the fail-soft behavior independent of whether an
+    // upstream web-search request responds promptly to AbortController.
     const verification = shouldVerify
-      ? await verifyCandidateCapabilities(verificationTargets, contractDna, { limit: verificationLimit })
+      ? await runBoundedVerification(verificationTargets, contractDna, verificationLimit)
       : { status: 'SKIPPED', verifications: new Map(), error: null, target_count: 0, limit: verificationLimit, timeout_ms: null };
 
     const deferredNote = shouldVerify && candidates.length > verificationTargets.length
@@ -99,3 +138,7 @@ exports.handler = async event => {
     });
   }
 };
+
+module.exports.HARD_RESPONSE_TIMEBOX_MS = HARD_RESPONSE_TIMEBOX_MS;
+module.exports.timeoutVerification = timeoutVerification;
+module.exports.runBoundedVerification = runBoundedVerification;
