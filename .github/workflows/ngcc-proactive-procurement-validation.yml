@@ -31,6 +31,7 @@ jobs:
           node --check netlify/functions/lib/ngcc-procurement-dna.js
           node --check netlify/functions/lib/ngcc-contract-intelligence.js
           node --check netlify/functions/lib/ngcc-contractor-discovery.js
+          node --check netlify/functions/lib/ngcc-contractor-capability-verification.js
           node --check netlify/functions/lib/ngcc-contractor-qualification.js
           node --check netlify/functions/lib/ngcc-contact-discovery.js
           node --check netlify/functions/lib/ngcc-outreach-control.js
@@ -55,6 +56,8 @@ jobs:
         run: node tests/ngcc-procurement-dna.test.js
       - name: Validate controlled SAM contractor discovery
         run: node tests/ngcc-contractor-discovery.test.js
+      - name: Validate current public capability evidence controls
+        run: node tests/ngcc-contractor-capability-verification.test.js
       - name: Validate explainable contractor qualification
         run: node tests/ngcc-contractor-qualification.test.js
       - name: Validate Stage 06/07 operator gates
@@ -81,6 +84,7 @@ jobs:
           grep -Fq 'issueWorkspaceToken' netlify/functions/ngcc-federal-claim.js
           grep -Fq 'PUBLIC_PACKAGE_ACQUIRED' netlify/functions/ngcc-federal-package.js
           grep -Fq "physicalAddressProvinceOrStateCode" netlify/functions/lib/ngcc-ops.js
+          grep -Fq 'includeSections: '\''entityRegistration,coreData,assertions'\''' netlify/functions/lib/ngcc-ops.js
           grep -Fq 'Cache-Control: no-store' _headers
           grep -Fq 'to = "/ops-command-center-v7.html"' netlify.toml
           grep -Fq 'for = "/ops-command-center-v5.html"' netlify.toml
