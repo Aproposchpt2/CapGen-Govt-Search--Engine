@@ -1,7 +1,12 @@
 'use strict';
 
 const { json, opsGuard } = require('./lib/ngcc-ops');
-const { candidateKey, verifyCandidateCapabilities } = require('./lib/ngcc-contractor-capability-verification');
+const {
+  candidateKey,
+  emptyVerification,
+  normalizeVerificationLimit,
+  verifyCandidateCapabilities,
+} = require('./lib/ngcc-contractor-capability-verification');
 const { rankCandidates, qualificationSummary } = require('./lib/ngcc-contractor-qualification');
 
 exports.handler = async event => {
@@ -27,14 +32,40 @@ exports.handler = async event => {
 
   try {
     const shouldVerify = body.verify_capabilities !== false;
-    const verification = shouldVerify
-      ? await verifyCandidateCapabilities(candidates, contractDna, { limit: 20 })
-      : { status: 'SKIPPED', verifications: new Map(), error: null };
+    const verificationLimit = normalizeVerificationLimit(body.capability_verification_limit);
 
-    const enriched = candidates.map(candidate => ({
-      ...candidate,
-      capability_verification: verification.verifications.get(candidateKey(candidate)) || candidate.capability_verification || null,
-    }));
+    // First rank only the discovery evidence. That creates the bounded research
+    // queue without allowing a slow public-web search across the full Stage 04
+    // population to block this synchronous operator action.
+    const discoveryRanked = rankCandidates({
+      candidates: candidates.map(candidate => ({ ...candidate, capability_verification: null })),
+      contractDna,
+      businessSearchDna,
+    });
+    const targetKeys = new Set(discoveryRanked.slice(0, verificationLimit).map(candidateKey));
+    const verificationTargets = candidates
+      .filter(candidate => targetKeys.has(candidateKey(candidate)))
+      .slice(0, verificationLimit);
+
+    const verification = shouldVerify
+      ? await verifyCandidateCapabilities(verificationTargets, contractDna, { limit: verificationLimit })
+      : { status: 'SKIPPED', verifications: new Map(), error: null, target_count: 0, limit: verificationLimit, timeout_ms: null };
+
+    const deferredNote = shouldVerify && candidates.length > verificationTargets.length
+      ? `Deferred from this bounded public-evidence pass after the top ${verificationTargets.length} Discovery Match candidates were selected for live verification.`
+      : null;
+
+    const enriched = candidates.map(candidate => {
+      const key = candidateKey(candidate);
+      const liveVerification = verification.verifications.get(key);
+      const wasTargeted = targetKeys.has(key) && shouldVerify;
+      return {
+        ...candidate,
+        capability_verification: liveVerification || candidate.capability_verification || (
+          deferredNote && !wasTargeted ? emptyVerification(candidate, 'DEFERRED', deferredNote) : null
+        ),
+      };
+    });
 
     const ranked = rankCandidates({ candidates: enriched, contractDna, businessSearchDna });
     const summary = qualificationSummary(ranked);
@@ -48,8 +79,14 @@ exports.handler = async event => {
       summary,
       capability_verification_status: verification.status,
       capability_verification_error: verification.error || null,
+      capability_verification_limit: verificationLimit,
+      capability_verification_target_count: verificationTargets.length,
+      capability_verification_timeout_ms: verification.timeout_ms ?? null,
+      capability_verification_scope: shouldVerify
+        ? `Current public capability research was bounded to the ${verificationTargets.length} highest Discovery Match candidate(s) for this synchronous Stage 05 pass. Remaining candidates stay UNVERIFIED/INSUFFICIENT_EVIDENCE until separately researched; they are not rejected for lack of evidence.`
+        : 'Current public capability verification was explicitly skipped for this execution.',
       ranked_candidates: ranked,
-      qualification_policy: 'SAM/NAICS evidence establishes discovery relevance only. Contract Qualification is scored only when current capability evidence is affirmatively supported and minimum evidence coverage is reached. Missing evidence remains INSUFFICIENT_EVIDENCE; it is never converted into a false 50% fit score.',
+      qualification_policy: 'SAM/NAICS evidence establishes discovery relevance only. Contract Qualification is scored only when current capability evidence is affirmatively supported and minimum evidence coverage is reached. Missing, deferred, or timeboxed evidence remains INSUFFICIENT_EVIDENCE; it is never converted into a false 50% fit score.',
       persistence: 'NONE — qualification results belong to the active mission execution state only',
     });
   } catch (error) {
