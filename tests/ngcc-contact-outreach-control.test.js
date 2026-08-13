@@ -6,6 +6,8 @@ const {
   normalizeContactLimit,
   knownCapabilityEvidence,
   mergeCapabilityVerifications,
+  capabilityEvidenceVerification,
+  contactDiscoveryOutcome,
   websiteResearchPrompt,
 } = require('../netlify/functions/lib/ngcc-contact-discovery');
 const { selectApprovedOutreachContacts, toLegacyOutreachCandidate } = require('../netlify/functions/lib/ngcc-outreach-control');
@@ -19,9 +21,29 @@ const prompt = websiteResearchPrompt(
   { business_name: 'Ready LLC', city: 'Orlando', state: 'FL', uei: 'UEI1' },
   { title: 'Facilities Support', requirement: { primary_requirement: 'Provide recurring facility support services' } }
 );
-assert.match(prompt, /Locate the business's current OFFICIAL website/);
+assert.match(prompt, /OFFICIAL website/);
 assert.match(prompt, /PUBLIC email actually published/);
-assert.match(prompt, /SAM\/NAICS registration alone is discovery evidence/);
+assert.match(prompt, /Never guess, infer, construct, or pattern-generate an email address/);
+
+const evidenceVerification = capabilityEvidenceVerification([
+  {
+    dimension: 'current_capability_alignment',
+    status: 'SUPPORTED',
+    reason: 'Official service page describes the required service.',
+    url: 'https://ready.example/services',
+    title: 'Services',
+  },
+], { business_name: 'Ready LLC', state: 'FL', uei: 'UEI1' });
+assert.equal(evidenceVerification.dimensions.current_capability_alignment.status, 'SUPPORTED');
+assert.equal(evidenceVerification.dimensions.current_capability_alignment.sources[0].url, 'https://ready.example/services');
+
+assert.deepEqual(contactDiscoveryOutcome({ VERIFIED: 1, FAILED: 0, NOT_FOUND: 0 }), {
+  status: 'SUCCESS',
+  retry_required: false,
+  message: '1 verified public contact(s) found.',
+});
+assert.equal(contactDiscoveryOutcome({ VERIFIED: 0, FAILED: 1, NOT_FOUND: 0 }).status, 'RETRY_REQUIRED');
+assert.equal(contactDiscoveryOutcome({ VERIFIED: 0, FAILED: 0, NOT_FOUND: 1 }).retry_required, true);
 
 const existingVerification = {
   status: 'PARTIAL',
