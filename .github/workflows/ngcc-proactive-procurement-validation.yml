@@ -58,7 +58,9 @@ jobs:
           node --check scripts/apply-ngcc-tablet-sticky-execution.cjs
           node --check scripts/apply-ngcc-qualification-v2-ui.cjs
           node --check scripts/apply-ngcc-persistent-agent-ui.cjs
+          node --check scripts/apply-ngcc-stage06-live-sync.cjs
           node --check tests/ngcc-command-center-build.test.js
+          node --check tests/ngcc-persistent-agent-state.test.js
       - name: Validate Contract DNA and Business Search DNA
         run: node tests/ngcc-procurement-dna.test.js
       - name: Validate controlled SAM contractor discovery
@@ -67,6 +69,8 @@ jobs:
         run: node tests/ngcc-contractor-capability-verification.test.js
       - name: Validate explainable contractor qualification
         run: node tests/ngcc-contractor-qualification.test.js
+      - name: Validate five-agent Stage 06 completion gate
+        run: node tests/ngcc-persistent-agent-state.test.js
       - name: Validate Stage 06/07 website and outreach gates
         run: node tests/ngcc-contact-outreach-control.test.js
       - name: Validate Stage 08 response and closeout
@@ -93,10 +97,12 @@ jobs:
           grep -Fq 'Contract Qualification' ops-command-center-v5.html
           grep -Fq 'Not scored' ops-command-center-v5.html
           grep -Fq 'Website & Contact Discovery' ops-command-center-v3.html
-          grep -Fq 'Stage 06 Agent Monitor' ops-command-center-v3.html
-          grep -Fq 'ngcc-ops-contact-discovery-background' ops-command-center-v3.html
-          grep -Fq 'search_run_id:evidence.search_run_id' ops-command-center-v3.html
           grep -Fq 'official_website_url' ops-command-center-v3.html
+          grep -Fq 'Stage 06 Agent Monitor' scripts/apply-ngcc-persistent-agent-ui.cjs
+          grep -Fq 'ngcc-ops-contact-discovery-background' scripts/apply-ngcc-persistent-agent-ui.cjs
+          grep -Fq 'search_run_id:evidence.search_run_id' scripts/apply-ngcc-persistent-agent-ui.cjs
+          grep -Fq 'ngccStage06LiveSync' scripts/apply-ngcc-stage06-live-sync.cjs
+          grep -Fq 'renderStage06Agents(state)' scripts/apply-ngcc-stage06-live-sync.cjs
           grep -Fq 'WEBSITE-FIRST research' netlify/functions/lib/ngcc-contact-discovery.js
           grep -Fq 'READY_TO_START_BACKGROUND' netlify/functions/ngcc-ops-contact-discovery.js
           grep -Fq 'createContactAgents' netlify/functions/ngcc-ops-contact-discovery.js
