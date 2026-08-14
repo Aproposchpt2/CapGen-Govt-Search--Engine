@@ -8,7 +8,7 @@ const {
 } = require('./ngcc-contractor-capability-verification');
 
 const MAX_SELECTED_CONTACTS = 5;
-const DEFAULT_WEBSITE_RESEARCH_TIMEOUT_MS = 20000;
+const DEFAULT_WEBSITE_RESEARCH_TIMEOUT_MS = 115000;
 const CAPABILITY_DIMENSIONS = new Set([
   'current_capability_alignment',
   'mandatory_requirements',
