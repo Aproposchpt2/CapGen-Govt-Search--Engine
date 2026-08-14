@@ -4,15 +4,17 @@ const { json, opsGuard } = require('./lib/ngcc-ops');
 const {
   currentRun,
   listCandidates,
-  setSelectedCandidates,
-  createContactAgents,
   listContactAgents,
   summarizeAgents,
-  updateContactStep,
   db,
 } = require('./lib/ngcc-contractor-store');
+const {
+  selectResearchQueue,
+  createResearchWorkers,
+  researchQueueSummary,
+  updateResearchStep,
+} = require('./lib/ngcc-contact-research-queue');
 
-const MAX_SELECTED_CONTACTS = 5;
 const clean = value => String(value ?? '').trim();
 
 async function loadStatus(missionId, searchRunId, attemptNumber) {
@@ -24,7 +26,9 @@ async function loadStatus(missionId, searchRunId, attemptNumber) {
     db('ngcc_procurement_mission_steps', 'GET', `?mission_id=eq.${encodeURIComponent(missionId)}&step_code=eq.CONTACT_DISCOVERY&select=*&limit=1`),
   ]);
   const agentSummary = summarizeAgents(agents);
-  const contacts = candidates.filter(candidate => candidate.operator_selected || candidate.research_status !== 'NOT_STARTED');
+  const selected = candidates.filter(candidate => candidate.operator_selected === true);
+  const queueSummary = researchQueueSummary(selected);
+  const contacts = selected.filter(candidate => candidate.research_status !== 'NOT_STARTED' || candidate.contact_verified);
   const step = steps?.[0] || null;
   return {
     search_run_id: run.id,
@@ -34,6 +38,7 @@ async function loadStatus(missionId, searchRunId, attemptNumber) {
     current_activity: step?.current_activity || null,
     agents,
     agent_summary: agentSummary,
+    research_queue_summary: queueSummary,
     candidates,
     contacts,
   };
@@ -60,40 +65,29 @@ exports.handler = async event => {
     catch { return json(400, { ok: false, error: 'Invalid request body.' }); }
 
     const missionId = clean(body.mission_id);
-    if (!missionId) return json(400, { ok: false, error: 'mission_id is required for persistent Stage 06 execution.' });
+    if (!missionId) return json(400, { ok: false, error: 'mission_id is required for persistent contractor research.' });
 
     const run = clean(body.search_run_id) ? { id: clean(body.search_run_id) } : await currentRun(missionId);
     if (!run?.id) return json(409, { ok: false, stage: 'CONTACT_DISCOVERY', status: 'BLOCKED', error: 'No current contractor search run exists for this mission.' });
 
-    const supplied = Array.isArray(body.candidate_ids)
-      ? body.candidate_ids
-      : Array.isArray(body.candidates)
-        ? body.candidates.filter(candidate => candidate.operator_selected === true || candidate.operator_disposition === 'APPROVED')
-        : [];
-
-    if (!supplied.length) {
-      return json(409, { ok: false, stage: 'CONTACT_DISCOVERY', status: 'BLOCKED', error: 'Select at least one ranked contractor before Stage 06 website/contact research.' });
-    }
-    if (supplied.length > MAX_SELECTED_CONTACTS) {
-      return json(409, { ok: false, stage: 'CONTACT_DISCOVERY', status: 'BLOCKED', error: `Select no more than ${MAX_SELECTED_CONTACTS} contractors for one Stage 06 research run.` });
-    }
-
-    const selected = await setSelectedCandidates(run.id, supplied, MAX_SELECTED_CONTACTS);
+    const suppliedIds = Array.isArray(body.candidate_ids) ? body.candidate_ids : [];
+    const selected = await selectResearchQueue(run.id, suppliedIds);
     if (!selected.length) {
-      return json(409, { ok: false, stage: 'CONTACT_DISCOVERY', status: 'BLOCKED', error: 'Selected contractor identities did not match persisted Stage 04 candidates.' });
+      return json(409, { ok: false, stage: 'CONTACT_DISCOVERY', status: 'BLOCKED', error: 'No persisted Stage 04 SAM contractor candidates are available for research.' });
     }
 
-    const created = await createContactAgents({ missionId, searchRunId: run.id, candidates: selected });
-    await updateContactStep(missionId, {
+    const created = await createResearchWorkers({ missionId, searchRunId: run.id, candidates: selected });
+    await updateResearchStep(missionId, {
       status: 'RUNNING',
       progress: 0,
-      activity: `${selected.length} website/contact research agent(s) assigned. Stage 06 remains RUNNING until every assigned agent reaches a terminal 100% state.`,
+      activity: `${created.worker_count} research worker(s) assigned across all ${created.candidate_count} contractor candidate(s). Five is the concurrency limit, not the candidate limit.`,
       summary: {
         search_run_id: run.id,
         attempt_number: created.attempt_number,
-        assigned_agents: selected.length,
-        completed_agents: 0,
-        verified_contacts: 0,
+        worker_count: created.worker_count,
+        candidate_count: created.candidate_count,
+        researched_candidates: 0,
+        verified_contacts: selected.filter(candidate => candidate.contact_verified).length,
       },
     });
 
@@ -102,7 +96,7 @@ exports.handler = async event => {
       ok: true,
       stage: 'CONTACT_DISCOVERY',
       status: 'READY_TO_START_BACKGROUND',
-      message: 'Persistent Stage 06 assignments created. Start the authenticated Background Function, then poll this endpoint for agent progress.',
+      message: 'Persistent contractor-research queue created. Start the authenticated Background Function, then poll this endpoint for worker and queue progress.',
       background_payload: {
         mission_id: missionId,
         search_run_id: run.id,
@@ -118,7 +112,7 @@ exports.handler = async event => {
       ok: false,
       stage: 'CONTACT_DISCOVERY',
       status: 'FAILED',
-      error: String(error?.message || 'Stage 06 launch/status failure.'),
+      error: String(error?.message || 'Contractor research launch/status failure.'),
     });
   }
 };

@@ -1,5 +1,5 @@
 [build]
-  command = "node scripts/apply-ngcc-tablet-sticky-execution.cjs && node scripts/apply-ngcc-qualification-v2-ui.cjs"
+  command = "node scripts/apply-ngcc-tablet-sticky-execution.cjs && node scripts/apply-ngcc-qualification-v2-ui.cjs && node scripts/apply-ngcc-research-routing-v1.cjs"
   publish = "."
   functions = "netlify/functions"
 
