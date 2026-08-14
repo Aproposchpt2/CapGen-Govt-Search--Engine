@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const {
   isPublicEmailCandidate,
   normalizeContactLimit,
+  normalizeResearchTimeout,
   knownCapabilityEvidence,
   mergeCapabilityVerifications,
   capabilityEvidenceVerification,
@@ -16,6 +17,9 @@ assert.equal(isPublicEmailCandidate('contracts@example.com'), 'contracts@example
 assert.equal(isPublicEmailCandidate('not-an-email'), null);
 assert.equal(normalizeContactLimit(999), 5);
 assert.equal(normalizeContactLimit(0), 1);
+assert.equal(normalizeResearchTimeout(115000), 115000);
+assert.equal(normalizeResearchTimeout(999999), 115000);
+assert.equal(normalizeResearchTimeout(1000), 5000);
 
 const prompt = websiteResearchPrompt(
   { business_name: 'Ready LLC', city: 'Orlando', state: 'FL', uei: 'UEI1' },
