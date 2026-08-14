@@ -95,3 +95,4 @@ function patchStage06WebsiteUi() {
 
 patchQualificationV2();
 patchStage06WebsiteUi();
+require('./apply-ngcc-persistent-agent-ui.cjs');
