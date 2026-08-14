@@ -1,33 +1,41 @@
-// NGCC ops — the email piece: generate + send the opportunity introduction
-// to selected SAM-registered contractors, in bulk, in one action.
-// Reuses the isolate/preserve/continue + idempotency pattern shipped for
-// BusinessContracts' bulk_send_outreach: one failure doesn't abort the
-// batch, and a candidate already sent for this notice_id is skipped.
-//
-// TEST MODE (on by default): every send routes to RESEND_TO_EMAIL (the
-// operator's own inbox), never the real business. Flip only after explicit
-// confirmation — this sends real cold email to real third parties.
 'use strict';
+
+// NGCC opportunity outreach follows the proven BusinessContracts operator
+// control pattern: PREPARE DRAFT -> REVIEW/EDIT -> SAVE -> APPROVE & SEND.
+// Nothing in draft preparation transmits email. A real business email is sent
+// only after an authenticated operator explicitly invokes action=send.
 const {
   json, opsGuard, sbHeaders, SUPABASE_URL, sha256Hex, RESEND_KEY, RESEND_FROM,
   TEST_RECIPIENT, MAILING_ADDRESS,
 } = require('./lib/ngcc-ops');
 
-const TEST_MODE = true;
+const OPERATOR_NOTIFICATION_RECIPIENT = process.env.OPERATOR_NOTIFICATION_EMAIL || TEST_RECIPIENT;
+const UNSUBSCRIBE_COPY = 'To unsubscribe from future opportunity introductions, use the UNSUBSCRIBE button at the end of this email.';
+const PRODUCTION_SEND = true;
 
 async function sb(table, method, query, body, prefer) {
   const headers = { ...sbHeaders() };
   if (prefer) headers.Prefer = prefer;
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}${query || ''}`, { method, headers, body: body ? JSON.stringify(body) : undefined });
-  if (!res.ok) { const t = await res.text(); throw new Error(`Supabase ${table} ${method} ${res.status}: ${t.slice(0, 300)}`); }
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}${query || ''}`, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Supabase ${table} ${method} ${res.status}: ${text.slice(0, 300)}`);
+  }
   const text = await res.text();
   return text ? JSON.parse(text) : null;
 }
 
-function esc(v) { return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+const clean = value => String(value ?? '').trim();
+const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+}[c]));
 
 function claimReference(contract, candidate) {
-  return `NG-${sha256Hex(`${contract.noticeId}|${String(candidate.contact_email || '').trim().toLowerCase()}`).slice(0, 8).toUpperCase()}`;
+  return `NG-${sha256Hex(`${contract.noticeId}|${clean(candidate.contact_email).toLowerCase()}`).slice(0, 8).toUpperCase()}`;
 }
 
 function claimUrl(contract, candidate, reference) {
@@ -42,137 +50,396 @@ function claimUrl(contract, candidate, reference) {
   return `https://marketplace.aproposgroupllc.com/claim-federal-opportunity?${params.toString()}`;
 }
 
+function normalizeOutreachText(bodyText, unsubscribeUrl) {
+  let text = clean(bodyText);
+  if (unsubscribeUrl) text = text.split(unsubscribeUrl).join('');
+  text = text
+    .replace(/Unsubscribe from future opportunity introductions:\s*/gi, `${UNSUBSCRIBE_COPY}\n`)
+    .replace(/To unsubscribe from future opportunity introductions, use the UNSUBSCRIBE button(?: at the end of this email| in this email)?\.?/gi, UNSUBSCRIBE_COPY)
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  if (!text.toLowerCase().includes('unsubscribe from future opportunity introductions')) {
+    text = `${text}\n\n${UNSUBSCRIBE_COPY}`.trim();
+  }
+  return text;
+}
+
+function editableOutreachHtml(bodyText, unsubscribeUrl, claimLink) {
+  const safeBody = esc(bodyText);
+  const claimButton = claimLink
+    ? `<div style="margin:26px 0;text-align:left"><a href="${esc(claimLink)}" style="display:inline-block;background:#0F2A6A;color:#fff;text-decoration:none;padding:13px 20px;border-radius:8px;font-weight:700">Claim This Complimentary Opportunity</a></div>`
+    : '';
+  const unsubscribeButton = unsubscribeUrl
+    ? `<div style="border-top:1px solid #e4e8ee;padding-top:18px;margin-top:24px;text-align:center"><a href="${esc(unsubscribeUrl)}" style="display:inline-block;background:#667085;color:#fff;text-decoration:none;padding:11px 18px;border-radius:8px;font-size:12px;font-weight:800;letter-spacing:.04em">UNSUBSCRIBE</a></div>`
+    : '';
+  return `<!doctype html><html><body style="margin:0;background:#EEF1F7;font-family:Arial,sans-serif;color:#172033"><table width="100%" cellpadding="0" cellspacing="0" style="padding:28px 12px"><tr><td align="center"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:660px;background:#fff;border:1px solid #dbe1ec;border-radius:14px;overflow:hidden"><tr><td style="background:#0F2A6A;padding:24px 28px;color:#fff;border-bottom:3px solid #D5AE55"><div style="font-weight:700;letter-spacing:.08em;font-size:13px">NATIONAL GOVERNMENT CONTRACT CENTER</div><div style="font-size:12px;color:#dbe5ff;margin-top:4px">Apropos Group LLC</div></td></tr><tr><td style="padding:28px;white-space:pre-line;line-height:1.58">${safeBody}${claimButton}${unsubscribeButton}</td></tr></table></td></tr></table></body></html>`;
+}
+
 function outreachCopy(contract, candidate, unsubscribeUrl, reference) {
-  const deadline = contract.responseDeadline ? new Date(contract.responseDeadline).toLocaleDateString('en-US', { dateStyle: 'long' }) : 'See official solicitation';
+  const deadline = contract.responseDeadline
+    ? new Date(contract.responseDeadline).toLocaleDateString('en-US', { dateStyle: 'long' })
+    : 'See official solicitation';
   const subject = `Federal contract opportunity for ${candidate.business_name}: ${contract.title}`;
   const claimLink = claimUrl(contract, candidate, reference);
-  const text = `Hello${candidate.contact_name ? ` ${candidate.contact_name}` : ''},
+  const text = normalizeOutreachText(`Hello${candidate.contact_name ? ` ${candidate.contact_name}` : ''},
 
 The National Government Contract Center identified a federal contract opportunity that appears relevant to ${candidate.business_name}, based on your SAM.gov registration (NAICS ${contract.naicsCode || 'Unavailable'}).
 
 Opportunity: ${contract.title}
 Agency: ${contract.agency || 'Unavailable'}
+Solicitation: ${contract.solicitationNumber || 'Unavailable'}
 NAICS: ${contract.naicsCode || 'Unavailable'}
 Response deadline: ${deadline}
 Opportunity Reference: ${reference}
 
-Claim this complimentary opportunity to open your secure APROPOS Opportunity Workspace. The workspace provides the current public SAM.gov opportunity resources APROPOS can retrieve, together with the official SAM.gov source link:
+Claim this complimentary opportunity to open your secure APROPOS Opportunity Workspace:
 ${claimLink}
 
 SAM.gov and the issuing agency remain authoritative. Restricted or controlled files may require direct access through SAM.gov or the issuing agency.
 
-Unsubscribe from future opportunity introductions:
-${unsubscribeUrl}
-
 National Government Contract Center
 Apropos Group LLC
-${MAILING_ADDRESS}`;
-  const html = `<!doctype html><html><body style="margin:0;background:#EEF1F7;font-family:Arial,sans-serif;color:#0F2A6A"><table width="100%" cellpadding="0" cellspacing="0" style="padding:28px 12px"><tr><td align="center"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;background:#fff;border:1px solid #dbe1ec;border-radius:14px;overflow:hidden"><tr><td style="background:#0F2A6A;padding:24px 28px;color:#fff;border-bottom:3px solid #D5AE55"><div style="font-weight:700;letter-spacing:.08em;font-size:13px">NATIONAL GOVERNMENT CONTRACT CENTER</div></td></tr><tr><td style="padding:28px"><p>Hello${candidate.contact_name ? ` ${esc(candidate.contact_name)}` : ''},</p><p>NGCC identified a federal contract opportunity that appears relevant to <strong>${esc(candidate.business_name)}</strong>, based on your SAM.gov registration (NAICS ${esc(contract.naicsCode || 'Unavailable')}).</p><div style="background:#F5F7FB;border-left:4px solid #D5AE55;padding:16px;margin:20px 0"><div style="font-size:18px;font-weight:700;color:#0F2A6A">${esc(contract.title)}</div><p style="margin:8px 0 0"><strong>Agency:</strong> ${esc(contract.agency || 'Unavailable')}<br><strong>NAICS:</strong> ${esc(contract.naicsCode || 'Unavailable')}<br><strong>Deadline:</strong> ${esc(deadline)}<br><strong>Opportunity Reference:</strong> ${esc(reference)}</p></div><p style="margin:26px 0"><a href="${claimLink}" style="display:inline-block;background:#0F2A6A;color:#fff;text-decoration:none;padding:13px 20px;border-radius:8px;font-weight:700">Claim This Complimentary Opportunity</a></p><p style="font-size:13px;color:#667085;line-height:1.55">After claiming, you will enter a secure APROPOS Opportunity Workspace with the current public SAM.gov resources APROPOS can retrieve and a direct link to the authoritative SAM.gov notice. Restricted or controlled files may still require direct SAM.gov or issuing-agency access.</p><p style="margin-top:30px">National Government Contract Center<br>Apropos Group LLC</p><p style="border-top:1px solid #e4e8ee;padding-top:14px;font-size:11px;color:#667085">${esc(MAILING_ADDRESS)}<br><a href="${unsubscribeUrl}" style="color:#667085">Unsubscribe</a></p></td></tr></table></td></tr></table></body></html>`;
-  return { subject, text, html, claimLink };
+${MAILING_ADDRESS}
+
+${UNSUBSCRIBE_COPY}`, unsubscribeUrl);
+  return {
+    subject,
+    text,
+    html: editableOutreachHtml(text, unsubscribeUrl, claimLink),
+    claimLink,
+  };
+}
+
+async function loadOutreach(outreachId) {
+  const rows = await sb('ngcc_outreach_events', 'GET', `?outreach_id=eq.${encodeURIComponent(outreachId)}&select=*`);
+  const outreach = rows?.[0];
+  if (!outreach) throw new Error('Outreach draft not found.');
+  return outreach;
+}
+
+async function listOutreach(noticeId) {
+  if (!clean(noticeId)) return [];
+  return (await sb('ngcc_outreach_events', 'GET', `?notice_id=eq.${encodeURIComponent(noticeId)}&select=*&order=created_at.asc`)) || [];
 }
 
 async function generateOutreach(contract, candidate) {
-  const suppressed = await sb('unsubscribe_suppressions', 'GET', `?email_hash=eq.${encodeURIComponent(sha256Hex(candidate.contact_email.toLowerCase()))}&select=id`);
+  const email = clean(candidate.contact_email).toLowerCase();
+  if (!email) throw new Error('A verified public contact email is required before outreach preparation.');
+  const suppressed = await sb('unsubscribe_suppressions', 'GET', `?email_hash=eq.${encodeURIComponent(sha256Hex(email))}&select=id`);
   if (suppressed?.length) throw new Error('This email is suppressed from future outreach.');
-  const unsubToken = sha256Hex(`unsub.${candidate.contact_email.toLowerCase()}.${process.env.AUTH_TOKEN_SECRET}`);
-  const unsubscribeUrl = `https://ngcc.aproposgroupllc.com/.netlify/functions/ngcc-unsubscribe?email=${encodeURIComponent(candidate.contact_email)}&t=${unsubToken}`;
+
+  const existing = await sb(
+    'ngcc_outreach_events',
+    'GET',
+    `?notice_id=eq.${encodeURIComponent(contract.noticeId)}&contact_email=eq.${encodeURIComponent(email)}&select=*&order=created_at.desc&limit=1`
+  );
+  const prior = existing?.[0];
+  if (prior && prior.status === 'sent') return prior;
+
+  const unsubToken = sha256Hex(`unsub.${email}.${process.env.AUTH_TOKEN_SECRET}`);
+  const unsubscribeUrl = `https://ngcc.aproposgroupllc.com/.netlify/functions/ngcc-unsubscribe?email=${encodeURIComponent(email)}&t=${unsubToken}`;
   const reference = claimReference(contract, candidate);
   const copy = outreachCopy(contract, candidate, unsubscribeUrl, reference);
-  const created = await sb('ngcc_outreach_events', 'POST', '', [{
-    notice_id: contract.noticeId, contract_title: contract.title, contract_agency: contract.agency,
-    contract_naics: contract.naicsCode, contract_deadline: contract.responseDeadline, contract_sam_url: contract.samUrl,
-    business_name: candidate.business_name, contact_name: candidate.contact_name || null, contact_email: candidate.contact_email.toLowerCase(),
-    uei_sam: candidate.ueiSAM || null, subject: copy.subject, body_text: copy.text, status: 'draft',
-    provider_payload: {
-      email_html: copy.html,
-      unsubscribe_url: unsubscribeUrl,
-      marketplace_claim_url: copy.claimLink,
-      claim_reference: reference,
+  const providerPayload = {
+    ...(prior?.provider_payload || {}),
+    email_html: copy.html,
+    unsubscribe_url: unsubscribeUrl,
+    marketplace_claim_url: copy.claimLink,
+    claim_reference: reference,
+    solicitation_number: contract.solicitationNumber || null,
+    posted_date: contract.postedDate || null,
+    resource_links: Array.isArray(contract.resourceLinks) ? contract.resourceLinks : [],
+    sam_description_url: contract.descriptionUrl || contract.description || null,
+    additional_info_url: contract.additionalInfoLink || null,
+    candidate_id: candidate.candidate_id || null,
+    search_run_id: candidate.search_run_id || null,
+    qualification_rank: candidate.qualification_rank ?? candidate.rank ?? null,
+    qualification_score: candidate.qualification_score ?? candidate.contract_qualification_score ?? null,
+    qualification_status: candidate.qualification_status || null,
+    contact_source_url: candidate.contact_source_url || candidate.source_url || null,
+    operator_notification_status: 'PENDING',
+    source_snapshot: {
+      notice_id: contract.noticeId,
       solicitation_number: contract.solicitationNumber || null,
-      posted_date: contract.postedDate || null,
-      resource_links: Array.isArray(contract.resourceLinks) ? contract.resourceLinks : [],
-      sam_description_url: contract.descriptionUrl || contract.description || null,
-      additional_info_url: contract.additionalInfoLink || null,
-      source_snapshot: {
-        notice_id: contract.noticeId,
-        solicitation_number: contract.solicitationNumber || null,
-        title: contract.title,
-        agency: contract.agency || null,
-        naics: contract.naicsCode || null,
-        deadline: contract.responseDeadline || null,
-        sam_url: contract.samUrl,
-      },
+      title: contract.title,
+      agency: contract.agency || null,
+      naics: contract.naicsCode || null,
+      deadline: contract.responseDeadline || null,
+      sam_url: contract.samUrl,
     },
-  }], 'return=representation');
+  };
+
+  const row = {
+    notice_id: contract.noticeId,
+    contract_title: contract.title,
+    contract_agency: contract.agency,
+    contract_naics: contract.naicsCode,
+    contract_deadline: contract.responseDeadline,
+    contract_sam_url: contract.samUrl,
+    business_name: candidate.business_name,
+    contact_name: candidate.contact_name || null,
+    contact_email: email,
+    uei_sam: candidate.ueiSAM || candidate.uei || null,
+    subject: copy.subject,
+    body_text: copy.text,
+    status: 'draft',
+    provider_message_id: null,
+    sent_at: null,
+    provider_payload: providerPayload,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (prior) {
+    const updated = await sb('ngcc_outreach_events', 'PATCH', `?outreach_id=eq.${encodeURIComponent(prior.outreach_id)}`, row, 'return=representation');
+    return updated?.[0];
+  }
+  const created = await sb('ngcc_outreach_events', 'POST', '', [row], 'return=representation');
   return created?.[0];
 }
 
-async function sendOutreach(outreachId) {
-  if (!RESEND_KEY) throw new Error('RESEND_API_KEY is not configured.');
-  const rows = await sb('ngcc_outreach_events', 'GET', `?outreach_id=eq.${encodeURIComponent(outreachId)}&select=*`);
-  const outreach = rows?.[0];
-  if (!outreach) throw new Error('Outreach record not found.');
-  if (outreach.status === 'sent') return outreach;
-  const testBanner = TEST_MODE ? `[TEST MODE — intended recipient: ${outreach.contact_email}]\n\n` : '';
-  const payload = {
-    from: RESEND_FROM,
-    to: [TEST_MODE ? TEST_RECIPIENT : outreach.contact_email],
-    subject: TEST_MODE ? `[TEST] ${outreach.subject}` : outreach.subject,
-    text: testBanner + outreach.body_text,
-    html: outreach.provider_payload?.email_html,
-    reply_to: TEST_RECIPIENT || undefined,
-  };
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST', headers: { Authorization: `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    await sb('ngcc_outreach_events', 'PATCH', `?outreach_id=eq.${encodeURIComponent(outreach.outreach_id)}`, { status: 'failed', provider_payload: { ...outreach.provider_payload, send_error: data } }, 'return=minimal');
-    throw new Error(data.message || `Resend ${res.status}`);
-  }
-  const updated = await sb('ngcc_outreach_events', 'PATCH', `?outreach_id=eq.${encodeURIComponent(outreach.outreach_id)}`, { status: 'sent', provider_message_id: data.id || null, sent_at: new Date().toISOString(), provider_payload: { ...outreach.provider_payload, resend: data, test_mode: TEST_MODE, intended_production_recipient: outreach.contact_email } }, 'return=representation');
+async function saveOutreach(outreachId, subject, requestedBodyText) {
+  const outreach = await loadOutreach(outreachId);
+  if (outreach.status === 'sent') throw new Error('A sent outreach message cannot be edited.');
+  if (outreach.status === 'canceled') throw new Error('A canceled outreach message cannot be edited.');
+  const cleanSubject = clean(subject);
+  const requested = clean(requestedBodyText);
+  if (!cleanSubject || !requested) throw new Error('Subject and email message are required.');
+  const unsubscribeUrl = clean(outreach.provider_payload?.unsubscribe_url);
+  const claimLink = clean(outreach.provider_payload?.marketplace_claim_url);
+  const bodyText = normalizeOutreachText(requested, unsubscribeUrl);
+  const html = editableOutreachHtml(bodyText, unsubscribeUrl, claimLink);
+  const updated = await sb('ngcc_outreach_events', 'PATCH', `?outreach_id=eq.${encodeURIComponent(outreachId)}`, {
+    subject: cleanSubject,
+    body_text: bodyText,
+    status: 'draft',
+    provider_payload: {
+      ...(outreach.provider_payload || {}),
+      email_html: html,
+      operator_edited: true,
+      operator_edited_at: new Date().toISOString(),
+    },
+    updated_at: new Date().toISOString(),
+  }, 'return=representation');
   return updated?.[0];
 }
 
-async function bulkSendOutreach(contract, candidates) {
-  const results = [];
-  for (const candidate of candidates) {
-    const label = candidate.business_name || candidate.contact_email;
-    if (!candidate.contact_email) { results.push({ business_name: label, outcome: 'SKIPPED_NO_EMAIL' }); continue; }
+async function sendOperatorNotification(outreach) {
+  if (!OPERATOR_NOTIFICATION_RECIPIENT) throw new Error('Operator notification recipient is not configured.');
+  const reference = outreach.provider_payload?.claim_reference || 'Unavailable';
+  const claimLink = outreach.provider_payload?.marketplace_claim_url || 'Unavailable';
+  const text = `NGCC opportunity outreach sent.\n\nBusiness: ${outreach.business_name || 'Unavailable'}\nContact: ${outreach.contact_name || 'Unavailable'}\nRecipient: ${outreach.contact_email || 'Unavailable'}\nContract: ${outreach.contract_title || 'Unavailable'}\nAgency: ${outreach.contract_agency || 'Unavailable'}\nOpportunity Reference: ${reference}\n\nClaim URL:\n${claimLink}\n\nThis notification confirms that the approved opportunity introduction was sent to the prospective client.`;
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      from: RESEND_FROM,
+      to: [OPERATOR_NOTIFICATION_RECIPIENT],
+      subject: `NGCC outreach sent: ${outreach.business_name || 'prospective client'}`,
+      text,
+      reply_to: OPERATOR_NOTIFICATION_RECIPIENT,
+      tags: [
+        { name: 'service', value: 'ngcc' },
+        { name: 'mode', value: 'production_notice' },
+        { name: 'outreach_id', value: clean(outreach.outreach_id).replaceAll('-', '').slice(0, 32) },
+      ],
+    }),
+    signal: AbortSignal.timeout(30000),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.message || `Operator notification Resend ${response.status}`);
+  return data;
+}
+
+async function sendOutreach(outreachId) {
+  if (!PRODUCTION_SEND) throw new Error('Production outreach is disabled.');
+  if (!RESEND_KEY) throw new Error('RESEND_API_KEY is not configured.');
+  let outreach = await loadOutreach(outreachId);
+
+  // Idempotency: once the prospective-client message is sent, never send it
+  // again just because the separate operator notification needs a retry.
+  if (outreach.status !== 'sent') {
+    if (!outreach.contact_email) throw new Error('Recipient email is unavailable.');
+    if (!['draft', 'failed'].includes(outreach.status)) throw new Error(`Outreach status ${outreach.status} is not sendable.`);
+    const suppressed = await sb('unsubscribe_suppressions', 'GET', `?email_hash=eq.${encodeURIComponent(sha256Hex(outreach.contact_email.toLowerCase()))}&select=id`);
+    if (suppressed?.length) throw new Error('This email is suppressed from future outreach.');
+
+    const clientResponse = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: RESEND_FROM,
+        to: [outreach.contact_email],
+        subject: outreach.subject,
+        text: outreach.body_text,
+        html: outreach.provider_payload?.email_html,
+        reply_to: OPERATOR_NOTIFICATION_RECIPIENT || undefined,
+        tags: [
+          { name: 'service', value: 'ngcc' },
+          { name: 'mode', value: 'production' },
+          { name: 'outreach_id', value: clean(outreach.outreach_id).replaceAll('-', '').slice(0, 32) },
+        ],
+      }),
+      signal: AbortSignal.timeout(30000),
+    });
+    const clientData = await clientResponse.json().catch(() => ({}));
+    if (!clientResponse.ok) {
+      await sb('ngcc_outreach_events', 'PATCH', `?outreach_id=eq.${encodeURIComponent(outreachId)}`, {
+        status: 'failed',
+        provider_payload: { ...(outreach.provider_payload || {}), send_error: clientData },
+        updated_at: new Date().toISOString(),
+      }, 'return=minimal');
+      throw new Error(clientData.message || `Prospective-client email Resend ${clientResponse.status}`);
+    }
+
+    const updated = await sb('ngcc_outreach_events', 'PATCH', `?outreach_id=eq.${encodeURIComponent(outreachId)}`, {
+      status: 'sent',
+      provider_message_id: clientData.id || null,
+      sent_at: new Date().toISOString(),
+      provider_payload: {
+        ...(outreach.provider_payload || {}),
+        resend: clientData,
+        production_send: true,
+        delivered_recipient: outreach.contact_email,
+        operator_notification_recipient: OPERATOR_NOTIFICATION_RECIPIENT || null,
+        operator_notification_status: 'PENDING',
+      },
+      updated_at: new Date().toISOString(),
+    }, 'return=representation');
+    outreach = updated?.[0] || outreach;
+  }
+
+  let operatorNotificationSent = outreach.provider_payload?.operator_notification_status === 'SENT';
+  let operatorNotificationError = null;
+  if (!operatorNotificationSent) {
     try {
-      const existing = await sb('ngcc_outreach_events', 'GET', `?notice_id=eq.${encodeURIComponent(contract.noticeId)}&contact_email=eq.${encodeURIComponent(candidate.contact_email.toLowerCase())}&select=outreach_id,status&order=created_at.desc&limit=1`);
-      const prior = existing?.[0];
-      if (prior && ['sent', 'delivered', 'replied'].includes(prior.status)) { results.push({ business_name: label, outcome: 'ALREADY_SENT', outreach_id: prior.outreach_id }); continue; }
-      const outreachId = prior?.outreach_id || (await generateOutreach(contract, candidate)).outreach_id;
-      const sent = await sendOutreach(outreachId);
-      results.push({ business_name: label, outcome: 'SENT', outreach_id: sent?.outreach_id || outreachId });
+      const operatorData = await sendOperatorNotification(outreach);
+      const updated = await sb('ngcc_outreach_events', 'PATCH', `?outreach_id=eq.${encodeURIComponent(outreachId)}`, {
+        provider_payload: {
+          ...(outreach.provider_payload || {}),
+          operator_notification_status: 'SENT',
+          operator_notification_resend: operatorData,
+          operator_notification_error: null,
+        },
+        updated_at: new Date().toISOString(),
+      }, 'return=representation');
+      outreach = updated?.[0] || outreach;
+      operatorNotificationSent = true;
+    } catch (error) {
+      operatorNotificationError = error.message;
+      const updated = await sb('ngcc_outreach_events', 'PATCH', `?outreach_id=eq.${encodeURIComponent(outreachId)}`, {
+        provider_payload: {
+          ...(outreach.provider_payload || {}),
+          operator_notification_status: 'FAILED',
+          operator_notification_error: operatorNotificationError,
+        },
+        updated_at: new Date().toISOString(),
+      }, 'return=representation');
+      outreach = updated?.[0] || outreach;
+    }
+  }
+
+  return {
+    outreach,
+    prospective_client_sent: outreach.status === 'sent',
+    operator_notification_sent: operatorNotificationSent,
+    operator_notification_error: operatorNotificationError,
+    production_mode: true,
+  };
+}
+
+async function prepareOutreach(contract, candidates) {
+  const results = [];
+  const drafts = [];
+  for (const candidate of candidates) {
+    const label = candidate.business_name || candidate.contact_email || 'candidate';
+    if (!candidate.contact_email) {
+      results.push({ business_name: label, outcome: 'SKIPPED_NO_EMAIL' });
+      continue;
+    }
+    try {
+      const draft = await generateOutreach(contract, candidate);
+      drafts.push(draft);
+      results.push({
+        business_name: label,
+        outcome: draft.status === 'sent' ? 'ALREADY_SENT' : 'DRAFT_READY',
+        outreach_id: draft.outreach_id,
+      });
     } catch (error) {
       results.push({ business_name: label, outcome: 'FAILED', error: error.message });
     }
   }
-  const summary = results.reduce((s, r) => { s.total++; s[r.outcome] = (s[r.outcome] || 0) + 1; return s; }, { total: 0 });
-  return { summary, results, test_mode: TEST_MODE };
+  const summary = results.reduce((acc, result) => {
+    acc.total += 1;
+    acc[result.outcome] = (acc[result.outcome] || 0) + 1;
+    return acc;
+  }, { total: 0 });
+  return { summary, results, drafts, production_mode: true };
 }
 
-exports.handler = async (event) => {
+exports.handler = async event => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: {}, body: '' };
   const denied = opsGuard(event);
   if (denied) return denied;
-  if (event.httpMethod !== 'POST') return json(405, { ok: false, error: 'POST only.' });
-
-  let body;
-  try { body = JSON.parse(event.body || '{}'); } catch { return json(400, { ok: false, error: 'Invalid request body.' }); }
-  const contract = body.contract || {};
-  const candidates = Array.isArray(body.candidates) ? body.candidates : [];
-  if (!contract.noticeId || !contract.title || !contract.samUrl) return json(400, { ok: false, error: 'contract.noticeId, contract.title, and contract.samUrl are required.' });
-  if (!candidates.length) return json(400, { ok: false, error: 'No candidates were selected.' });
 
   try {
-    const result = await bulkSendOutreach(contract, candidates);
-    return json(200, { ok: true, ...result });
+    if (event.httpMethod === 'GET') {
+      const noticeId = clean(event.queryStringParameters?.notice_id);
+      if (!noticeId) return json(400, { ok: false, error: 'notice_id is required.' });
+      const outreach = await listOutreach(noticeId);
+      return json(200, { ok: true, outreach, production_mode: true });
+    }
+    if (event.httpMethod !== 'POST') return json(405, { ok: false, error: 'GET or POST only.' });
+
+    let body;
+    try { body = JSON.parse(event.body || '{}'); }
+    catch { return json(400, { ok: false, error: 'Invalid request body.' }); }
+    const action = clean(body.action || 'prepare').toLowerCase();
+
+    if (action === 'save') {
+      const outreachId = clean(body.outreach_id);
+      if (!outreachId) return json(400, { ok: false, error: 'outreach_id is required.' });
+      const outreach = await saveOutreach(outreachId, body.subject, body.body_text);
+      return json(200, { ok: true, action: 'save', outreach, status: 'DRAFT_SAVED' });
+    }
+
+    if (action === 'send' || action === 'notify') {
+      const outreachId = clean(body.outreach_id);
+      if (!outreachId) return json(400, { ok: false, error: 'outreach_id is required.' });
+      const result = await sendOutreach(outreachId);
+      return json(200, {
+        ok: true,
+        action,
+        status: result.operator_notification_sent ? 'SENT' : 'SENT_NOTIFICATION_WARNING',
+        ...result,
+      });
+    }
+
+    if (action !== 'prepare') return json(400, { ok: false, error: `Unsupported outreach action: ${action}` });
+    const contract = body.contract || {};
+    const candidates = Array.isArray(body.candidates) ? body.candidates : [];
+    if (!contract.noticeId || !contract.title || !contract.samUrl) {
+      return json(400, { ok: false, error: 'contract.noticeId, contract.title, and contract.samUrl are required.' });
+    }
+    if (!candidates.length) return json(400, { ok: false, error: 'No candidates were selected.' });
+    const prepared = await prepareOutreach(contract, candidates);
+    return json(200, {
+      ok: true,
+      action: 'prepare',
+      stage: 'BUSINESS_OUTREACH',
+      status: 'WAITING',
+      message: `${prepared.drafts.filter(item => item.status !== 'sent').length} outreach draft(s) ready for operator review. No email was sent by draft preparation.`,
+      ...prepared,
+    });
   } catch (error) {
     console.error('[ngcc-ops-outreach]', error.message);
     return json(500, { ok: false, error: error.message });
   }
 };
+
+module.exports.normalizeOutreachText = normalizeOutreachText;
+module.exports.editableOutreachHtml = editableOutreachHtml;
+module.exports.outreachCopy = outreachCopy;
+module.exports.prepareOutreach = prepareOutreach;
+module.exports.saveOutreach = saveOutreach;
+module.exports.sendOutreach = sendOutreach;
+module.exports.PRODUCTION_SEND = PRODUCTION_SEND;
