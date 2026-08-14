@@ -2,8 +2,12 @@
 
 const { json, opsGuard } = require('./lib/ngcc-ops');
 const { selectApprovedOutreachContacts, toLegacyOutreachCandidate } = require('./lib/ngcc-outreach-control');
-const legacyOutreach = require('./ngcc-ops-outreach');
+const outreachService = require('./ngcc-ops-outreach');
 
+// Stage 07 is an operator-controlled draft gate. This endpoint validates the
+// selected/verified recipients and PREPARES drafts only. It never transmits
+// email. The Command Center must subsequently save and explicitly send each
+// draft through ngcc-ops-outreach action=send.
 exports.handler = async event => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: {}, body: '' };
   const denied = opsGuard(event);
@@ -23,7 +27,7 @@ exports.handler = async event => {
       ok: false,
       stage: 'BUSINESS_OUTREACH',
       status: 'BLOCKED',
-      error: 'Operator must explicitly approve at least one VERIFIED contact with source evidence before outreach.'
+      error: 'Operator must explicitly approve at least one QUALIFIED contractor with a VERIFIED public email and source evidence before outreach preparation.',
     });
   }
 
@@ -31,23 +35,24 @@ exports.handler = async event => {
     ...event,
     httpMethod: 'POST',
     body: JSON.stringify({
+      action: 'prepare',
       contract,
       candidates: approved.map(toLegacyOutreachCandidate),
     }),
   };
 
-  const response = await legacyOutreach.handler(nestedEvent);
+  const response = await outreachService.handler(nestedEvent);
   let payload;
   try { payload = JSON.parse(response.body || '{}'); }
-  catch { payload = { ok: false, error: 'Legacy outreach response was not valid JSON.' }; }
+  catch { payload = { ok: false, error: 'Outreach preparation response was not valid JSON.' }; }
 
   if (response.statusCode >= 400 || payload.ok === false) return response;
   return json(200, {
     ok: true,
     stage: 'BUSINESS_OUTREACH',
-    status: 'SUCCESS',
+    status: 'WAITING',
     approved_contacts: approved.length,
     ...payload,
-    control_policy: 'Only operator-approved, publicly verified contacts with source evidence are eligible for outreach. Existing NGCC suppression, idempotency, per-candidate failure isolation, and TEST MODE controls remain authoritative.'
+    control_policy: 'Draft preparation sends nothing. The operator reviews, edits, saves, and explicitly approves each prospective-client email. Production send then emails the business and separately notifies the operator.',
   });
 };
