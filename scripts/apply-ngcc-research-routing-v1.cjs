@@ -28,7 +28,7 @@ function patchV3() {
   source = replaceSection(
     source,
     '<section class="card"><div class="tag">Stage 05 → 06 Gate',
-    '<section class="card"><div class="tag">Stage 04 → 05 Gate</div><h2>SAM contractors — automatic research queue</h2><p class="section-note">All persisted SAM contractor candidates enter Stage 05 research by default. Five workers run concurrently and continuously process the full queue; five is the worker count, not a five-business ceiling.</p><div id="ranked"><div class="muted">No contractor candidates yet.</div></div></section>',
+    '<section class="card"><div class="tag">Stage 04 → 05 Gate</div><h2>SAM contractors — automatic research queue</h2><p class="section-note">All persisted SAM contractor candidates enter Stage 05 research by default. Five workers run concurrently and continuously process the full queue; Five is the worker count, not a five-business ceiling.</p><div id="ranked"><div class="muted">No contractor candidates yet.</div></div></section>',
     'ranked contractor section'
   );
 
