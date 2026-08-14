@@ -17,6 +17,9 @@ assert.match(v3, /Contract Qualification/, 'built v3 must expose Contract Qualif
 assert.match(v3, /Not scored/, 'built v3 must explicitly render an unscored qualification state');
 assert.match(v3, /Contractor Research & Contact Discovery/, 'built v3 must route contractor research before qualification');
 assert.match(v3, /Stage 05 Research Worker Monitor/, 'built v3 must expose the five-worker Stage 05 monitor');
+assert.match(v3, /researchQueueReady=Boolean\(evidence\.search_run_id\)/, 'built v3 must enable Stage 05 from the persisted SAM research queue');
+assert.match(v3, /Stage 05 requires a persisted SAM contractor queue from Stage 04\./, 'built v3 must explain the real Stage 05 prerequisite');
+assert.doesNotMatch(v3, /Select ranked contractors below before Stage 06\./, 'built v3 must not require retired manual Stage 05 contractor selection');
 assert.match(v3, /Select All/, 'built v3 must expose outreach Select All');
 assert.match(v3, /Clear All/, 'built v3 must expose outreach Clear All');
 assert.match(v3, /Opportunity email drafts — review, edit, save, then send/, 'built v3 must expose the Stage 07 draft review gate');
