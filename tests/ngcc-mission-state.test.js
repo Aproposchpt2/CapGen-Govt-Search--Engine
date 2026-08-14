@@ -20,14 +20,14 @@ function freshSteps() {
     .map((step, index) => ({ ...step, id: `step-${index + 1}` }));
 }
 
-test('canonical mission stages match the approved command-center workflow', () => {
+test('canonical mission stages route research before qualification', () => {
   assert.deepEqual(MISSION_STEPS.map(([code]) => code), [
     'OPPORTUNITY_DISCOVERY',
     'CONTRACT_DNA',
     'BUSINESS_SEARCH_DNA',
     'SAM_CONTRACTOR_DISCOVERY',
-    'CONTRACTOR_QUALIFICATION',
     'CONTACT_DISCOVERY',
+    'CONTRACTOR_QUALIFICATION',
     'BUSINESS_OUTREACH',
     'RESPONSE_CONTRACT_ASSISTANCE',
   ]);
@@ -66,8 +66,16 @@ test('successful Contract DNA points to Business Search DNA', () => {
   assert.equal(nextStepCode('CONTRACT_DNA'), 'BUSINESS_SEARCH_DNA');
 });
 
-test('successful contact discovery points to business outreach', () => {
-  assert.equal(nextStepCode('CONTACT_DISCOVERY'), 'BUSINESS_OUTREACH');
+test('successful SAM discovery points to contractor research', () => {
+  assert.equal(nextStepCode('SAM_CONTRACTOR_DISCOVERY'), 'CONTACT_DISCOVERY');
+});
+
+test('successful contractor research points to qualification', () => {
+  assert.equal(nextStepCode('CONTACT_DISCOVERY'), 'CONTRACTOR_QUALIFICATION');
+});
+
+test('successful qualification points to business outreach', () => {
+  assert.equal(nextStepCode('CONTRACTOR_QUALIFICATION'), 'BUSINESS_OUTREACH');
 });
 
 test('successful outreach points to response and contract assistance', () => {
