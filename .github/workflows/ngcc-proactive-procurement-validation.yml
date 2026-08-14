@@ -85,41 +85,54 @@ jobs:
         run: node tests/ngcc-command-center-build.test.js
       - name: Validate certified v5 command center and federal workspace wiring
         run: |
-          grep -Fq '<title>NGCC Command Center</title>' ops-command-center-v5.html
-          grep -Fq 'ops-command-center-v3.html?v5=4' ops-command-center-v5.html
-          grep -Fq 'ngcc-ops-mission-evidence' ops-command-center-v5.html
-          grep -Fq 'id="contractState"' ops-command-center-v5.html
-          grep -Fq 'id="contractorState"' ops-command-center-v5.html
-          grep -Fq 'Start New Task' ops-command-center-v5.html
-          grep -Fq 'ngcc-contract-drawer' ops-command-center-v5.html
-          grep -Fq "executionDock.className='ngcc-execution-dock'" ops-command-center-v5.html
-          grep -Fq 'Discovery Match' ops-command-center-v5.html
-          grep -Fq 'Contract Qualification' ops-command-center-v5.html
-          grep -Fq 'Not scored' ops-command-center-v5.html
-          grep -Fq 'Website & Contact Discovery' ops-command-center-v3.html
-          grep -Fq 'official_website_url' ops-command-center-v3.html
-          grep -Fq 'Stage 06 Agent Monitor' scripts/apply-ngcc-persistent-agent-ui.cjs
-          grep -Fq 'ngcc-ops-contact-discovery-background' scripts/apply-ngcc-persistent-agent-ui.cjs
-          grep -Fq 'search_run_id:evidence.search_run_id' scripts/apply-ngcc-persistent-agent-ui.cjs
-          grep -Fq 'ngccStage06LiveSync' scripts/apply-ngcc-stage06-live-sync.cjs
-          grep -Fq 'renderStage06Agents(state)' scripts/apply-ngcc-stage06-live-sync.cjs
-          grep -Fq 'WEBSITE-FIRST research' netlify/functions/lib/ngcc-contact-discovery.js
-          grep -Fq 'READY_TO_START_BACKGROUND' netlify/functions/ngcc-ops-contact-discovery.js
-          grep -Fq 'createContactAgents' netlify/functions/ngcc-ops-contact-discovery.js
-          grep -Fq 'startSearchRun' netlify/functions/ngcc-ops-sam-contractor-discovery.js
-          grep -Fq 'persistQualifications' netlify/functions/ngcc-ops-contractor-qualification.js
-          grep -Fq 'Promise.all' netlify/functions/ngcc-ops-contact-discovery-background.js
-          grep -Fq 'progress_percentage: 100' netlify/functions/ngcc-ops-contact-discovery-background.js
-          grep -Fq 'agentSummary.all_terminal' netlify/functions/ngcc-ops-contact-discovery-background.js
-          grep -Fq "['CONTACT_DISCOVERY', 'Website & Contact Discovery']" netlify/functions/lib/ngcc-mission-state.js
-          grep -Fq "params.set('state', state)" netlify/functions/ngcc-ops-sam-opportunities.js
-          grep -Fq 'resourceLinks' netlify/functions/ngcc-ops-sam-opportunities.js
-          grep -Fq 'Opportunity Reference' netlify/functions/ngcc-ops-outreach.js
-          grep -Fq 'issueWorkspaceToken' netlify/functions/ngcc-federal-claim.js
-          grep -Fq 'PUBLIC_PACKAGE_ACQUIRED' netlify/functions/ngcc-federal-package.js
-          grep -Fq "physicalAddressProvinceOrStateCode" netlify/functions/lib/ngcc-ops.js
-          grep -Fq 'entityRegistration,coreData,assertions' netlify/functions/lib/ngcc-ops.js
-          grep -Fq 'Cache-Control: no-store' _headers
-          grep -Fq 'apply-ngcc-tablet-sticky-execution.cjs && node scripts/apply-ngcc-qualification-v2-ui.cjs' netlify.toml
-          grep -Fq 'to = "/ops-command-center-v5.html"' netlify.toml
-          grep -Fq 'X-Frame-Options = "DENY"' netlify.toml
+          failed=0
+          check() {
+            file="$1"
+            needle="$2"
+            label="$3"
+            if grep -Fq -- "$needle" "$file"; then
+              echo "PASS: $label"
+            else
+              echo "MISSING: $label :: $needle in $file"
+              failed=1
+            fi
+          }
+          check ops-command-center-v5.html '<title>NGCC Command Center</title>' 'v5 title'
+          check ops-command-center-v5.html 'ops-command-center-v3.html?v5=4' 'v5 source loader'
+          check ops-command-center-v5.html 'ngcc-ops-mission-evidence' 'mission evidence persistence'
+          check ops-command-center-v5.html 'id="contractState"' 'contract state control'
+          check ops-command-center-v5.html 'id="contractorState"' 'contractor state control'
+          check ops-command-center-v5.html 'Start New Task' 'new task control'
+          check ops-command-center-v5.html 'ngcc-contract-drawer' 'contract drawer'
+          check ops-command-center-v5.html "executionDock.className='ngcc-execution-dock'" 'sticky execution dock'
+          check ops-command-center-v5.html 'Discovery Match' 'discovery match UI'
+          check ops-command-center-v5.html 'Contract Qualification' 'contract qualification UI'
+          check ops-command-center-v5.html 'Not scored' 'no false qualification score'
+          check ops-command-center-v3.html 'Website & Contact Discovery' 'Stage 06 label'
+          check ops-command-center-v3.html 'official_website_url' 'website evidence UI'
+          check scripts/apply-ngcc-persistent-agent-ui.cjs 'Stage 06 Agent Monitor' 'five-agent monitor'
+          check scripts/apply-ngcc-persistent-agent-ui.cjs 'ngcc-ops-contact-discovery-background' 'background worker launch'
+          check scripts/apply-ngcc-persistent-agent-ui.cjs 'search_run_id:evidence.search_run_id' 'search run continuity'
+          check scripts/apply-ngcc-stage06-live-sync.cjs 'ngccStage06LiveSync' 'live execution/staging synchronization'
+          check scripts/apply-ngcc-stage06-live-sync.cjs 'renderStage06Agents(state)' 'agent monitor synchronization'
+          check netlify/functions/lib/ngcc-contact-discovery.js 'WEBSITE-FIRST research' 'website-first research policy'
+          check netlify/functions/ngcc-ops-contact-discovery.js 'READY_TO_START_BACKGROUND' 'persist-before-background gate'
+          check netlify/functions/ngcc-ops-contact-discovery.js 'createContactAgents' 'agent assignment persistence'
+          check netlify/functions/ngcc-ops-sam-contractor-discovery.js 'startSearchRun' 'durable SAM search runs'
+          check netlify/functions/ngcc-ops-contractor-qualification.js 'persistQualifications' 'durable qualification results'
+          check netlify/functions/ngcc-ops-contact-discovery-background.js 'Promise.all' 'concurrent Stage 06 agents'
+          check netlify/functions/ngcc-ops-contact-discovery-background.js 'progress_percentage: 100' 'terminal agent progress'
+          check netlify/functions/ngcc-ops-contact-discovery-background.js 'agentSummary.all_terminal' 'all-agent completion gate'
+          check netlify/functions/lib/ngcc-mission-state.js "['CONTACT_DISCOVERY', 'Website & Contact Discovery']" 'canonical Stage 06 mission label'
+          check netlify/functions/ngcc-ops-sam-opportunities.js "params.set('state', state)" 'SAM state filter'
+          check netlify/functions/ngcc-ops-sam-opportunities.js 'resourceLinks' 'SAM resource links'
+          check netlify/functions/ngcc-ops-outreach.js 'Opportunity Reference' 'claim reference outreach'
+          check netlify/functions/ngcc-federal-claim.js 'issueWorkspaceToken' 'federal claim workspace token'
+          check netlify/functions/ngcc-federal-package.js 'PUBLIC_PACKAGE_ACQUIRED' 'federal package acquisition'
+          check netlify/functions/lib/ngcc-ops.js 'physicalAddressProvinceOrStateCode' 'SAM contractor state normalization'
+          check netlify/functions/lib/ngcc-ops.js 'entityRegistration,coreData,assertions' 'SAM entity sections'
+          check _headers 'Cache-Control: no-store' 'operator no-store headers'
+          check netlify.toml 'apply-ngcc-tablet-sticky-execution.cjs && node scripts/apply-ngcc-qualification-v2-ui.cjs' 'production build patch chain'
+          check netlify.toml 'to = "/ops-command-center-v5.html"' 'canonical command center redirect'
+          check netlify.toml 'X-Frame-Options = "DENY"' 'frame protection'
+          test "$failed" -eq 0
