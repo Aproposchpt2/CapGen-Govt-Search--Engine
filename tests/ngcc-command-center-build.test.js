@@ -19,6 +19,12 @@ assert.match(v3, /Contractor Research & Contact Discovery/, 'built v3 must route
 assert.match(v3, /Stage 05 Research Worker Monitor/, 'built v3 must expose the five-worker Stage 05 monitor');
 assert.match(v3, /Select All/, 'built v3 must expose outreach Select All');
 assert.match(v3, /Clear All/, 'built v3 must expose outreach Clear All');
+assert.match(v3, /Opportunity email drafts — review, edit, save, then send/, 'built v3 must expose the Stage 07 draft review gate');
+assert.match(v3, /Save Draft/, 'built v3 must expose Save Draft');
+assert.match(v3, /Approve and Send This Business/, 'built v3 must require explicit per-business send approval');
+assert.match(v3, /Prospective client emailed\. Operator notification emailed\./, 'built v3 must report the dual-send completion result');
+assert.match(v3, /action:'save'/, 'built v3 must save an edited draft through the outreach API');
+assert.match(v3, /action:'send'/, 'built v3 must explicitly invoke production send after review');
 assert.doesNotMatch(v3, /Stage 06 is limited to five businesses per controlled website research run/, 'built v3 must not retain the old five-business research ceiling');
 assert.doesNotMatch(v3, /selected\.length>5/, 'built v3 must not impose a browser-side five-candidate selection ceiling');
 
