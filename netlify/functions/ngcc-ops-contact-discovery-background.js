@@ -20,7 +20,7 @@ const {
 } = require('./lib/ngcc-contractor-store');
 
 const MAX_RESEARCH_ATTEMPTS = 3;
-const RESEARCH_TIMEBOX_MS = 20000;
+const RESEARCH_TIMEBOX_MS = 115000;
 
 async function refreshProgress(missionId, searchRunId, attemptNumber) {
   const agents = await listContactAgents({ searchRunId, attemptNumber });
