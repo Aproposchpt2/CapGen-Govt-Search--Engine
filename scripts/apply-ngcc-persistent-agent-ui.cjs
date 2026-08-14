@@ -47,3 +47,4 @@ const ngccOriginalRenderRanked=renderRanked;renderRanked=function(){ngccOriginal
 }
 
 patchCommandCenter();
+require('./apply-ngcc-stage06-live-sync.cjs');
