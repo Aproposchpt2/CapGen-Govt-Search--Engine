@@ -62,6 +62,7 @@ jobs:
           node --check scripts/apply-ngcc-persistent-agent-ui.cjs
           node --check scripts/apply-ngcc-stage06-live-sync.cjs
           node --check scripts/apply-ngcc-research-routing-v1.cjs
+          node --check scripts/apply-ngcc-stage05-auto-queue-gate.cjs
           node --check scripts/apply-ngcc-outreach-review-v1.cjs
           node --check tests/ngcc-command-center-build.test.js
           node --check tests/ngcc-persistent-agent-state.test.js
@@ -92,6 +93,7 @@ jobs:
           node scripts/apply-ngcc-tablet-sticky-execution.cjs
           node scripts/apply-ngcc-qualification-v2-ui.cjs
           node scripts/apply-ngcc-research-routing-v1.cjs
+          node scripts/apply-ngcc-stage05-auto-queue-gate.cjs
           node scripts/apply-ngcc-outreach-review-v1.cjs
       - name: Parse built command-center JavaScript
         run: node tests/ngcc-command-center-build.test.js
@@ -122,6 +124,8 @@ jobs:
           check ops-command-center-v3.html 'Not scored' 'no false qualification score'
           check ops-command-center-v3.html 'Contractor Research & Contact Discovery' 'Stage 05 research label'
           check ops-command-center-v3.html 'Stage 05 Research Worker Monitor' 'five-worker monitor'
+          check ops-command-center-v3.html 'researchQueueReady=Boolean(evidence.search_run_id)' 'Stage 05 automatic persisted queue gate'
+          check ops-command-center-v3.html 'Stage 05 requires a persisted SAM contractor queue from Stage 04.' 'Stage 05 prerequisite message'
           check ops-command-center-v3.html 'Select All' 'outreach select-all control'
           check ops-command-center-v3.html 'Clear All' 'outreach clear-all control'
           check ops-command-center-v3.html 'Opportunity email drafts — review, edit, save, then send' 'Stage 07 draft editor'
@@ -134,6 +138,7 @@ jobs:
           check scripts/apply-ngcc-stage06-live-sync.cjs 'ngccStage06LiveSync' 'live execution/staging synchronization'
           check scripts/apply-ngcc-stage06-live-sync.cjs 'renderStage06Agents(state)' 'worker monitor synchronization'
           check scripts/apply-ngcc-research-routing-v1.cjs 'Five is the worker count' 'five workers are concurrency, not a candidate ceiling'
+          check scripts/apply-ngcc-stage05-auto-queue-gate.cjs 'persisted SAM contractor queue' 'Stage 05 automatic queue execution gate patch'
           check scripts/apply-ngcc-outreach-review-v1.cjs 'draft → edit → save → explicit production send → operator notification' 'outreach operator control chain'
           check netlify/functions/lib/ngcc-contact-discovery.js 'CONTACT DISCOVERY IS THE PRIMARY TASK.' 'website-first research policy'
           check netlify/functions/lib/ngcc-contact-research-queue.js 'MAX_RESEARCH_WORKERS = 5' 'five-worker queue policy'
@@ -159,7 +164,7 @@ jobs:
           check netlify/functions/lib/ngcc-ops.js 'physicalAddressProvinceOrStateCode' 'SAM contractor state normalization'
           check netlify/functions/lib/ngcc-ops.js 'entityRegistration,coreData,assertions' 'SAM entity sections'
           check _headers 'Cache-Control: no-store' 'operator no-store headers'
-          check netlify.toml 'apply-ngcc-research-routing-v1.cjs && node scripts/apply-ngcc-outreach-review-v1.cjs' 'production outreach review build patch'
+          check netlify.toml 'apply-ngcc-stage05-auto-queue-gate.cjs' 'production Stage 05 automatic queue gate build patch'
           check netlify.toml 'to = "/ops-command-center-v5.html"' 'canonical command center redirect'
           check netlify.toml 'X-Frame-Options = "DENY"' 'frame protection'
           test "$failed" -eq 0
