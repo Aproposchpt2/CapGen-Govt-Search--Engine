@@ -8,6 +8,7 @@ const {
   nextStepCode,
   deriveStatus,
   missionProjection,
+  effectiveTransitionStatus,
 } = require('./lib/ngcc-mission-state');
 
 const MISSIONS = 'ngcc_procurement_missions';
@@ -89,17 +90,20 @@ function safeProgress(value, fallback) {
 async function transitionMission(body) {
   const missionId = String(body.mission_id || '').trim();
   const stepCode = String(body.step_code || '').trim().toUpperCase();
-  const requestedStatus = String(body.status || '').trim().toUpperCase();
-  if (!missionId || !stepCode || !requestedStatus) throw new Error('mission_id, step_code, and status are required.');
+  const requestedStatusRaw = String(body.status || '').trim().toUpperCase();
+  if (!missionId || !stepCode || !requestedStatusRaw) throw new Error('mission_id, step_code, and status are required.');
 
+  const qualificationZeroResult = stepCode === 'CONTRACTOR_QUALIFICATION' && requestedStatusRaw === 'ZERO_RESULT';
+  const requestedStatus = effectiveTransitionStatus(stepCode, requestedStatusRaw);
   const loaded = await loadMission(missionId);
   const check = assertSequentialTransition(loaded.steps, stepCode, requestedStatus);
   const now = nowIso();
   const isSuccess = ['SUCCESS', 'ZERO_RESULT', 'COMPLETE'].includes(check.status);
+  const qualificationWaitingActivity = 'No QUALIFIED contractors are available for outreach. Review qualification evidence or rerun contractor research and qualification.';
   const patch = {
     status: check.status,
     progress_percentage: safeProgress(body.progress_percentage, isSuccess ? 100 : check.status === 'RUNNING' ? Math.max(1, check.step.progress_percentage || 0) : check.step.progress_percentage),
-    current_activity: body.current_activity || null,
+    current_activity: qualificationZeroResult ? qualificationWaitingActivity : body.current_activity || null,
     output_summary: body.output_summary && typeof body.output_summary === 'object' ? body.output_summary : check.step.output_summary || {},
     evidence: Array.isArray(body.evidence) ? body.evidence : check.step.evidence || [],
     records_examined: Math.max(0, Number(body.records_examined ?? check.step.records_examined ?? 0)),
@@ -112,6 +116,7 @@ async function transitionMission(body) {
 
   if (check.status === 'RUNNING') Object.assign(patch, { started_at: check.step.started_at || now, last_heartbeat_at: now, completed_at: null });
   if (isSuccess) Object.assign(patch, { started_at: check.step.started_at || now, last_heartbeat_at: now, completed_at: now, error_code: null, error_message: null });
+  if (check.status === 'WAITING') Object.assign(patch, { started_at: check.step.started_at || now, last_heartbeat_at: now, completed_at: null });
   if (check.status === 'FAILED') Object.assign(patch, { started_at: check.step.started_at || now, last_heartbeat_at: now, completed_at: now, retry_count: Number(check.step.retry_count || 0) + 1 });
 
   await db(STEPS, 'PATCH', `?id=eq.${encodeURIComponent(check.step.id)}`, patch, 'return=minimal');
@@ -128,9 +133,12 @@ async function transitionMission(body) {
 
   const afterSteps = await db(STEPS, 'GET', `?mission_id=eq.${encodeURIComponent(missionId)}&select=*&order=sequence_number.asc`);
   const projection = missionProjection(afterSteps);
+  const waitingCondition = qualificationZeroResult
+    ? 'Stage 07 remains locked until Contractor Qualification produces at least one QUALIFIED contractor with a verified public email and evidence source.'
+    : body.waiting_condition || body.current_activity || 'Operator review required';
   await db(MISSIONS, 'PATCH', `?id=eq.${encodeURIComponent(missionId)}`, {
     ...projection,
-    waiting_condition: check.status === 'WAITING' ? body.waiting_condition || body.current_activity || 'Operator review required' : null,
+    waiting_condition: check.status === 'WAITING' ? waitingCondition : null,
     updated_at: now,
     last_activity_at: now,
   }, 'return=minimal');
@@ -138,7 +146,14 @@ async function transitionMission(body) {
     mission_id: missionId,
     event_type: 'STEP_TRANSITION',
     event_summary: `${stepCode} -> ${check.status}`,
-    event_payload: { step_code: stepCode, status: check.status, progress_percentage: patch.progress_percentage, next_step: nextCode },
+    event_payload: {
+      step_code: stepCode,
+      status: check.status,
+      requested_status: requestedStatusRaw,
+      progress_percentage: patch.progress_percentage,
+      next_step: isSuccess ? nextCode : null,
+      qualification_zero_result_gate: qualificationZeroResult,
+    },
     actor_type: body.actor_type || 'SYSTEM',
   }], 'return=minimal');
   return loadMission(missionId);

@@ -21,6 +21,17 @@ function normalizeStatus(value) {
   return status;
 }
 
+function effectiveTransitionStatus(stepCode, requestedStatus) {
+  const code = String(stepCode || '').trim().toUpperCase();
+  const status = normalizeStatus(requestedStatus);
+
+  // A qualification ZERO_RESULT is not a successful handoff to outreach.
+  // It means there are no QUALIFIED contractors to select, so the operator
+  // must review evidence or rerun research/qualification before Stage 07.
+  if (code === 'CONTRACTOR_QUALIFICATION' && status === 'ZERO_RESULT') return 'WAITING';
+  return status;
+}
+
 function initialStepRows(missionId, opportunity = {}, now = new Date().toISOString()) {
   return MISSION_STEPS.map(([stepCode, stepName], index) => ({
     mission_id: missionId,
@@ -113,6 +124,7 @@ module.exports = {
   TERMINAL_SUCCESS,
   ALLOWED_STATUS,
   normalizeStatus,
+  effectiveTransitionStatus,
   initialStepRows,
   assertSequentialTransition,
   nextStepCode,

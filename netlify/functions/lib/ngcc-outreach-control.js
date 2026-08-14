@@ -6,8 +6,8 @@ function selectApprovedOutreachContacts(contacts = []) {
     const verified = String(contact.contact_status || '').toUpperCase() === 'VERIFIED';
     const hasEmail = Boolean(String(contact.contact_email || '').trim());
     const hasSource = Boolean(String(contact.contact_source_url || contact.source_url || '').trim());
-    const disqualified = String(contact.qualification_status || '').toUpperCase() === 'DISQUALIFIED';
-    return approved && verified && hasEmail && hasSource && !disqualified;
+    const qualified = String(contact.qualification_status || '').toUpperCase() === 'QUALIFIED';
+    return approved && verified && hasEmail && hasSource && qualified;
   });
 }
 

@@ -120,6 +120,14 @@ const contacts = [
     outreach_approved: true,
     qualification_status: 'DISQUALIFIED',
   },
+  {
+    business_name: 'Insufficient Evidence LLC',
+    contact_status: 'VERIFIED',
+    contact_email: 'info@insufficient.example',
+    source_url: 'https://insufficient.example/contact',
+    outreach_approved: true,
+    qualification_status: 'INSUFFICIENT_EVIDENCE',
+  },
 ];
 
 const approved = selectApprovedOutreachContacts(contacts);
