@@ -34,6 +34,7 @@ jobs:
           node --check netlify/functions/lib/ngcc-contractor-discovery.js
           node --check netlify/functions/lib/ngcc-contractor-capability-verification.js
           node --check netlify/functions/lib/ngcc-contractor-qualification.js
+          node --check netlify/functions/lib/ngcc-contractor-store.js
           node --check netlify/functions/lib/ngcc-contact-discovery.js
           node --check netlify/functions/lib/ngcc-outreach-control.js
           node --check netlify/functions/lib/ngcc-response-closeout.js
@@ -46,6 +47,7 @@ jobs:
           node --check netlify/functions/ngcc-ops-sam-contractor-discovery.js
           node --check netlify/functions/ngcc-ops-contractor-qualification.js
           node --check netlify/functions/ngcc-ops-contact-discovery.js
+          node --check netlify/functions/ngcc-ops-contact-discovery-background.js
           node --check netlify/functions/ngcc-ops-controlled-outreach.js
           node --check netlify/functions/ngcc-ops-response-contract-assistance.js
           node --check netlify/functions/ngcc-ops-mission-control.js
@@ -55,6 +57,7 @@ jobs:
           node --check netlify/functions/ngcc-federal-package.js
           node --check scripts/apply-ngcc-tablet-sticky-execution.cjs
           node --check scripts/apply-ngcc-qualification-v2-ui.cjs
+          node --check scripts/apply-ngcc-persistent-agent-ui.cjs
           node --check tests/ngcc-command-center-build.test.js
       - name: Validate Contract DNA and Business Search DNA
         run: node tests/ngcc-procurement-dna.test.js
@@ -90,11 +93,18 @@ jobs:
           grep -Fq 'Contract Qualification' ops-command-center-v5.html
           grep -Fq 'Not scored' ops-command-center-v5.html
           grep -Fq 'Website & Contact Discovery' ops-command-center-v3.html
-          grep -Fq 'Agent is locating official business websites' ops-command-center-v3.html
-          grep -Fq 'contract_dna:evidence.contract_dna' ops-command-center-v3.html
+          grep -Fq 'Stage 06 Agent Monitor' ops-command-center-v3.html
+          grep -Fq 'ngcc-ops-contact-discovery-background' ops-command-center-v3.html
+          grep -Fq 'search_run_id:evidence.search_run_id' ops-command-center-v3.html
           grep -Fq 'official_website_url' ops-command-center-v3.html
           grep -Fq 'WEBSITE-FIRST research' netlify/functions/lib/ngcc-contact-discovery.js
-          grep -Fq 'capability_refresh_count' netlify/functions/ngcc-ops-contact-discovery.js
+          grep -Fq 'READY_TO_START_BACKGROUND' netlify/functions/ngcc-ops-contact-discovery.js
+          grep -Fq 'createContactAgents' netlify/functions/ngcc-ops-contact-discovery.js
+          grep -Fq 'startSearchRun' netlify/functions/ngcc-ops-sam-contractor-discovery.js
+          grep -Fq 'persistQualifications' netlify/functions/ngcc-ops-contractor-qualification.js
+          grep -Fq 'Promise.all' netlify/functions/ngcc-ops-contact-discovery-background.js
+          grep -Fq 'progress_percentage: 100' netlify/functions/ngcc-ops-contact-discovery-background.js
+          grep -Fq 'agentSummary.all_terminal' netlify/functions/ngcc-ops-contact-discovery-background.js
           grep -Fq "['CONTACT_DISCOVERY', 'Website & Contact Discovery']" netlify/functions/lib/ngcc-mission-state.js
           grep -Fq "params.set('state', state)" netlify/functions/ngcc-ops-sam-opportunities.js
           grep -Fq 'resourceLinks' netlify/functions/ngcc-ops-sam-opportunities.js
