@@ -115,7 +115,7 @@ jobs:
           check scripts/apply-ngcc-persistent-agent-ui.cjs 'search_run_id:evidence.search_run_id' 'search run continuity'
           check scripts/apply-ngcc-stage06-live-sync.cjs 'ngccStage06LiveSync' 'live execution/staging synchronization'
           check scripts/apply-ngcc-stage06-live-sync.cjs 'renderStage06Agents(state)' 'agent monitor synchronization'
-          check netlify/functions/lib/ngcc-contact-discovery.js 'WEBSITE-FIRST research' 'website-first research policy'
+          check netlify/functions/lib/ngcc-contact-discovery.js 'CONTACT DISCOVERY IS THE PRIMARY TASK.' 'website-first research policy'
           check netlify/functions/ngcc-ops-contact-discovery.js 'READY_TO_START_BACKGROUND' 'persist-before-background gate'
           check netlify/functions/ngcc-ops-contact-discovery.js 'createContactAgents' 'agent assignment persistence'
           check netlify/functions/ngcc-ops-sam-contractor-discovery.js 'startSearchRun' 'durable SAM search runs'
