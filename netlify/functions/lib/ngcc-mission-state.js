@@ -5,8 +5,8 @@ const MISSION_STEPS = Object.freeze([
   ['CONTRACT_DNA', 'Construct Contract DNA'],
   ['BUSINESS_SEARCH_DNA', 'Construct Business Search DNA'],
   ['SAM_CONTRACTOR_DISCOVERY', 'SAM Contractor Discovery'],
+  ['CONTACT_DISCOVERY', 'Contractor Research & Contact Discovery'],
   ['CONTRACTOR_QUALIFICATION', 'Contractor Qualification'],
-  ['CONTACT_DISCOVERY', 'Website & Contact Discovery'],
   ['BUSINESS_OUTREACH', 'Business Outreach'],
   ['RESPONSE_CONTRACT_ASSISTANCE', 'Response / Contract Assistance'],
 ]);
