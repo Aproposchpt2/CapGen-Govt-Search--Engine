@@ -1,12 +1,6 @@
 'use strict';
 
 const { json, opsGuard } = require('./lib/ngcc-ops');
-const {
-  candidateKey,
-  emptyVerification,
-  normalizeVerificationLimit,
-  verifyCandidateCapabilities,
-} = require('./lib/ngcc-contractor-capability-verification');
 const { rankCandidates, qualificationSummary } = require('./lib/ngcc-contractor-qualification');
 const {
   currentRun,
@@ -14,42 +8,6 @@ const {
   persistQualifications,
   updateSearchRun,
 } = require('./lib/ngcc-contractor-store');
-
-const HARD_RESPONSE_TIMEBOX_MS = 18000;
-
-function timeoutVerification(targets, verificationLimit) {
-  const note = `Current public capability verification did not complete within the ${HARD_RESPONSE_TIMEBOX_MS} ms Stage 05 response timebox; unresolved evidence remains UNVERIFIED.`;
-  return {
-    status: 'TIMEBOX_EXCEEDED',
-    verifications: new Map((targets || []).map(candidate => [candidateKey(candidate), emptyVerification(candidate, 'TIMEBOX_EXCEEDED', note)])),
-    error: note,
-    target_count: (targets || []).length,
-    limit: verificationLimit,
-    timeout_ms: HARD_RESPONSE_TIMEBOX_MS,
-  };
-}
-
-async function runBoundedVerification(targets, contractDna, verificationLimit) {
-  let timer;
-  const verificationPromise = verifyCandidateCapabilities(targets, contractDna, {
-    limit: verificationLimit,
-    timeout_ms: 15000,
-  }).catch(error => ({
-    ...timeoutVerification(targets, verificationLimit),
-    status: 'FAILED',
-    error: String(error?.message || error || 'Capability verification failed.'),
-  }));
-
-  const hardTimeout = new Promise(resolve => {
-    timer = setTimeout(() => resolve(timeoutVerification(targets, verificationLimit)), HARD_RESPONSE_TIMEBOX_MS);
-  });
-
-  try {
-    return await Promise.race([verificationPromise, hardTimeout]);
-  } finally {
-    if (timer) clearTimeout(timer);
-  }
-}
 
 exports.handler = async event => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: {}, body: '' };
@@ -76,49 +34,39 @@ exports.handler = async event => {
     if (body.search_run_id) run = { id: String(body.search_run_id).trim() };
     else if (missionId) run = await currentRun(missionId);
 
-    let candidates = run?.id ? await listCandidates({ searchRunId: run.id }) : [];
-    if (!candidates.length && Array.isArray(body.candidates)) candidates = body.candidates;
-    if (!candidates.length) return json(409, { ok: false, stage: 'CONTRACTOR_QUALIFICATION', status: 'BLOCKED', error: 'No Stage 04 contractor candidates are available to qualify.' });
+    const candidates = run?.id ? await listCandidates({ searchRunId: run.id }) : [];
+    if (!candidates.length) {
+      return json(409, {
+        ok: false,
+        stage: 'CONTRACTOR_QUALIFICATION',
+        status: 'BLOCKED',
+        error: 'No persisted Stage 04 contractor candidates are available to qualify.',
+      });
+    }
 
-    const shouldVerify = body.verify_capabilities !== false;
-    const verificationLimit = normalizeVerificationLimit(body.capability_verification_limit);
+    const researchIncomplete = candidates.filter(candidate => !['SUCCESS', 'NOT_FOUND', 'FAILED'].includes(String(candidate.research_status || '').toUpperCase()));
+    if (researchIncomplete.length) {
+      return json(409, {
+        ok: false,
+        stage: 'CONTRACTOR_QUALIFICATION',
+        status: 'BLOCKED',
+        error: `Contractor Qualification requires Stage 05 research to finish first. ${researchIncomplete.length} candidate(s) remain unresearched.`,
+      });
+    }
 
-    const discoveryRanked = rankCandidates({
-      candidates: candidates.map(candidate => ({ ...candidate, capability_verification: null })),
-      contractDna,
-      businessSearchDna,
-    });
-    const targetKeys = new Set(discoveryRanked.slice(0, verificationLimit).map(candidateKey));
-    const verificationTargets = candidates
-      .filter(candidate => targetKeys.has(candidateKey(candidate)))
-      .slice(0, verificationLimit);
-
-    const verification = shouldVerify
-      ? await runBoundedVerification(verificationTargets, contractDna, verificationLimit)
-      : { status: 'SKIPPED', verifications: new Map(), error: null, target_count: 0, limit: verificationLimit, timeout_ms: null };
-
-    const deferredNote = shouldVerify && candidates.length > verificationTargets.length
-      ? `Deferred from this bounded public-evidence pass after the top ${verificationTargets.length} Discovery Match candidates were selected for live verification.`
-      : null;
-
-    const enriched = candidates.map(candidate => {
-      const key = candidateKey(candidate);
-      const liveVerification = verification.verifications.get(key);
-      const wasTargeted = targetKeys.has(key) && shouldVerify;
-      return {
-        ...candidate,
-        capability_verification: liveVerification || candidate.capability_verification || (
-          deferredNote && !wasTargeted ? emptyVerification(candidate, 'DEFERRED', deferredNote) : null
-        ),
-      };
-    });
-
-    const ranked = rankCandidates({ candidates: enriched, contractDna, businessSearchDna });
+    const ranked = rankCandidates({ candidates, contractDna, businessSearchDna });
     const summary = qualificationSummary(ranked);
     const durableRanked = run?.id ? await persistQualifications(run.id, ranked) : ranked;
+    const outreachReady = durableRanked.filter(candidate =>
+      candidate.qualification_status === 'QUALIFIED' &&
+      candidate.contact_verified === true &&
+      candidate.contact_email &&
+      (candidate.contact_source_url || candidate.source_url)
+    ).length;
+
     if (run?.id) {
       await updateSearchRun(run.id, {
-        status: 'QUALIFIED',
+        status: summary.qualified > 0 ? 'QUALIFICATION_COMPLETE' : 'NO_QUALIFIED_CONTRACTORS',
         records_examined: candidates.length,
         records_accepted: summary.qualified + summary.review_required + summary.insufficient_evidence,
         records_rejected: summary.disqualified,
@@ -129,23 +77,16 @@ exports.handler = async event => {
     return json(200, {
       ok: true,
       stage: 'CONTRACTOR_QUALIFICATION',
-      status: durableRanked.length ? 'SUCCESS' : 'ZERO_RESULT',
+      status: summary.qualified > 0 ? 'SUCCESS' : 'ZERO_RESULT',
       search_run_id: run?.id || null,
       records_examined: candidates.length,
       records_accepted: summary.qualified + summary.review_required + summary.insufficient_evidence,
       records_rejected: summary.disqualified,
       summary,
-      capability_verification_status: verification.status,
-      capability_verification_error: verification.error || null,
-      capability_verification_limit: verificationLimit,
-      capability_verification_target_count: verificationTargets.length,
-      capability_verification_timeout_ms: verification.timeout_ms ?? null,
-      capability_verification_scope: shouldVerify
-        ? `Current public capability research was bounded to the ${verificationTargets.length} highest Discovery Match candidate(s) for this synchronous Stage 05 pass. Remaining candidates stay UNVERIFIED/INSUFFICIENT_EVIDENCE until separately researched; they are not rejected for lack of evidence.`
-        : 'Current public capability verification was explicitly skipped for this execution.',
+      outreach_ready_count: outreachReady,
       ranked_candidates: durableRanked,
-      qualification_policy: 'SAM/NAICS evidence establishes discovery relevance only. Contract Qualification is scored only when current capability evidence is affirmatively supported and minimum evidence coverage is reached. Missing, deferred, or timeboxed evidence remains INSUFFICIENT_EVIDENCE; it is never converted into a false 50% fit score.',
-      persistence: run?.id ? 'DURABLE — qualification updated the same contractor rows created by Stage 04.' : 'LEGACY FALLBACK — mission/search_run_id was not supplied.',
+      qualification_policy: 'Stage 06 performs no live web research. It scores the durable SAM contractor records using Contract DNA plus the public website/capability/contact evidence collected during Stage 05. Missing evidence remains INSUFFICIENT_EVIDENCE and affirmative mismatches remain disqualifying.',
+      persistence: run?.id ? 'DURABLE — qualification updated the same contractor rows researched during Stage 05.' : 'UNAVAILABLE — a persisted search run is required.',
     });
   } catch (error) {
     console.error('[ngcc-ops-contractor-qualification]', error);
@@ -157,7 +98,3 @@ exports.handler = async event => {
     });
   }
 };
-
-module.exports.HARD_RESPONSE_TIMEBOX_MS = HARD_RESPONSE_TIMEBOX_MS;
-module.exports.timeoutVerification = timeoutVerification;
-module.exports.runBoundedVerification = runBoundedVerification;
