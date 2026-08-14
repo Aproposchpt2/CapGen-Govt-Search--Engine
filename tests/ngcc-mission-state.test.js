@@ -3,6 +3,7 @@
 const assert = require('node:assert/strict');
 const {
   MISSION_STEPS,
+  effectiveTransitionStatus,
   initialStepRows,
   assertSequentialTransition,
   nextStepCode,
@@ -76,6 +77,11 @@ test('successful contractor research points to qualification', () => {
 
 test('successful qualification points to business outreach', () => {
   assert.equal(nextStepCode('CONTRACTOR_QUALIFICATION'), 'BUSINESS_OUTREACH');
+});
+
+test('qualification zero-result waits instead of unlocking outreach', () => {
+  assert.equal(effectiveTransitionStatus('CONTRACTOR_QUALIFICATION', 'ZERO_RESULT'), 'WAITING');
+  assert.equal(effectiveTransitionStatus('SAM_CONTRACTOR_DISCOVERY', 'ZERO_RESULT'), 'ZERO_RESULT');
 });
 
 test('successful outreach points to response and contract assistance', () => {
