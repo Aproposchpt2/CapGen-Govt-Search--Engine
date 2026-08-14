@@ -8,7 +8,7 @@ let source = fs.readFileSync(file, 'utf8');
 
 source = source.replace(
   "const PRODUCTION_SEND = true;",
-  "const PRODUCTION_SEND = String(process.env.NGCC_OUTREACH_DELIVERY_MODE || 'test').trim().toLowerCase() === 'production';"
+  "const PRODUCTION_SEND = true && String(process.env.NGCC_OUTREACH_DELIVERY_MODE || 'test').trim().toLowerCase() === 'production';"
 );
 
 source = source.replace(
