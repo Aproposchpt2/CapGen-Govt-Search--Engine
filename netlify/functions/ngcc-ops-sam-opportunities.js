@@ -8,44 +8,16 @@
 // set-aside code is treated as a set-aside convenience filter.
 'use strict';
 const { json, opsGuard } = require('./lib/ngcc-ops');
+const {
+  SAM_SET_ASIDES: SUPPORTED_SET_ASIDES,
+  SAM_NOTICE_TYPES: SUPPORTED_NOTICE_TYPES,
+  normalizePostedWindow,
+  samDeadline,
+  searchSamOpportunities,
+} = require('./lib/ngcc-sam-opportunities');
 
-// Official SAM.gov Get Opportunities Public API v2 production endpoint.
-const SAM_BASE = 'https://api.sam.gov/opportunities/v2/search';
 const SAM_KEY = process.env.SAM_API_KEY;
-
-const SUPPORTED_SET_ASIDES = Object.freeze([
-  { code: 'SBA', label: 'Total Small Business Set-Aside' },
-  { code: 'SBP', label: 'Partial Small Business Set-Aside' },
-  { code: '8A', label: '8(a) Set-Aside' },
-  { code: '8AN', label: '8(a) Sole Source' },
-  { code: 'HZC', label: 'HUBZone Set-Aside' },
-  { code: 'HZS', label: 'HUBZone Sole Source' },
-  { code: 'SDVOSBC', label: 'Service-Disabled Veteran-Owned Small Business Set-Aside' },
-  { code: 'SDVOSBS', label: 'Service-Disabled Veteran-Owned Small Business Sole Source' },
-  { code: 'WOSB', label: 'Women-Owned Small Business Program Set-Aside' },
-  { code: 'WOSBSS', label: 'Women-Owned Small Business Program Sole Source' },
-  { code: 'EDWOSB', label: 'Economically Disadvantaged WOSB Program Set-Aside' },
-  { code: 'EDWOSBSS', label: 'Economically Disadvantaged WOSB Program Sole Source' },
-  { code: 'LAS', label: 'Local Area Set-Aside' },
-  { code: 'IEE', label: 'Indian Economic Enterprise Set-Aside' },
-  { code: 'ISBEE', label: 'Indian Small Business Economic Enterprise Set-Aside' },
-  { code: 'BICiv', label: 'Buy Indian Set-Aside' },
-  { code: 'VSA', label: 'Veteran-Owned Small Business Set-Aside' },
-  { code: 'VSS', label: 'Veteran-Owned Small Business Sole Source' },
-]);
 const SET_ASIDE_BY_CODE = new Map(SUPPORTED_SET_ASIDES.map(item => [item.code.toUpperCase(), item]));
-
-const SUPPORTED_NOTICE_TYPES = Object.freeze({
-  u: 'Justification (J&A)',
-  p: 'Pre-Solicitation',
-  a: 'Award Notice',
-  r: 'Sources Sought',
-  s: 'Special Notice',
-  o: 'Solicitation',
-  g: 'Sale of Surplus Property',
-  k: 'Combined Synopsis/Solicitation',
-  i: 'Intent to Bundle Requirements',
-});
 
 function daysFromNow(d) {
   return Math.ceil((new Date(d) - new Date()) / 864e5);
@@ -64,7 +36,6 @@ function formatDate(value) {
   if (!value) return null;
   const raw = String(value).trim();
 
-  // SAM request dates are MM/dd/yyyy, while response dates are commonly ISO.
   const slash = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
   if (slash) {
     return `${slash[3]}-${slash[1].padStart(2, '0')}-${slash[2].padStart(2, '0')}`;
@@ -76,90 +47,8 @@ function formatDate(value) {
   return raw;
 }
 
-function requestDate(date) {
-  return `${String(date.getUTCMonth() + 1).padStart(2, '0')}/${String(date.getUTCDate()).padStart(2, '0')}/${date.getUTCFullYear()}`;
-}
-
-function parseRequestDate(value, fieldName) {
-  const raw = String(value || '').trim();
-  if (!raw) return null;
-
-  let year;
-  let month;
-  let day;
-  let match = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (match) {
-    year = Number(match[1]);
-    month = Number(match[2]);
-    day = Number(match[3]);
-  } else {
-    match = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-    if (!match) {
-      throw new Error(`${fieldName} must be MM/DD/YYYY or YYYY-MM-DD.`);
-    }
-    month = Number(match[1]);
-    day = Number(match[2]);
-    year = Number(match[3]);
-  }
-
-  const date = new Date(Date.UTC(year, month - 1, day));
-  if (
-    date.getUTCFullYear() !== year ||
-    date.getUTCMonth() !== month - 1 ||
-    date.getUTCDate() !== day
-  ) {
-    throw new Error(`${fieldName} is not a valid calendar date.`);
-  }
-  return date;
-}
-
-function defaultToday() {
-  const now = new Date();
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-}
-
-function normalizePostedWindow(rawFrom, rawTo) {
-  let from = parseRequestDate(rawFrom, 'postedFrom');
-  let to = parseRequestDate(rawTo, 'postedTo');
-
-  if (!from && !to) {
-    to = defaultToday();
-    from = new Date(to);
-    from.setUTCDate(from.getUTCDate() - 365);
-  } else if (!from) {
-    from = new Date(to);
-    from.setUTCFullYear(from.getUTCFullYear() - 1);
-  } else if (!to) {
-    to = defaultToday();
-  }
-
-  if (from > to) {
-    throw new Error('postedFrom must be on or before postedTo.');
-  }
-
-  const maxTo = new Date(from);
-  maxTo.setUTCFullYear(maxTo.getUTCFullYear() + 1);
-  if (to > maxTo) {
-    throw new Error('SAM.gov postedFrom/postedTo range cannot exceed one year.');
-  }
-
-  return {
-    postedFrom: requestDate(from),
-    postedTo: requestDate(to),
-  };
-}
-
-function isActiveOpportunity(o) {
-  const active = String(o?.active ?? '').trim().toLowerCase();
-  if (!active) return true;
-  return ['yes', 'true', 'active', 'y', '1'].includes(active);
-}
-
 function mapOpportunity(o, requestedSetAsideCode) {
-  // SAM's public API documentation currently spells this field
-  // "reponseDeadLine". Keep known historical spellings as fallbacks.
-  const rawDeadline = o.reponseDeadLine || o.responseDeadLine || o.responseDeadline || null;
-  const deadline = formatDate(rawDeadline);
+  const deadline = formatDate(samDeadline(o));
   const responseCode = String(
     o.setAsideCode || o.typeOfSetAside || requestedSetAsideCode || ''
   ).trim();
@@ -210,38 +99,26 @@ async function fetchOpportunities({
   limit,
   pageIndex,
 }) {
-  const params = new URLSearchParams({
-    api_key: SAM_KEY,
-    limit: String(limit),
-    offset: String(Math.max(0, pageIndex || 0)),
+  const batch = await searchSamOpportunities({
+    apiKey: SAM_KEY,
+    naicsCode,
+    title: keyword,
+    state,
+    setAsideCode,
+    noticeTypes,
     postedFrom,
     postedTo,
+    limit,
+    offset: Math.max(0, pageIndex || 0),
+    activeOnly: true,
+    userAgent: 'APROPOS-NGCC-Command-Center/1.0',
   });
 
-  if (setAsideCode) params.set('typeOfSetAside', setAsideCode);
-  if (naicsCode) params.set('ncode', naicsCode);
-  if (keyword) params.set('title', keyword);
-  if (state) params.set('state', state);
-  for (const type of noticeTypes || []) params.append('ptype', type);
-
-  const res = await fetch(`${SAM_BASE}?${params.toString()}`);
-  if (!res.ok) {
-    const t = await res.text();
-    throw new Error(`SAM ${res.status}: ${t.slice(0, 300)}`);
-  }
-
-  const data = await res.json();
-  const sourceRows = Array.isArray(data.opportunitiesData)
-    ? data.opportunitiesData
-    : Array.isArray(data.opportunities)
-      ? data.opportunities
-      : [];
-
   return {
-    rows: sourceRows.filter(isActiveOpportunity).map(o => mapOpportunity(o, setAsideCode)),
-    totalRecords: Math.max(0, Number(data.totalRecords || 0)),
-    limit: Math.max(1, Number(data.limit || limit || 1)),
-    offset: Math.max(0, Number(data.offset ?? pageIndex ?? 0)),
+    rows: batch.rows.map(o => mapOpportunity(o, setAsideCode)),
+    totalRecords: batch.totalRecords,
+    limit: batch.limit,
+    offset: batch.offset,
   };
 }
 
