@@ -190,7 +190,8 @@ exports.handler = async (event) => {
   try {
     postedWindow = normalizePostedWindow(
       qs.postedFrom || qs.posted_from || '',
-      qs.postedTo || qs.posted_to || ''
+      qs.postedTo || qs.posted_to || '',
+      { defaultDays: 90 }
     );
     noticeTypes = requestedNoticeTypes(noticeTypeParam);
   } catch (error) {
