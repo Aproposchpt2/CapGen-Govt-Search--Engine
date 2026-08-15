@@ -2,9 +2,10 @@
 // proactive procurement command center.
 //
 // Governing inventory rule: operator-defined scope drives the search.
-// Keyword, NAICS, and place-of-performance state are optional filters.
-// A keyword that exactly matches a supported SAM set-aside code is treated as
-// a set-aside filter. SAM.gov remains the source of truth.
+// Stage 01 supports the current native SAM.gov Opportunities v2 filters used by
+// NGCC: title keyword, NAICS, place-of-performance state, set-aside, notice type,
+// and posted-date window. A keyword that exactly matches a supported SAM
+// set-aside code is treated as a set-aside convenience filter.
 'use strict';
 const { json, opsGuard } = require('./lib/ngcc-ops');
 
@@ -16,17 +17,35 @@ const SUPPORTED_SET_ASIDES = Object.freeze([
   { code: 'SBA', label: 'Total Small Business Set-Aside' },
   { code: 'SBP', label: 'Partial Small Business Set-Aside' },
   { code: '8A', label: '8(a) Set-Aside' },
+  { code: '8AN', label: '8(a) Sole Source' },
   { code: 'HZC', label: 'HUBZone Set-Aside' },
+  { code: 'HZS', label: 'HUBZone Sole Source' },
   { code: 'SDVOSBC', label: 'Service-Disabled Veteran-Owned Small Business Set-Aside' },
+  { code: 'SDVOSBS', label: 'Service-Disabled Veteran-Owned Small Business Sole Source' },
   { code: 'WOSB', label: 'Women-Owned Small Business Program Set-Aside' },
+  { code: 'WOSBSS', label: 'Women-Owned Small Business Program Sole Source' },
   { code: 'EDWOSB', label: 'Economically Disadvantaged WOSB Program Set-Aside' },
+  { code: 'EDWOSBSS', label: 'Economically Disadvantaged WOSB Program Sole Source' },
   { code: 'LAS', label: 'Local Area Set-Aside' },
   { code: 'IEE', label: 'Indian Economic Enterprise Set-Aside' },
   { code: 'ISBEE', label: 'Indian Small Business Economic Enterprise Set-Aside' },
   { code: 'BICiv', label: 'Buy Indian Set-Aside' },
   { code: 'VSA', label: 'Veteran-Owned Small Business Set-Aside' },
+  { code: 'VSS', label: 'Veteran-Owned Small Business Sole Source' },
 ]);
 const SET_ASIDE_BY_CODE = new Map(SUPPORTED_SET_ASIDES.map(item => [item.code.toUpperCase(), item]));
+
+const SUPPORTED_NOTICE_TYPES = Object.freeze({
+  u: 'Justification (J&A)',
+  p: 'Pre-Solicitation',
+  a: 'Award Notice',
+  r: 'Sources Sought',
+  s: 'Special Notice',
+  o: 'Solicitation',
+  g: 'Sale of Surplus Property',
+  k: 'Combined Synopsis/Solicitation',
+  i: 'Intent to Bundle Requirements',
+});
 
 function daysFromNow(d) {
   return Math.ceil((new Date(d) - new Date()) / 864e5);
@@ -57,14 +76,77 @@ function formatDate(value) {
   return raw;
 }
 
-function mmddyyyy(date) {
-  return `${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}/${date.getFullYear()}`;
+function requestDate(date) {
+  return `${String(date.getUTCMonth() + 1).padStart(2, '0')}/${String(date.getUTCDate()).padStart(2, '0')}/${date.getUTCFullYear()}`;
 }
 
-function postedFromDate(daysBack) {
-  const d = new Date();
-  d.setDate(d.getDate() - daysBack);
-  return mmddyyyy(d);
+function parseRequestDate(value, fieldName) {
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+
+  let year;
+  let month;
+  let day;
+  let match = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (match) {
+    year = Number(match[1]);
+    month = Number(match[2]);
+    day = Number(match[3]);
+  } else {
+    match = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (!match) {
+      throw new Error(`${fieldName} must be MM/DD/YYYY or YYYY-MM-DD.`);
+    }
+    month = Number(match[1]);
+    day = Number(match[2]);
+    year = Number(match[3]);
+  }
+
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    throw new Error(`${fieldName} is not a valid calendar date.`);
+  }
+  return date;
+}
+
+function defaultToday() {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+}
+
+function normalizePostedWindow(rawFrom, rawTo) {
+  let from = parseRequestDate(rawFrom, 'postedFrom');
+  let to = parseRequestDate(rawTo, 'postedTo');
+
+  if (!from && !to) {
+    to = defaultToday();
+    from = new Date(to);
+    from.setUTCDate(from.getUTCDate() - 365);
+  } else if (!from) {
+    from = new Date(to);
+    from.setUTCFullYear(from.getUTCFullYear() - 1);
+  } else if (!to) {
+    to = defaultToday();
+  }
+
+  if (from > to) {
+    throw new Error('postedFrom must be on or before postedTo.');
+  }
+
+  const maxTo = new Date(from);
+  maxTo.setUTCFullYear(maxTo.getUTCFullYear() + 1);
+  if (to > maxTo) {
+    throw new Error('SAM.gov postedFrom/postedTo range cannot exceed one year.');
+  }
+
+  return {
+    postedFrom: requestDate(from),
+    postedTo: requestDate(to),
+  };
 }
 
 function isActiveOpportunity(o) {
@@ -75,15 +157,21 @@ function isActiveOpportunity(o) {
 
 function mapOpportunity(o, requestedSetAsideCode) {
   // SAM's public API documentation currently spells this field
-  // "reponseDeadLine". Keep the known historical spellings as fallbacks.
+  // "reponseDeadLine". Keep known historical spellings as fallbacks.
   const rawDeadline = o.reponseDeadLine || o.responseDeadLine || o.responseDeadline || null;
   const deadline = formatDate(rawDeadline);
-  const responseCode = String(o.setAsideCode || o.typeOfSetAside || requestedSetAsideCode || '').trim();
+  const responseCode = String(
+    o.setAsideCode || o.typeOfSetAside || requestedSetAsideCode || ''
+  ).trim();
   const setAsideMeta = SET_ASIDE_BY_CODE.get(responseCode.toUpperCase());
   const place = o.placeOfPerformance || o.data?.placeOfPerformance || {};
   const stateObj = place.state || {};
-  const state = String(stateObj.code || stateObj.stateCode || place.stateCode || '').trim().toUpperCase();
-  const stateName = String(stateObj.name || stateObj.state || place.stateName || '').trim();
+  const state = String(
+    stateObj.code || stateObj.stateCode || place.stateCode || ''
+  ).trim().toUpperCase();
+  const stateName = String(
+    stateObj.name || stateObj.state || place.stateName || ''
+  ).trim();
 
   return {
     noticeId: o.noticeId || o.solicitationNumber || '',
@@ -111,23 +199,30 @@ function mapOpportunity(o, requestedSetAsideCode) {
   };
 }
 
-async function fetchOpportunities({ naicsCode, keyword, state, setAsideCode, limit, pageIndex }) {
-  const today = new Date();
-
-  // postedFrom/postedTo are mandatory for the public v2 API. Use the widest
-  // documented window so active notices are not silently limited to 90 days.
+async function fetchOpportunities({
+  naicsCode,
+  keyword,
+  state,
+  setAsideCode,
+  noticeTypes,
+  postedFrom,
+  postedTo,
+  limit,
+  pageIndex,
+}) {
   const params = new URLSearchParams({
     api_key: SAM_KEY,
     limit: String(limit),
     offset: String(Math.max(0, pageIndex || 0)),
-    postedFrom: postedFromDate(365),
-    postedTo: mmddyyyy(today),
+    postedFrom,
+    postedTo,
   });
 
   if (setAsideCode) params.set('typeOfSetAside', setAsideCode);
   if (naicsCode) params.set('ncode', naicsCode);
   if (keyword) params.set('title', keyword);
   if (state) params.set('state', state);
+  for (const type of noticeTypes || []) params.append('ptype', type);
 
   const res = await fetch(`${SAM_BASE}?${params.toString()}`);
   if (!res.ok) {
@@ -152,12 +247,27 @@ async function fetchOpportunities({ naicsCode, keyword, state, setAsideCode, lim
 
 function requestedSetAsideCodes(value) {
   const raw = String(value || '').trim();
-  if (!raw) return [null];
+  if (!raw || /^all$/i.test(raw)) return [null];
   const codes = raw.split(',').map(code => code.trim()).filter(Boolean);
   const approved = [];
   for (const code of codes) {
     const meta = SET_ASIDE_BY_CODE.get(code.toUpperCase());
     if (meta && !approved.includes(meta.code)) approved.push(meta.code);
+  }
+  return approved;
+}
+
+function requestedNoticeTypes(value) {
+  const raw = String(value || '').trim();
+  if (!raw || /^all$/i.test(raw)) return [];
+  const codes = raw.split(',').map(code => code.trim().toLowerCase()).filter(Boolean);
+  const approved = [];
+  for (const code of codes) {
+    if (SUPPORTED_NOTICE_TYPES[code] && !approved.includes(code)) approved.push(code);
+  }
+  if (approved.length !== codes.length) {
+    const unsupported = codes.filter(code => !SUPPORTED_NOTICE_TYPES[code]);
+    throw new Error(`Unsupported SAM.gov notice type: ${unsupported.join(', ')}`);
   }
   return approved;
 }
@@ -177,9 +287,11 @@ exports.handler = async (event) => {
   const stateParam = /^(?:\(all states\)|all states)$/i.test(rawStateParam)
     ? ''
     : rawStateParam.toUpperCase();
-  const explicitSetAsideParam = String(
+  const explicitSetAsideRaw = String(
     qs.set_aside || qs.setAside || qs.setAsideType || qs.typeOfSetAside || ''
   ).trim();
+  const explicitSetAsideParam = /^all$/i.test(explicitSetAsideRaw) ? '' : explicitSetAsideRaw;
+  const noticeTypeParam = String(qs.ptype || qs.opportunityType || qs.noticeType || '').trim();
 
   if (stateParam && !/^[A-Z]{2}$/.test(stateParam)) {
     return json(400, { ok: false, error: 'State must be a two-character state or territory code.', results: [] });
@@ -191,6 +303,18 @@ exports.handler = async (event) => {
   const keywordInterpretedAsSetAside = !explicitSetAsideParam && Boolean(keywordSetAsideMeta);
   const effectiveKeyword = keywordInterpretedAsSetAside ? '' : keywordParam;
   const effectiveSetAsideParam = explicitSetAsideParam || keywordSetAsideMeta?.code || '';
+
+  let postedWindow;
+  let noticeTypes;
+  try {
+    postedWindow = normalizePostedWindow(
+      qs.postedFrom || qs.posted_from || '',
+      qs.postedTo || qs.posted_to || ''
+    );
+    noticeTypes = requestedNoticeTypes(noticeTypeParam);
+  } catch (error) {
+    return json(400, { ok: false, error: error.message, results: [] });
+  }
 
   const limit = Math.max(1, Math.min(parseInt(qs.limit || '30', 10) || 30, 100));
   const page = Math.max(1, Math.min(parseInt(qs.page || '1', 10) || 1, 1000));
@@ -229,6 +353,9 @@ exports.handler = async (event) => {
             keyword: effectiveKeyword || undefined,
             state: stateParam || undefined,
             setAsideCode: path.setAsideCode || undefined,
+            noticeTypes,
+            postedFrom: postedWindow.postedFrom,
+            postedTo: postedWindow.postedTo,
             limit: perPath,
             pageIndex,
           });
@@ -237,6 +364,9 @@ exports.handler = async (event) => {
             ...path,
             setAsideCode: path.setAsideCode || null,
             state: stateParam || null,
+            noticeTypes,
+            postedFrom: postedWindow.postedFrom,
+            postedTo: postedWindow.postedTo,
             returned: batch.rows.length,
             totalRecords: batch.totalRecords,
             samOffset: batch.offset,
@@ -245,11 +375,21 @@ exports.handler = async (event) => {
           pageSignals.push({ totalRecords: batch.totalRecords, limit: batch.limit, offset: batch.offset });
           return batch.rows;
         } catch (error) {
-          console.error('[ngcc-ops-sam-opportunities]', path.setAsideCode || 'ANY', path.naicsCode, stateParam, error.message);
+          console.error(
+            '[ngcc-ops-sam-opportunities]',
+            path.setAsideCode || 'ANY',
+            path.naicsCode,
+            stateParam,
+            noticeTypes.join(',') || 'ANY_TYPE',
+            error.message
+          );
           execution.push({
             ...path,
             setAsideCode: path.setAsideCode || null,
             state: stateParam || null,
+            noticeTypes,
+            postedFrom: postedWindow.postedFrom,
+            postedTo: postedWindow.postedTo,
             returned: 0,
             totalRecords: 0,
             samOffset: pageIndex,
@@ -275,22 +415,31 @@ exports.handler = async (event) => {
       const order = { hot: 0, warm: 1, ok: 2 };
       const diff = (order[a.urgency] ?? 3) - (order[b.urgency] ?? 3);
       if (diff !== 0) return diff;
-      if (a.responseDeadline && b.responseDeadline) return new Date(a.responseDeadline) - new Date(b.responseDeadline);
+      if (a.responseDeadline && b.responseDeadline) {
+        return new Date(a.responseDeadline) - new Date(b.responseDeadline);
+      }
       return 0;
     });
 
-    const hasNext = pageSignals.some(signal => signal.totalRecords > ((signal.offset + 1) * signal.limit));
+    const hasNext = pageSignals.some(
+      signal => signal.totalRecords > ((signal.offset + 1) * signal.limit)
+    );
     const totalRecords = pageSignals.length === 1 ? pageSignals[0].totalRecords : null;
 
     return json(200, {
       ok: true,
-      inventory: setAsideCodes[0] ? 'ACTIVE_FEDERAL_OPPORTUNITIES_FILTERED_BY_SET_ASIDE' : 'ACTIVE_FEDERAL_OPPORTUNITIES',
+      inventory: setAsideCodes[0]
+        ? 'ACTIVE_FEDERAL_OPPORTUNITIES_FILTERED_BY_SET_ASIDE'
+        : 'ACTIVE_FEDERAL_OPPORTUNITIES',
       source: 'SAM.gov Opportunities API',
       setAsideCodes: setAsideCodes.filter(Boolean),
       keyword: keywordParam || null,
       keywordInterpretedAsSetAside,
       setAsideKeyword: keywordInterpretedAsSetAside ? keywordSetAsideMeta.code : null,
       naicsCodes: naicsCodes.filter(Boolean),
+      opportunityTypes: noticeTypes,
+      postedFrom: postedWindow.postedFrom,
+      postedTo: postedWindow.postedTo,
       title: effectiveKeyword || null,
       state: stateParam || null,
       returned: Math.min(results.length, limit),
