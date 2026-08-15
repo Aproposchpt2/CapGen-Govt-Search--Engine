@@ -5,6 +5,7 @@
 const SUPABASE_URL  = process.env.SUPABASE_URL;
 const SUPABASE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
+const SAM_API_KEY   = process.env.SAM_API_KEY;
 const MODEL         = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6';
 // Stage 1 is fast triage/scoring → Haiku (2–4x faster verdict). Stage 2 is the
 // deep pursuit package → Sonnet for quality. Both env-overridable.
@@ -30,6 +31,59 @@ async function sbPatch(filter, update) {
     body: JSON.stringify(update),
   });
   if (!res.ok) console.error('[bg] Supabase PATCH failed:', await res.text());
+}
+
+async function sbPatchOpportunity(noticeId, update) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/sam_opportunities?notice_id=eq.${encodeURIComponent(noticeId)}`, {
+    method: 'PATCH',
+    headers: sbH({ Prefer: 'return=minimal' }),
+    body: JSON.stringify(update),
+  });
+  if (!res.ok) console.error('[bg] Supabase PATCH (sam_opportunities) failed:', await res.text());
+}
+
+// ── SAM.gov description resolution ──────────────────────────────────────────
+// sam_opportunities.raw.description is a LINK to SAM.gov's noticedesc
+// endpoint, not the actual scope-of-work text -- discovered 2026-08-15 while
+// verifying the plain-language fields above: buildOppBlock() was feeding
+// Claude that URL as if it were the description, for every one of the
+// 7,908 currently-open opportunities checked. Same resolution logic as
+// opportunity-description.js (kept behaviorally identical -- same text a
+// user sees on the opportunity details page), duplicated here rather than
+// called over HTTP so this background job has no dependency on that
+// function's deploy state. Resolved once per notice_id and cached on the
+// row via sbPatchOpportunity so repeat/other-business analyses of the same
+// opportunity don't re-hit SAM.gov.
+const SAM_DESC_URL = 'https://api.sam.gov/prod/opportunities/v1/noticedesc';
+const NAMED_ENTITIES = {
+  nbsp: ' ', amp: '&', lt: '<', gt: '>', quot: '"', apos: "'",
+  rsquo: '’', lsquo: '‘', rdquo: '”', ldquo: '“',
+  ndash: '–', mdash: '—', hellip: '…', middot: '·',
+};
+function decodeEntities(t) {
+  return t
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCharCode(parseInt(n, 16)))
+    .replace(/&([a-z]+);/gi, (m, name) => NAMED_ENTITIES[name.toLowerCase()] ?? m);
+}
+function stripHtml(html) {
+  return decodeEntities(
+    String(html || '').replace(/<br\s*\/?>/gi, '\n').replace(/<\/p>/gi, '\n\n').replace(/<[^>]+>/g, '')
+  ).replace(/\n{3,}/g, '\n\n').trim();
+}
+async function resolveDescription(noticeId) {
+  if (!SAM_API_KEY || !noticeId) return null;
+  try {
+    const url = `${SAM_DESC_URL}?noticeid=${encodeURIComponent(noticeId)}&api_key=${SAM_API_KEY}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const text = stripHtml(data.description || data.body || '');
+    return text || null;
+  } catch (e) {
+    console.error('[bg] resolveDescription failed:', e.message || e);
+    return null;
+  }
 }
 
 // ── Claude API ───────────────────────────────────────────────────────────────
@@ -148,7 +202,13 @@ function withStructuredDeadline(stage1, o) {
 
 function buildOppBlock(o) {
   const raw  = o.raw || {};
-  const desc = (raw.description || raw.fullParentPathName || '').toString().slice(0, 6000);
+  // raw.description is sometimes just SAM.gov's noticedesc link, not text --
+  // never pass that URL to Claude as if it were the scope of work. Prefer
+  // an already-resolved description; otherwise fall back to raw.description
+  // ONLY if it doesn't look like a bare URL.
+  const rawDesc = String(raw.description || '');
+  const rawDescIsLink = /^https?:\/\//i.test(rawDesc.trim());
+  const desc = (o.resolved_description || (!rawDescIsLink ? rawDesc : '') || raw.fullParentPathName || '').toString().slice(0, 6000);
   const pop  = raw.placeOfPerformance?.city?.name
     ? `${raw.placeOfPerformance.city.name}, ${raw.placeOfPerformance.state?.code || ''}`
     : 'Not specified';
@@ -266,6 +326,19 @@ export const handler = async (event) => {
     const opps = await sbGet(`sam_opportunities?notice_id=eq.${encodeURIComponent(opportunityId)}&limit=1`);
     if (opps.length) {
       opp = opps[0];
+      if (!opp.resolved_description) {
+        const rawDesc = String(opp.raw?.description || '');
+        if (/^https?:\/\//i.test(rawDesc.trim())) {
+          console.log(`[bg] Resolving SAM.gov description for ${opp.notice_id}…`);
+          const resolved = await resolveDescription(opp.notice_id);
+          if (resolved) {
+            opp.resolved_description = resolved;
+            await sbPatchOpportunity(opp.notice_id, { resolved_description: resolved, resolved_description_at: new Date().toISOString() });
+          } else {
+            console.log(`[bg] Description resolution returned nothing for ${opp.notice_id} -- proceeding without scope text.`);
+          }
+        }
+      }
     } else if (inlineOpp) {
       opp = {
         notice_id:         opportunityId,
