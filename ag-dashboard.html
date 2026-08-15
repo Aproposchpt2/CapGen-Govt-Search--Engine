@@ -1087,7 +1087,7 @@ function runAnalysis(opp, force) {
     if (r.status === 401) { document.getElementById('fit-body').innerHTML = '<div class="fit-error">Session expired. Please <a href="/onboarding" style="color:var(--cyan)">sign in again</a>.</div>'; return null; }
     if (r.status === 409) { document.getElementById('fit-body').innerHTML = '<div class="fit-error">Complete your profile to unlock analysis.</div>'; return null; }
     if (r.status === 429) { document.getElementById('fit-body').innerHTML = '<div class="fit-error">Daily analysis limit reached. Try again tomorrow.</div>'; return null; }
-    if (r.status === 402) { document.getElementById('fit-body').innerHTML = '<div class="fit-error">No Analyze Fit report credits remaining. <a href="https://ai4-product-purchasing.ai4businesses.org/analyze-fit" target="_blank" rel="noopener" style="color:var(--cyan)">Purchase an additional report →</a></div>'; return null; }
+    if (r.status === 402) { document.getElementById('fit-body').innerHTML = '<div class="fit-error">No Analyze Fit report credits available. <a href="https://ai4-product-purchasing.ai4businesses.org/analyze-fit" target="_blank" rel="noopener" style="color:var(--cyan)">Purchase a report — $79 →</a></div>'; return null; }
     return r.json();
   })
   .then(function(d) {
