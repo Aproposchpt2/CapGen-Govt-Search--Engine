@@ -12,6 +12,10 @@ on:
       - "netlify/functions/lib/ngcc-*.js"
       - "netlify/functions/ngcc-ops-*.js"
       - "netlify/functions/ngcc-federal-*.js"
+      - "netlify/functions/client-pipeline.js"
+      - "netlify/functions/beta-pipeline.js"
+      - "netlify/functions/demo-pipeline.js"
+      - "netlify/functions/ingest-sam-opportunities.js"
       - "supabase/migrations/*ngcc*.sql"
       - "tests/ngcc-*.test.js"
       - ".github/workflows/ngcc-proactive-procurement-validation.yml"
@@ -29,6 +33,7 @@ jobs:
           node-version: 18
       - name: Syntax check protected operator and federal workspace functions
         run: |
+          node --check netlify/functions/lib/ngcc-sam-opportunities.js
           node --check netlify/functions/lib/ngcc-procurement-dna.js
           node --check netlify/functions/lib/ngcc-contract-intelligence.js
           node --check netlify/functions/lib/ngcc-contractor-discovery.js
@@ -42,6 +47,10 @@ jobs:
           node --check netlify/functions/lib/ngcc-mission-state.js
           node --check netlify/functions/lib/ngcc-federal-workspace.js
           node --check netlify/functions/ngcc-ops-sam-opportunities.js
+          node --check netlify/functions/client-pipeline.js
+          node --check netlify/functions/beta-pipeline.js
+          node --check netlify/functions/demo-pipeline.js
+          node --check netlify/functions/ingest-sam-opportunities.js
           node --check netlify/functions/ngcc-ops-contract-dna.js
           node --check netlify/functions/ngcc-ops-derive-naics.js
           node --check netlify/functions/ngcc-ops-business-search-dna.js
@@ -68,6 +77,29 @@ jobs:
           node --check tests/ngcc-persistent-agent-state.test.js
           node --check tests/ngcc-research-queue-routing.test.js
           node --check tests/ngcc-outreach-draft-control.test.js
+      - name: Enforce authoritative SAM opportunity request layer
+        run: |
+          authoritative="netlify/functions/lib/ngcc-sam-opportunities.js"
+          offenders="$(grep -RIl --include='*.js' 'https://api.sam.gov/opportunities/v2/search' netlify/functions | grep -v "^${authoritative}$" || true)"
+          if [ -n "$offenders" ]; then
+            echo "Direct SAM Opportunities v2 endpoint usage is forbidden outside ${authoritative}:"
+            echo "$offenders"
+            exit 1
+          fi
+          for file in \
+            netlify/functions/ngcc-ops-sam-opportunities.js \
+            netlify/functions/client-pipeline.js \
+            netlify/functions/beta-pipeline.js \
+            netlify/functions/demo-pipeline.js \
+            netlify/functions/ingest-sam-opportunities.js \
+            netlify/functions/lib/ngcc-federal-workspace.js
+          do
+            grep -Fq 'ngcc-sam-opportunities' "$file" || {
+              echo "Missing authoritative SAM service dependency: $file"
+              exit 1
+            }
+          done
+          echo "PASS: all NGCC SAM opportunity consumers use the authoritative request layer"
       - name: Validate Contract DNA and Business Search DNA
         run: node tests/ngcc-procurement-dna.test.js
       - name: Validate controlled SAM contractor discovery
@@ -156,7 +188,9 @@ jobs:
           check netlify/functions/ngcc-ops-outreach.js 'to: [OPERATOR_NOTIFICATION_RECIPIENT]' 'separate operator notification recipient'
           check netlify/functions/ngcc-ops-outreach.js "action === 'save'" 'draft save API'
           check netlify/functions/ngcc-ops-controlled-outreach.js 'PREPARES drafts only' 'Stage 07 prepare-only entrypoint'
-          check netlify/functions/ngcc-ops-sam-opportunities.js "params.set('state', state)" 'SAM state filter'
+          check netlify/functions/lib/ngcc-sam-opportunities.js "params.set('state', state)" 'authoritative SAM state filter'
+          check netlify/functions/lib/ngcc-sam-opportunities.js "params.set('typeOfSetAside', setAsideCode)" 'authoritative SAM set-aside filter'
+          check netlify/functions/ngcc-ops-sam-opportunities.js 'searchSamOpportunities' 'operator uses authoritative SAM service'
           check netlify/functions/ngcc-ops-sam-opportunities.js 'resourceLinks' 'SAM resource links'
           check netlify/functions/ngcc-ops-outreach.js 'Opportunity Reference' 'claim reference outreach'
           check netlify/functions/ngcc-federal-claim.js 'issueWorkspaceToken' 'federal claim workspace token'
