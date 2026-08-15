@@ -8,7 +8,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital@1&family=Jost:wght@400;600;700&display=swap" rel="stylesheet">
 <script>var _cs=sessionStorage.getItem('capgen_session');var _bt=new URLSearchParams(location.search).get('t')||localStorage.getItem('demo_view_token')||'';</script>
 <style>
-.sub-bar{display:var(--sub-bar,flex)!important}
 :root{
   --bg:#0A1A3A;--surface:#0f2244;--panel:#132954;--line:rgba(91,175,255,.15);
   --line2:rgba(91,175,255,.28);--text:#f0f6ff;--muted:#8facd0;--soft:#5a7899;
@@ -101,16 +100,6 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:14p
   padding:8px 16px;border-radius:8px;text-decoration:none;transition:.18s}
 .btn-capgen:hover{background:rgba(91,211,255,.2)}
 
-/* Contract Proposal Development message */
-.sub-bar{position:fixed;bottom:0;left:0;right:0;background:var(--panel);border-top:1px solid var(--line2);
-  padding:12px 28px;display:flex;align-items:center;justify-content:space-between;gap:14px;
-  z-index:100;flex-wrap:wrap}
-.sub-bar-text{font-size:.84rem;color:var(--muted)}
-.sub-bar-text strong{color:var(--text)}
-.sub-cta{background:#fff;color:#0A1A3A;font-family:'Jost',sans-serif;font-weight:700;
-  font-size:.88rem;padding:10px 22px;border-radius:8px;text-decoration:none;white-space:nowrap}
-.sub-cta:hover{background:#e8edf8}
-
 .loading-state{text-align:center;padding:60px;color:var(--muted)}
 
 @media(max-width:600px){
@@ -118,7 +107,6 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:14p
   .page{padding:14px 12px 100px}
   .rank-card{padding:18px 16px}
   .fit-row{flex-wrap:wrap;gap:10px}
-  .sub-bar{flex-direction:column;align-items:stretch;text-align:center}
 }
 </style>
   <style>
@@ -166,11 +154,6 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:14p
   </div>
 
   <div id="cardsEl"></div>
-</div>
-
-<div class="sub-bar">
-  <div class="sub-bar-text"><strong>Ready to Pursue This Opportunity?</strong> You've discovered the opportunity and analyzed the fit. NGCC provides free access to contract discovery, opportunity matching, and Analyze Fit. When you are ready to compete, Apropos Group LLC can help prepare a professional, responsive Contract Proposal.</div>
-  <a href="/#analyze" id="subCta" class="sub-cta">Explore Contract Proposal Development →</a>
 </div>
 
 <script>
