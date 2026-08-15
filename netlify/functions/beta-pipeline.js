@@ -3,10 +3,11 @@
 // Forked from demo-pipeline.js. Reads NAICS from beta_testers, never touches demo_snapshots.
 // Updates login tracking on every call.
 
+const { searchSamOpportunities, samDeadline } = require('./lib/ngcc-sam-opportunities');
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const SAM_API_KEY  = process.env.SAM_API_KEY;
-const OPP_URL      = 'https://api.sam.gov/opportunities/v2/search';
 const PAGE_LIMIT   = 50;
 
 const CORS = {
@@ -16,10 +17,6 @@ const CORS = {
 };
 
 function sbH() { return { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }; }
-
-function mmddyyyy(d) {
-  return String(d.getMonth()+1).padStart(2,'0') + '/' + String(d.getDate()).padStart(2,'0') + '/' + d.getFullYear();
-}
 
 function daysUntil(deadline) {
   if (!deadline) return null;
@@ -72,7 +69,7 @@ exports.handler = async function(event) {
   if (!naicsCodes.length)
     return { statusCode: 200, headers: CORS, body: JSON.stringify({ client: { name: tester.company_name, naics: [] }, opportunities: [] }) };
 
-  // Fetch live SAM.gov opportunities
+  // Fetch live SAM.gov opportunities through the authoritative NGCC SAM layer.
   const now  = new Date();
   const from = new Date(now); from.setDate(from.getDate() - days);
   const seen = new Map();
@@ -80,19 +77,20 @@ exports.handler = async function(event) {
   for (let i = 0; i < Math.min(naicsCodes.length, 8); i++) {
     const naics = naicsCodes[i];
     try {
-      const url = new URL(OPP_URL);
-      url.searchParams.set('api_key',    SAM_API_KEY);
-      url.searchParams.set('postedFrom', mmddyyyy(from));
-      url.searchParams.set('postedTo',   mmddyyyy(now));
-      url.searchParams.set('ncode',      naics);
-      url.searchParams.set('limit',      String(PAGE_LIMIT));
-      url.searchParams.set('offset',     '0');
-      const res  = await fetch(url, { headers: { Accept: 'application/json' } });
-      if (!res.ok) continue;
-      const data = await res.json();
-      for (const o of (data.opportunitiesData || [])) {
+      const batch = await searchSamOpportunities({
+        apiKey: SAM_API_KEY,
+        postedFrom: from,
+        postedTo: now,
+        naicsCode: naics,
+        limit: PAGE_LIMIT,
+        offset: 0,
+        activeOnly: true,
+        userAgent: 'APROPOS-NGCC-Beta-Pipeline/1.0',
+      });
+      for (const o of batch.rows) {
         if (!o.noticeId || seen.has(o.noticeId)) continue;
-        const dl = daysUntil(o.responseDeadLine);
+        const deadline = samDeadline(o);
+        const dl = daysUntil(deadline);
         if (dl !== null && dl < 1) continue;
         seen.set(o.noticeId, {
           notice_id:   o.noticeId,
@@ -102,7 +100,7 @@ exports.handler = async function(event) {
           naics:       o.naicsCode,
           set_aside:   o.typeOfSetAsideDescription || o.setAside || 'None',
           posted_date: o.postedDate,
-          deadline:    o.responseDeadLine,
+          deadline:    deadline,
           days_left:   dl,
           urgency:     urgencyClass(dl),
           url:         o.uiLink || ('https://sam.gov/opp/' + o.noticeId + '/view'),

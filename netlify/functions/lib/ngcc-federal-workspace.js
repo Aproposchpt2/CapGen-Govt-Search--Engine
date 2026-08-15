@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const {
   SUPABASE_URL, SUPABASE_KEY, SAM_KEY, SESSION_SECRET, sbHeaders, hmacHex, sha256Hex,
 } = require('./ngcc-ops');
+const { searchSamOpportunities, requestDate } = require('./ngcc-sam-opportunities');
 
 const WORKSPACE_TTL_SECONDS = 30 * 24 * 3600;
 
@@ -57,11 +58,6 @@ function verifyWorkspaceToken(token) {
   }
 }
 
-function mmddyyyy(date) {
-  const d = new Date(date);
-  return `${String(d.getUTCMonth() + 1).padStart(2, '0')}/${String(d.getUTCDate()).padStart(2, '0')}/${d.getUTCFullYear()}`;
-}
-
 function searchWindow(postedDate) {
   const today = new Date();
   const oneYearAgo = new Date(today);
@@ -72,31 +68,24 @@ function searchWindow(postedDate) {
     from = new Date(parsed);
     from.setUTCDate(from.getUTCDate() - 2);
   }
-  return { postedFrom: mmddyyyy(from), postedTo: mmddyyyy(today) };
+  return { postedFrom: requestDate(from), postedTo: requestDate(today) };
 }
 
 async function loadSamOpportunity(noticeId, postedDate) {
   if (!SAM_KEY) throw new Error('SAM_API_KEY is not configured.');
   const window = searchWindow(postedDate);
-  const params = new URLSearchParams({
-    api_key: SAM_KEY,
-    noticeid: safe(noticeId),
+  const batch = await searchSamOpportunities({
+    apiKey: SAM_KEY,
+    noticeId: safe(noticeId),
     postedFrom: window.postedFrom,
     postedTo: window.postedTo,
-    limit: '10',
-    offset: '0',
+    limit: 10,
+    offset: 0,
+    activeOnly: false,
+    userAgent: 'APROPOS-NGCC-Federal-Workspace/1.0',
+    timeoutMs: 30000,
   });
-  const response = await fetch(`https://api.sam.gov/opportunities/v2/search?${params.toString()}`, {
-    headers: { accept: 'application/json', 'user-agent': 'APROPOS-NGCC-Federal-Workspace/1.0' },
-    signal: AbortSignal.timeout(30000),
-  });
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`SAM.gov opportunity refresh failed (${response.status}): ${text.slice(0, 240)}`);
-  }
-  const data = await response.json();
-  const rows = Array.isArray(data.opportunitiesData) ? data.opportunitiesData : [];
-  const opportunity = rows.find(row => safe(row.noticeId) === safe(noticeId)) || rows[0];
+  const opportunity = batch.rows.find(row => safe(row.noticeId) === safe(noticeId)) || batch.rows[0];
   if (!opportunity) throw new Error('The current SAM.gov opportunity record could not be refreshed.');
   return opportunity;
 }
@@ -139,7 +128,7 @@ function opportunitySnapshot(outreach, sam) {
     title: safe(sam?.title || outreach?.contract_title) || 'Federal contract opportunity',
     agency: safe(sam?.fullParentPathName || sam?.organizationName || sam?.department || outreach?.contract_agency) || null,
     naics: safe(sam?.naicsCode || outreach?.contract_naics) || null,
-    response_deadline: sam?.responseDeadLine || sam?.responseDeadline || outreach?.contract_deadline || null,
+    response_deadline: sam?.reponseDeadLine || sam?.responseDeadLine || sam?.responseDeadline || outreach?.contract_deadline || null,
     posted_date: sam?.postedDate || provider.posted_date || null,
     set_aside: sam?.typeOfSetAsideDescription || sam?.setAside || null,
     sam_url: safe(sam?.uiLink || outreach?.contract_sam_url) || null,
