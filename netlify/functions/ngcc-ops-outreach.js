@@ -83,7 +83,15 @@ function outreachCopy(contract, candidate, unsubscribeUrl, reference) {
   const claimLink = claimUrl(contract, candidate, reference);
   const text = normalizeOutreachText(`Hello${candidate.contact_name ? ` ${candidate.contact_name}` : ''},
 
-The National Government Contract Center identified a federal contract opportunity that appears relevant to ${candidate.business_name}, based on your SAM.gov registration (NAICS ${contract.naicsCode || 'Unavailable'}).
+Opportunity Builds Business. Business Builds Community.
+
+Apropos Group LLC is committed to supporting economic growth through a proactive approach to government procurement. We saw a gap: businesses are often forced to navigate fragmented procurement systems, monitor multiple agencies, and continuously search for relevant opportunities.
+
+We saw an opportunity to make a difference by reducing that burden and delivering timely, relevant search intelligence to businesses whose capabilities align with government contracts.
+
+Our system identified the government contract opportunity below because it appears relevant to your business.
+
+Based on your SAM.gov registration, this federal opportunity appears relevant to ${candidate.business_name} (NAICS ${contract.naicsCode || 'Unavailable'}).
 
 Opportunity: ${contract.title}
 Agency: ${contract.agency || 'Unavailable'}
@@ -94,6 +102,10 @@ Opportunity Reference: ${reference}
 
 Claim this complimentary opportunity to open your secure APROPOS Opportunity Workspace:
 ${claimLink}
+
+When qualified businesses gain access to the right opportunities, they can grow revenue, strengthen capabilities, create jobs, and contribute to stronger communities.
+
+Businesses grow. People prosper. Communities become stronger.
 
 SAM.gov and the issuing agency remain authoritative. Restricted or controlled files may require direct access through SAM.gov or the issuing agency.
 
