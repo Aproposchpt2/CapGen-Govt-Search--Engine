@@ -3,10 +3,11 @@
 // GET ?t={view_token}&days={60|30|7}
 // Reads NAICS from demo_snapshots.profile, fetches SAM.gov Opportunities API
 
+const { searchSamOpportunities, samDeadline } = require('./lib/ngcc-sam-opportunities');
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SAM_API_KEY  = process.env.SAM_API_KEY;
-const OPP_URL      = 'https://api.sam.gov/opportunities/v2/search';
 const PAGE_LIMIT   = 50;
 
 const CORS = {
@@ -17,10 +18,6 @@ const CORS = {
 
 function sbH() {
   return { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY };
-}
-
-function mmddyyyy(d) {
-  return String(d.getMonth()+1).padStart(2,'0') + '/' + String(d.getDate()).padStart(2,'0') + '/' + d.getFullYear();
 }
 
 function daysUntil(deadline) {
@@ -73,7 +70,8 @@ exports.handler = async function(event) {
     })};
   }
 
-  // Fetch opportunities for each NAICS (cap at 8 codes for speed)
+  // Fetch opportunities for each NAICS (cap at 8 codes for speed) through the
+  // authoritative NGCC SAM.gov request layer.
   var now  = new Date();
   var from = new Date(now); from.setDate(from.getDate() - days);
   var seen = new Map();
@@ -81,20 +79,21 @@ exports.handler = async function(event) {
   for (var i = 0; i < Math.min(naicsCodes.length, 8); i++) {
     var naics = naicsCodes[i];
     try {
-      var url = new URL(OPP_URL);
-      url.searchParams.set('api_key',    SAM_API_KEY);
-      url.searchParams.set('postedFrom', mmddyyyy(from));
-      url.searchParams.set('postedTo',   mmddyyyy(now));
-      url.searchParams.set('ncode',      naics);
-      url.searchParams.set('limit',      String(PAGE_LIMIT));
-      url.searchParams.set('offset',     '0');
-      var res  = await fetch(url, { headers: { Accept: 'application/json' } });
-      if (!res.ok) continue;
-      var data = await res.json();
-      for (var j = 0; j < (data.opportunitiesData || []).length; j++) {
-        var o = data.opportunitiesData[j];
+      var batch = await searchSamOpportunities({
+        apiKey: SAM_API_KEY,
+        postedFrom: from,
+        postedTo: now,
+        naicsCode: naics,
+        limit: PAGE_LIMIT,
+        offset: 0,
+        activeOnly: true,
+        userAgent: 'APROPOS-NGCC-Demo-Pipeline/1.0',
+      });
+      for (var j = 0; j < batch.rows.length; j++) {
+        var o = batch.rows[j];
         if (!o.noticeId || seen.has(o.noticeId)) continue;
-        var dl = daysUntil(o.responseDeadLine);
+        var deadline = samDeadline(o);
+        var dl = daysUntil(deadline);
         if (dl !== null && dl < 1) continue;
         seen.set(o.noticeId, {
           notice_id:   o.noticeId,
@@ -104,7 +103,7 @@ exports.handler = async function(event) {
           naics:       o.naicsCode,
           set_aside:   o.typeOfSetAsideDescription || o.setAside || 'None',
           posted_date: o.postedDate,
-          deadline:    o.responseDeadLine,
+          deadline:    deadline,
           days_left:   dl,
           urgency:     urgencyClass(dl),
           url:         o.uiLink || ('https://sam.gov/opp/' + o.noticeId + '/view'),
