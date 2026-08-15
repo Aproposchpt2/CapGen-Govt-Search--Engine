@@ -8,9 +8,11 @@ const { parseSamResponsePayload } = require('../netlify/functions/lib/ngcc-sam-o
 const v5Path = path.join(process.cwd(), 'ops-command-center-v5.html');
 const v3Path = path.join(process.cwd(), 'ops-command-center-v3.html');
 const opsSearchPath = path.join(process.cwd(), 'netlify/functions/ngcc-ops-sam-opportunities.js');
+const samServicePath = path.join(process.cwd(), 'netlify/functions/lib/ngcc-sam-opportunities.js');
 const v5 = fs.readFileSync(v5Path, 'utf8');
 const v3 = fs.readFileSync(v3Path, 'utf8');
 const opsSearch = fs.readFileSync(opsSearchPath, 'utf8');
+const samService = fs.readFileSync(samServicePath, 'utf8');
 
 assert.match(v5, /ngcc-execution-dock/, 'tablet sticky execution patch must be present in built v5');
 assert.match(v5, /ops-command-center-v3\.html\?v5=4/, 'v5 must load the canonical patched v3 command-center document');
@@ -23,6 +25,8 @@ assert.match(opsSearch, /active_count:\s*activeCount/, 'SAM Netlify function mus
 assert.match(opsSearch, /if \(!successfulPaths\.length\)/, 'SAM Netlify function must not convert total upstream failure into a zero-result success');
 assert.match(opsSearch, /SUCCESS_WITH_RESULTS/, 'SAM Netlify function must identify successful result-bearing searches');
 assert.match(opsSearch, /SUCCESS_EMPTY/, 'SAM Netlify function must identify successful zero-result searches');
+assert.match(samService, /response\.status === 404/, 'shared SAM service must treat documented HTTP 404 no-data responses separately from upstream failures');
+assert.match(samService, /upstreamStatus:\s*404/, 'documented SAM 404 no-data responses must be recorded as successful empty searches');
 
 const explicitEmpty = parseSamResponsePayload({ totalRecords: 0, limit: 30, offset: 0, opportunitiesData: [] });
 assert.deepEqual(explicitEmpty.rows, [], 'explicit SAM zero-result arrays must remain an empty successful set');
