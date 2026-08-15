@@ -184,25 +184,6 @@ tr:hover td{background:rgba(91,175,255,.04)}
 .fit-footer{display:flex;gap:10px;margin-top:22px;flex-wrap:wrap}
 .fit-btn-sam{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2);font-size:.78rem;font-weight:600;padding:8px 15px;border-radius:8px;text-decoration:none;display:inline-block;cursor:pointer;transition:.15s}
 .fit-btn-sam:hover{background:rgba(255,255,255,.18)}
-.fit-btn-propose{background:#d9a45b;color:#0F2A6A;border:none;font-size:.78rem;font-weight:800;padding:8px 15px;border-radius:8px;text-decoration:none;display:inline-block;cursor:pointer;transition:.15s}
-.fit-btn-propose:hover{filter:brightness(1.08)}
-/* ── Proposal panel (inline in fit drawer) ── */
-#proposal-panel{margin-top:24px;border-top:1px solid rgba(255,255,255,.12);padding-top:20px;display:none}
-#proposal-panel.open{display:block}
-.prop-header{margin-bottom:14px}
-.prop-title{font-family:'Cormorant Garamond',serif;font-size:1.2rem;font-weight:700;color:#fff;margin-bottom:2px}
-.prop-sub{font-size:.72rem;color:rgba(255,255,255,.45);letter-spacing:.08em;text-transform:uppercase}
-.prop-messages{background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px;min-height:120px;max-height:380px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;margin-bottom:12px}
-.prop-msg-user{background:rgba(255,255,255,.08);border-radius:10px 10px 3px 10px;padding:10px 13px;font-size:.88rem;color:rgba(255,255,255,.9);align-self:flex-end;max-width:88%;line-height:1.5}
-.prop-msg-ai{background:rgba(15,42,106,.5);border:1px solid rgba(91,174,255,.15);border-radius:10px 10px 10px 3px;padding:12px 14px;font-size:.88rem;color:rgba(235,245,255,.9);align-self:flex-start;max-width:96%;line-height:1.65;white-space:pre-wrap}
-.prop-msg-ai strong{color:#fff}
-.prop-thinking{color:rgba(255,255,255,.38);font-size:.8rem;font-style:italic;align-self:flex-start;padding:6px 2px}
-.prop-input-row{display:flex;gap:8px;align-items:flex-end}
-#proposal-input{flex:1;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.2);border-radius:10px;color:#fff;font-family:inherit;font-size:.88rem;padding:10px 13px;resize:none;min-height:42px;max-height:120px;outline:none;transition:.15s;line-height:1.5}
-#proposal-input:focus{border-color:rgba(217,164,91,.6);background:rgba(255,255,255,.1)}
-#proposal-send{background:#d9a45b;color:#0F2A6A;border:none;border-radius:10px;font-weight:800;font-size:.82rem;padding:10px 16px;cursor:pointer;white-space:nowrap;transition:.15s;height:42px}
-#proposal-send:hover{filter:brightness(1.1)}
-#proposal-send:disabled{opacity:.5;cursor:not-allowed}
 .fit-loading{text-align:center;padding:60px 20px;color:rgba(255,255,255,.45);font-size:.9rem}
 .fit-error{padding:18px;color:#F87171;font-size:.84rem;background:rgba(248,113,113,.1);border-radius:10px;margin-top:12px}
 .fit-spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.18);border-top-color:#6EE7A8;border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-right:6px}
@@ -455,7 +436,6 @@ tr:hover td{background:rgba(91,175,255,.04)}
     <hr class="nvd-divider">
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px">
       <button onclick="analyzeNvBid()" style="flex:1;background:linear-gradient(135deg,#0F2A6A,#1a3a7a);color:#fff;border:1px solid rgba(91,211,255,.35);border-radius:10px;padding:12px 18px;font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:.15s" onmouseover="this.style.borderColor='var(--cyan)'" onmouseout="this.style.borderColor='rgba(91,211,255,.35)'">⚡ Analyze Fit</button>
-      <button onclick="proposeNvBid()" style="flex:1;background:linear-gradient(135deg,#d5aa4d,#e8c982);color:#061b3a;border:none;border-radius:10px;padding:12px 18px;font-size:.78rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:.15s">✍ Develop Proposal</button>
     </div>
     <div class="nvd-label" style="margin-bottom:10px">View full solicitation on the Nevada Procurement Portal</div>
     <a class="nvd-portal-btn" id="nvd-portal-link" href="#" target="_blank" rel="noopener">Open Nevada Portal ↗</a>
@@ -490,20 +470,6 @@ tr:hover td{background:rgba(91,175,255,.04)}
     <div class="fit-opp-title" id="fit-opp-title"></div>
     <div class="fit-opp-agency" id="fit-opp-agency"></div>
     <div id="fit-body"><div class="fit-loading"><span class="fit-spinner"></span>Analyzing with AI…</div></div>
-    <div id="proposal-panel">
-      <div class="prop-header" style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
-        <div>
-          <div class="prop-title">Proposal Development Agent</div>
-          <div class="prop-sub">Stage 3 · AI-Powered Proposal Writing</div>
-        </div>
-        <a id="generatePackageBtn" href="#" onclick="launchGeneratePackage(event)" style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#d5aa4d,#e8c982);color:#061b3a;font-size:.72rem;font-weight:800;padding:8px 16px;border-radius:999px;text-decoration:none;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;transition:.2s" title="Run the full 4-agent pipeline to generate all 8 proposal sections">⚡ Generate Complete Package</a>
-      </div>
-      <div class="prop-messages" id="prop-messages"></div>
-      <div class="prop-input-row">
-        <textarea id="proposal-input" rows="1" placeholder="Ask the agent to start with the Executive Summary…"></textarea>
-        <button id="proposal-send">Send →</button>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -930,144 +896,7 @@ function closeFit() {
   document.getElementById('fit-overlay').classList.remove('open');
   document.getElementById('fit-drawer').classList.remove('open');
   document.body.style.overflow = '';
-  // Reset proposal panel on close
-  document.getElementById('proposal-panel').classList.remove('open');
-  document.getElementById('prop-messages').innerHTML = '';
-  proposalMessages = [];
-  proposalOpp = null;
 }
-
-// ── Proposal Development Agent ────────────────────────────────────────────────
-var proposalMessages = [];
-var proposalOpp = null;
-var proposalSending = false;
-
-function openProposalPanel() {
-  // Grab the currently displayed opportunity from the fit drawer
-  proposalOpp = currentAnalysisOpp || null;
-  var panel = document.getElementById('proposal-panel');
-  panel.classList.add('open');
-  panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  // Send an opening message to get the agent started
-  if (!proposalMessages.length) {
-    sendProposalMessage('Hello — please confirm the solicitation and my business profile on file, then recommend where we should start.');
-  }
-}
-
-function addProposalMessage(role, text) {
-  var box = document.getElementById('prop-messages');
-  var div = document.createElement('div');
-  div.className = role === 'user' ? 'prop-msg-user' : 'prop-msg-ai';
-  div.textContent = text;
-  box.appendChild(div);
-  box.scrollTop = box.scrollHeight;
-}
-
-function setProposalThinking(on) {
-  var box = document.getElementById('prop-messages');
-  var existing = box.querySelector('.prop-thinking');
-  if (on && !existing) {
-    var t = document.createElement('div');
-    t.className = 'prop-thinking';
-    t.id = 'prop-thinking';
-    t.textContent = 'Agent is writing…';
-    box.appendChild(t);
-    box.scrollTop = box.scrollHeight;
-  } else if (!on && existing) {
-    existing.remove();
-  }
-}
-
-async function sendProposalMessage(text) {
-  if (proposalSending) return;
-  var tok = getToken();
-  if (!tok) { addProposalMessage('ai', 'Session expired. Please sign in again.'); return; }
-  if (!proposalOpp) { addProposalMessage('ai', 'No contract selected. Please close this panel, select a contract, and run Analyze Fit first.'); return; }
-
-  proposalSending = true;
-  var sendBtn = document.getElementById('proposal-send');
-  if (sendBtn) sendBtn.disabled = true;
-
-  if (text !== proposalMessages[proposalMessages.length - 1]?.content) {
-    addProposalMessage('user', text);
-  }
-  setProposalThinking(true);
-
-  try {
-    var resp = await fetch('/.netlify/functions/ngcc-proposal-agent', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok },
-      body: JSON.stringify({
-        opportunity: {
-          notice_id: proposalOpp.notice_id || proposalOpp.noticeId || '',
-          title:     proposalOpp.title || '',
-          agency:    proposalOpp.agency || '',
-          naics:     proposalOpp.naics || '',
-          set_aside: proposalOpp.set_aside || proposalOpp.setAside || '',
-          deadline:  proposalOpp.deadline || proposalOpp.responseDeadline || '',
-          url:       proposalOpp.url || ''
-        },
-        messages: proposalMessages,
-        user_message: text
-      })
-    });
-    var data = await resp.json();
-    setProposalThinking(false);
-    if (!resp.ok) {
-      addProposalMessage('ai', data.error || 'An error occurred. Please try again.');
-    } else {
-      proposalMessages = data.messages || proposalMessages;
-      addProposalMessage('ai', data.reply || '');
-    }
-  } catch (e) {
-    setProposalThinking(false);
-    addProposalMessage('ai', 'Connection error. Please try again.');
-  }
-
-  proposalSending = false;
-  if (sendBtn) sendBtn.disabled = false;
-  var input = document.getElementById('proposal-input');
-  if (input) { input.value = ''; input.style.height = '42px'; input.focus(); }
-}
-
-document.getElementById('proposal-send').addEventListener('click', function() {
-  var input = document.getElementById('proposal-input');
-  var text = (input.value || '').trim();
-  if (text) sendProposalMessage(text);
-});
-
-function launchGeneratePackage(e) {
-  e.preventDefault();
-  var tok = getToken();
-  if (!tok) { addProposalMessage('ai', 'Session expired. Please sign in again.'); return; }
-  if (!proposalOpp) { addProposalMessage('ai', 'No contract selected. Please select a contract and run Analyze Fit first.'); return; }
-  var opp = proposalOpp;
-  var oppParam = encodeURIComponent(JSON.stringify({
-    notice_id: opp.notice_id || opp.noticeId || '',
-    title: opp.title || '',
-    agency: opp.agency || '',
-    naics: opp.naics || '',
-    set_aside: opp.set_aside || opp.setAside || '',
-    deadline: opp.deadline || opp.responseDeadline || '',
-    url: opp.url || ''
-  }));
-  var url = 'https://gcpdc.aproposgroupllc.com/generate-package.html'
-    + '?session_token=' + encodeURIComponent(tok)
-    + '&opportunity_id=' + encodeURIComponent(opp.notice_id || opp.noticeId || '')
-    + '&opp=' + oppParam;
-  window.open(url, '_blank');
-}
-
-document.getElementById('proposal-input').addEventListener('keydown', function(e) {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    var text = (this.value || '').trim();
-    if (text) sendProposalMessage(text);
-  }
-  // Auto-resize textarea
-  this.style.height = '42px';
-  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
-});
 
 document.getElementById('fit-close-btn').addEventListener('click', closeFit);
 document.getElementById('fit-overlay').addEventListener('click', closeFit);
@@ -1147,8 +976,7 @@ function renderFitResult(d, opp) {
   var noticeId = opp.notice_id || opp.noticeId;
   html += '<p style="font-size:.72rem;color:rgba(255,255,255,.25);margin-top:18px;font-style:italic;font-family:\'Cormorant Garamond\',serif">Analysis based on official public records and your capability profile.</p>'
     + '<div class="fit-footer">'
-    + '<button class="fit-btn-propose" onclick="openProposalPanel()">Develop My Proposal →</button>'
-    + (noticeId ? '<a href="/analyze-fit?id=' + encodeURIComponent(noticeId) + '" style="font-size:.74rem;color:var(--cyan);text-decoration:none;margin-left:14px;white-space:nowrap">View Full Report →</a>' : '')
+    + (noticeId ? '<a href="/analyze-fit?id=' + encodeURIComponent(noticeId) + '" style="font-size:.74rem;color:var(--cyan);text-decoration:none;white-space:nowrap">View Full Report →</a>' : '')
     + '</div>';
 
   document.getElementById('fit-body').innerHTML = html;
@@ -1439,10 +1267,6 @@ function analyzeNvBid() {
   var opp = nvBidAsOpp(b);
   currentOpp = opp;
   currentAnalysisOpp = opp;
-  // Reset proposal panel
-  document.getElementById('proposal-panel').classList.remove('open');
-  document.getElementById('prop-messages').innerHTML = '';
-  proposalMessages = []; proposalOpp = null;
   // Open the fit drawer
   document.getElementById('fit-opp-title').textContent = opp.title;
   document.getElementById('fit-opp-agency').textContent = opp.agency;
@@ -1454,28 +1278,6 @@ function analyzeNvBid() {
   runAnalysis(opp, false);
 }
 
-function proposeNvBid() {
-  var b = currentNvBid;
-  if (!b) return;
-  closeNvDrawer();
-  var opp = nvBidAsOpp(b);
-  currentAnalysisOpp = opp;
-  proposalOpp = opp;
-  proposalMessages = [];
-  document.getElementById('prop-messages').innerHTML = '';
-  // Open the fit drawer with proposal panel
-  document.getElementById('fit-opp-title').textContent = opp.title;
-  document.getElementById('fit-opp-agency').textContent = opp.agency;
-  document.getElementById('fit-body').innerHTML = '<div class="fit-loading"><span class="fit-spinner"></span>Loading proposal agent…</div>';
-  document.getElementById('fit-overlay').classList.add('open');
-  document.getElementById('fit-drawer').classList.add('open');
-  document.body.style.overflow = 'hidden';
-  // Short delay then open proposal panel directly
-  setTimeout(function() {
-    document.getElementById('fit-body').innerHTML = '';
-    openProposalPanel();
-  }, 400);
-}
 document.getElementById('nvd-close-btn').addEventListener('click', closeNvDrawer);
 document.getElementById('nvd-overlay').addEventListener('click', closeNvDrawer);
 document.addEventListener('keydown', function(e) {
