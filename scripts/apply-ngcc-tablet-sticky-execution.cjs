@@ -65,6 +65,25 @@ if (!source.includes(fullFilterMarker)) {
   console.log('[ngcc-stage01-sam-filters] full Stage 01 SAM filters already present.');
 }
 
+const datePresetMarker = 'id="dateRangePreset"';
+if (!source.includes(datePresetMarker)) {
+  replaceRequired(
+    '<div><label>Posted From</label><input id="postedFrom" type="date"></div><div><label>Posted To</label><input id="postedTo" type="date"></div>',
+    '<div><label>Date Range</label><select id="dateRangePreset"><option value="90" selected>Last 90 Days</option><option value="60">Last 60 Days</option><option value="30">Last 30 Days</option><option value="custom">Custom</option></select></div><div><label>Posted From</label><input id="postedFrom" type="text" inputmode="numeric" placeholder="MM/DD/YYYY" pattern="[0-9]{2}/[0-9]{2}/[0-9]{4}" autocomplete="off"><small class="muted">SAM format MM/DD/YYYY</small></div><div><label>Posted To</label><input id="postedTo" type="text" inputmode="numeric" placeholder="MM/DD/YYYY" pattern="[0-9]{2}/[0-9]{2}/[0-9]{4}" autocomplete="off"><small class="muted">SAM format MM/DD/YYYY</small></div>',
+    'Stage 01 SAM date range preset controls'
+  );
+
+  replaceRequired(
+    "    html = html.replace('</body>', stateFilterScript + '</body>');",
+    "    const dateRangeScript = `<script id=\"ngcc-date-range-script\">(()=>{const preset=document.getElementById('dateRangePreset'),from=document.getElementById('postedFrom'),to=document.getElementById('postedTo');if(!preset||!from||!to)return;const pad=value=>String(value).padStart(2,'0');const format=date=>pad(date.getMonth()+1)+'/'+pad(date.getDate())+'/'+date.getFullYear();const apply=days=>{const end=new Date();end.setHours(12,0,0,0);const start=new Date(end);start.setDate(start.getDate()-days);from.value=format(start);to.value=format(end)};const applyPreset=()=>{const days=Number(preset.value);if(days===30||days===60||days===90)apply(days)};preset.addEventListener('change',()=>{if(preset.value==='custom'){from.focus();return}applyPreset()});const custom=()=>{if(preset.value!=='custom')preset.value='custom'};from.addEventListener('change',custom);to.addEventListener('change',custom);const newTask=document.getElementById('startNewTask');if(newTask)newTask.addEventListener('click',()=>setTimeout(()=>{preset.value='90';apply(90)},0));if(!from.value&&!to.value){preset.value='90';apply(90)}})();<\\/script>`;\n    html = html.replace('</body>', stateFilterScript + dateRangeScript + '</body>');",
+    'Stage 01 SAM date preset initialization'
+  );
+
+  console.log('[ngcc-stage01-sam-date-presets] added 90/60/30-day presets using SAM MM/DD/YYYY request dates.');
+} else {
+  console.log('[ngcc-stage01-sam-date-presets] SAM date range presets already present.');
+}
+
 const samStatusMarker = 'Contract queue drawer populated.';
 if (!source.includes(samStatusMarker)) {
   replaceRequired(
