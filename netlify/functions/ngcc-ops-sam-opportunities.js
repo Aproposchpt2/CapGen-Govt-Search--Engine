@@ -7,9 +7,7 @@
 // unless the operator explicitly supplies one.
 'use strict';
 const { json, opsGuard } = require('./lib/ngcc-ops');
-
-// Official SAM.gov Get Opportunities Public API v2 production endpoint.
-const SAM_BASE = 'https://api.sam.gov/opportunities/v2/search';
+const { searchSamGovOpportunityPage } = require('./lib/samGovService');
 const SAM_KEY = process.env.SAM_API_KEY;
 
 const SUPPORTED_SET_ASIDES = Object.freeze([
@@ -112,41 +110,20 @@ function mapOpportunity(o, requestedSetAsideCode) {
 }
 
 async function fetchOpportunities({ naicsCode, keyword, state, setAsideCode, limit, pageIndex }) {
-  const today = new Date();
-
-  // postedFrom/postedTo are mandatory for the public v2 API. Use the widest
-  // documented window so active notices are not silently limited to 90 days.
-  const params = new URLSearchParams({
-    api_key: SAM_KEY,
-    limit: String(limit),
-    offset: String(Math.max(0, pageIndex || 0)),
-    postedFrom: postedFromDate(365),
-    postedTo: mmddyyyy(today),
-  });
-
-  if (setAsideCode) params.set('typeOfSetAside', setAsideCode);
-  if (naicsCode) params.set('ncode', naicsCode);
-  if (keyword) params.set('title', keyword);
-  if (state) params.set('state', state);
-
-  const res = await fetch(`${SAM_BASE}?${params.toString()}`);
-  if (!res.ok) {
-    const t = await res.text();
-    throw new Error(`SAM ${res.status}: ${t.slice(0, 300)}`);
-  }
-
-  const data = await res.json();
-  const sourceRows = Array.isArray(data.opportunitiesData)
-    ? data.opportunitiesData
-    : Array.isArray(data.opportunities)
-      ? data.opportunities
-      : [];
+  const page = await searchSamGovOpportunityPage({
+    keyword,
+    naics: naicsCode,
+    state,
+    setAsideCode,
+    limit,
+    offset: Math.max(0, pageIndex || 0),
+  }, SAM_KEY);
 
   return {
-    rows: sourceRows.filter(isActiveOpportunity).map(o => mapOpportunity(o, setAsideCode)),
-    totalRecords: Math.max(0, Number(data.totalRecords || 0)),
-    limit: Math.max(1, Number(data.limit || limit || 1)),
-    offset: Math.max(0, Number(data.offset ?? pageIndex ?? 0)),
+    rows: page.opportunities.filter(isActiveOpportunity).map(o => mapOpportunity(o, setAsideCode)),
+    totalRecords: page.totalRecords,
+    limit: page.limit,
+    offset: page.offset,
   };
 }
 
