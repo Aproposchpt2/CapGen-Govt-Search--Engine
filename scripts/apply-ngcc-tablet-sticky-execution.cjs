@@ -65,4 +65,29 @@ if (!source.includes(fullFilterMarker)) {
   console.log('[ngcc-stage01-sam-filters] full Stage 01 SAM filters already present.');
 }
 
+const samStatusMarker = 'Contract queue drawer populated.';
+if (!source.includes(samStatusMarker)) {
+  replaceRequired(
+    "const results=d.results||[];window.ngccContractDrawer?.setResults(results,",
+    "const results=Array.isArray(d.results)?d.results:[];const activeCount=Number.isFinite(Number(d.active_count))?Number(d.active_count):results.length;window.ngccContractDrawer?.setResults(results,",
+    'Stage 01 SAM result normalization'
+  );
+
+  replaceRequired(
+    "$('oppsMsg').textContent=results.length+' active SAM.gov opportunities returned'+(d.state?' for '+d.state:'')+'. Select a contract from the drawer.';if(results.length)window.ngccContractDrawer?.open();else window.ngccContractDrawer?.close();",
+    "if(d.search_status==='PARTIAL_SUCCESS'){$('oppsMsg').className=results.length?'msg ok':'msg';$('oppsMsg').textContent=activeCount+' active SAM.gov opportunities loaded'+(d.state?' for '+d.state:'')+'. '+Number(d.failed_paths||0)+' SAM.gov search path'+(Number(d.failed_paths||0)===1?'':'s')+' failed; results may be incomplete.';}else if(d.search_status==='SUCCESS_EMPTY'||activeCount===0){$('oppsMsg').className='msg ok';$('oppsMsg').textContent='0 active SAM.gov opportunities loaded'+(d.state?' for '+d.state:'')+' — no records matched the current filter combination.';}else{$('oppsMsg').className='msg ok';$('oppsMsg').textContent=activeCount+' active SAM.gov opportunities loaded'+(d.state?' for '+d.state:'')+'. Contract queue drawer populated.';}if(results.length)window.ngccContractDrawer?.open();else window.ngccContractDrawer?.close();",
+    'Stage 01 SAM status indicator'
+  );
+
+  replaceRequired(
+    "const d=await req('/.netlify/functions/ngcc-ops-sam-opportunities?'+p);setResults(d.results||[],{state:d.state||drawerScope.state,title:d.title||drawerScope.title,naics:(d.naicsCodes||[]).join(', ')||drawerScope.naics},{page:d.page||page,has_previous:Boolean(d.has_previous),has_next:Boolean(d.has_next),total_records:d.total_records??null});const oppsMsg=document.getElementById('oppsMsg');if(oppsMsg){oppsMsg.className='msg';oppsMsg.textContent='SAM.gov contract batch '+drawerPage+' loaded — '+drawerResults.length+' contract'+(drawerResults.length===1?'':'s')+' available.'}",
+    "const d=await req('/.netlify/functions/ngcc-ops-sam-opportunities?'+p);const pageResults=Array.isArray(d.results)?d.results:[];const activeCount=Number.isFinite(Number(d.active_count))?Number(d.active_count):pageResults.length;setResults(pageResults,{state:d.state||drawerScope.state,title:d.title||drawerScope.title,naics:(d.naicsCodes||[]).join(', ')||drawerScope.naics},{page:d.page||page,has_previous:Boolean(d.has_previous),has_next:Boolean(d.has_next),total_records:d.total_records??null});const oppsMsg=document.getElementById('oppsMsg');if(oppsMsg){oppsMsg.className=d.search_status==='SUCCESS_EMPTY'?'msg ok':'msg';oppsMsg.textContent=d.search_status==='SUCCESS_EMPTY'?'0 active SAM.gov opportunities loaded — no records matched this page of the current filter combination.':'SAM.gov contract batch '+drawerPage+' loaded — '+activeCount+' active opportunit'+(activeCount===1?'y':'ies')+' available.'}",
+    'contract drawer page status indicator'
+  );
+
+  console.log('[ngcc-stage01-sam-status] added explicit empty/success/partial SAM.gov result messaging and active-count drawer status.');
+} else {
+  console.log('[ngcc-stage01-sam-status] explicit SAM.gov result status messaging already present.');
+}
+
 fs.writeFileSync(target, source, 'utf8');

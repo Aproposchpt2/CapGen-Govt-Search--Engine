@@ -123,10 +123,52 @@ function isActiveOpportunity(opportunity) {
   return ['yes', 'true', 'active', 'y', '1'].includes(active);
 }
 
+function parseSamResponsePayload(data) {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    throw new Error('SAM.gov returned an invalid JSON response payload.');
+  }
+
+  const hasPrimaryCollection = Object.prototype.hasOwnProperty.call(data, 'opportunitiesData');
+  const hasLegacyCollection = Object.prototype.hasOwnProperty.call(data, 'opportunities');
+
+  if (hasPrimaryCollection && !Array.isArray(data.opportunitiesData)) {
+    throw new Error('SAM.gov opportunitiesData was not an array.');
+  }
+  if (hasLegacyCollection && !Array.isArray(data.opportunities)) {
+    throw new Error('SAM.gov opportunities was not an array.');
+  }
+
+  const rows = hasPrimaryCollection
+    ? data.opportunitiesData
+    : hasLegacyCollection
+      ? data.opportunities
+      : null;
+
+  const hasTotalRecords = data.totalRecords !== undefined && data.totalRecords !== null && data.totalRecords !== '';
+  const totalRecords = hasTotalRecords ? Number(data.totalRecords) : null;
+  if (hasTotalRecords && (!Number.isFinite(totalRecords) || totalRecords < 0)) {
+    throw new Error('SAM.gov totalRecords was not a valid non-negative number.');
+  }
+
+  // A zero-result search is a successful API response, even if SAM omits the
+  // collection property. A non-zero response without an opportunity array is
+  // malformed and must never be silently converted into an empty result set.
+  if (rows === null) {
+    if (totalRecords === 0) {
+      return { rows: [], totalRecords: 0, payloadStatus: 'SUCCESS_EMPTY' };
+    }
+    throw new Error('SAM.gov returned HTTP 200 without an opportunity collection.');
+  }
+
+  return {
+    rows,
+    totalRecords: totalRecords === null ? rows.length : totalRecords,
+    payloadStatus: rows.length ? 'SUCCESS_DATA' : 'SUCCESS_EMPTY',
+  };
+}
+
 function responseRows(data) {
-  if (Array.isArray(data?.opportunitiesData)) return data.opportunitiesData;
-  if (Array.isArray(data?.opportunities)) return data.opportunities;
-  return [];
+  return parseSamResponsePayload(data).rows;
 }
 
 function normalizeNoticeTypes(value) {
@@ -189,12 +231,17 @@ async function searchSamOpportunities(options = {}) {
   }
 
   const data = await response.json();
-  const rawRows = responseRows(data);
+  const parsed = parseSamResponsePayload(data);
+  const rawRows = parsed.rows;
   const rows = options.activeOnly ? rawRows.filter(isActiveOpportunity) : rawRows;
 
   return {
     rows,
-    totalRecords: Math.max(0, Number(data.totalRecords || 0)),
+    rawCount: rawRows.length,
+    activeCount: rows.length,
+    payloadStatus: parsed.payloadStatus,
+    resultStatus: rows.length ? 'SUCCESS_DATA' : 'SUCCESS_EMPTY',
+    totalRecords: parsed.totalRecords,
     limit: Math.max(1, Number(data.limit || limit || 1)),
     offset: Math.max(0, Number(data.offset ?? offset ?? 0)),
     postedFrom: window.postedFrom,
@@ -212,6 +259,7 @@ module.exports = {
   normalizePostedWindow,
   samDeadline,
   isActiveOpportunity,
+  parseSamResponsePayload,
   responseRows,
   searchSamOpportunities,
 };

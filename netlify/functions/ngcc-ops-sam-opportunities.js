@@ -116,6 +116,10 @@ async function fetchOpportunities({
 
   return {
     rows: batch.rows.map(o => mapOpportunity(o, setAsideCode)),
+    rawCount: batch.rawCount,
+    activeCount: batch.activeCount,
+    payloadStatus: batch.payloadStatus,
+    resultStatus: batch.resultStatus,
     totalRecords: batch.totalRecords,
     limit: batch.limit,
     offset: batch.offset,
@@ -154,7 +158,7 @@ exports.handler = async (event) => {
 
   const denied = opsGuard(event);
   if (denied) return denied;
-  if (!SAM_KEY) return json(500, { ok: false, error: 'SAM_API_KEY not configured', results: [] });
+  if (!SAM_KEY) return json(500, { ok: false, search_status: 'FAILED', error: 'SAM_API_KEY not configured', active_count: 0, results: [] });
 
   const qs = event.queryStringParameters || {};
   const rawNaicsParam = String(qs.naics || '').trim();
@@ -171,7 +175,7 @@ exports.handler = async (event) => {
   const noticeTypeParam = String(qs.ptype || qs.opportunityType || qs.noticeType || '').trim();
 
   if (stateParam && !/^[A-Z]{2}$/.test(stateParam)) {
-    return json(400, { ok: false, error: 'State must be a two-character state or territory code.', results: [] });
+    return json(400, { ok: false, search_status: 'FAILED', error: 'State must be a two-character state or territory code.', active_count: 0, results: [] });
   }
 
   // Stage 01 keyword convenience: an exact supported set-aside code becomes
@@ -190,7 +194,7 @@ exports.handler = async (event) => {
     );
     noticeTypes = requestedNoticeTypes(noticeTypeParam);
   } catch (error) {
-    return json(400, { ok: false, error: error.message, results: [] });
+    return json(400, { ok: false, search_status: 'FAILED', error: error.message, active_count: 0, results: [] });
   }
 
   const limit = Math.max(1, Math.min(parseInt(qs.limit || '30', 10) || 30, 100));
@@ -199,7 +203,7 @@ exports.handler = async (event) => {
   const setAsideCodes = requestedSetAsideCodes(effectiveSetAsideParam);
 
   if (!setAsideCodes.length) {
-    return json(400, { ok: false, error: 'Unsupported set-aside code supplied.', results: [] });
+    return json(400, { ok: false, search_status: 'FAILED', error: 'Unsupported set-aside code supplied.', active_count: 0, results: [] });
   }
 
   const naicsCodes = naicsParam
@@ -245,9 +249,11 @@ exports.handler = async (event) => {
             postedFrom: postedWindow.postedFrom,
             postedTo: postedWindow.postedTo,
             returned: batch.rows.length,
+            rawCount: batch.rawCount,
+            activeCount: batch.activeCount,
             totalRecords: batch.totalRecords,
             samOffset: batch.offset,
-            status: 'SUCCESS',
+            status: batch.resultStatus,
           });
           pageSignals.push({ totalRecords: batch.totalRecords, limit: batch.limit, offset: batch.offset });
           return batch.rows;
@@ -268,7 +274,9 @@ exports.handler = async (event) => {
             postedFrom: postedWindow.postedFrom,
             postedTo: postedWindow.postedTo,
             returned: 0,
-            totalRecords: 0,
+            rawCount: 0,
+            activeCount: 0,
+            totalRecords: null,
             samOffset: pageIndex,
             status: 'FAILED',
             error: error.message,
@@ -288,6 +296,25 @@ exports.handler = async (event) => {
       }
     }
 
+    const successfulPaths = execution.filter(item => item.status === 'SUCCESS_DATA' || item.status === 'SUCCESS_EMPTY');
+    const failedPaths = execution.filter(item => item.status === 'FAILED');
+
+    // Do not convert a transport/payload failure into a legitimate zero-result
+    // search. If every request path failed, surface an upstream failure so the
+    // browser can display an error rather than "0 opportunities".
+    if (!successfulPaths.length) {
+      const detail = failedPaths.map(item => item.error).filter(Boolean).join(' | ');
+      return json(502, {
+        ok: false,
+        search_status: 'FAILED',
+        error: detail ? `SAM.gov search failed: ${detail}` : 'SAM.gov search failed for every request path.',
+        active_count: 0,
+        returned: 0,
+        results: [],
+        execution,
+      });
+    }
+
     results.sort((a, b) => {
       const order = { hot: 0, warm: 1, ok: 2 };
       const diff = (order[a.urgency] ?? 3) - (order[b.urgency] ?? 3);
@@ -302,9 +329,22 @@ exports.handler = async (event) => {
       signal => signal.totalRecords > ((signal.offset + 1) * signal.limit)
     );
     const totalRecords = pageSignals.length === 1 ? pageSignals[0].totalRecords : null;
+    const displayResults = results.slice(0, limit);
+    const activeCount = displayResults.length;
+    const searchStatus = failedPaths.length
+      ? 'PARTIAL_SUCCESS'
+      : activeCount
+        ? 'SUCCESS_WITH_RESULTS'
+        : 'SUCCESS_EMPTY';
 
     return json(200, {
       ok: true,
+      search_status: searchStatus,
+      empty_result: searchStatus === 'SUCCESS_EMPTY',
+      partial: failedPaths.length > 0,
+      successful_paths: successfulPaths.length,
+      failed_paths: failedPaths.length,
+      active_count: activeCount,
       inventory: setAsideCodes[0]
         ? 'ACTIVE_FEDERAL_OPPORTUNITIES_FILTERED_BY_SET_ASIDE'
         : 'ACTIVE_FEDERAL_OPPORTUNITIES',
@@ -319,17 +359,17 @@ exports.handler = async (event) => {
       postedTo: postedWindow.postedTo,
       title: effectiveKeyword || null,
       state: stateParam || null,
-      returned: Math.min(results.length, limit),
+      returned: activeCount,
       page,
       page_size: limit,
       total_records: totalRecords,
       has_previous: page > 1,
       has_next: hasNext,
-      results: results.slice(0, limit),
+      results: displayResults,
       execution,
     });
   } catch (error) {
     console.error('[ngcc-ops-sam-opportunities]', error.message);
-    return json(500, { ok: false, error: error.message, results: [] });
+    return json(500, { ok: false, search_status: 'FAILED', error: error.message, active_count: 0, results: [] });
   }
 };
