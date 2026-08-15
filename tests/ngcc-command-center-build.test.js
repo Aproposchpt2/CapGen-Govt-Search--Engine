@@ -3,14 +3,45 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const { parseSamResponsePayload } = require('../netlify/functions/lib/ngcc-sam-opportunities');
 
 const v5Path = path.join(process.cwd(), 'ops-command-center-v5.html');
 const v3Path = path.join(process.cwd(), 'ops-command-center-v3.html');
+const opsSearchPath = path.join(process.cwd(), 'netlify/functions/ngcc-ops-sam-opportunities.js');
 const v5 = fs.readFileSync(v5Path, 'utf8');
 const v3 = fs.readFileSync(v3Path, 'utf8');
+const opsSearch = fs.readFileSync(opsSearchPath, 'utf8');
 
 assert.match(v5, /ngcc-execution-dock/, 'tablet sticky execution patch must be present in built v5');
 assert.match(v5, /ops-command-center-v3\.html\?v5=4/, 'v5 must load the canonical patched v3 command-center document');
+assert.match(v5, /SUCCESS_EMPTY/, 'Stage 01 must explicitly distinguish a successful empty SAM.gov result set');
+assert.match(v5, /active SAM\.gov opportunities loaded/, 'Stage 01 must report the active opportunity count after a successful SAM.gov fetch');
+assert.match(v5, /Contract queue drawer populated\./, 'Stage 01 must confirm that returned opportunities populated the contract queue drawer');
+
+assert.match(opsSearch, /search_status:\s*searchStatus/, 'SAM Netlify function must expose an explicit search status');
+assert.match(opsSearch, /active_count:\s*activeCount/, 'SAM Netlify function must expose the displayed active count');
+assert.match(opsSearch, /if \(!successfulPaths\.length\)/, 'SAM Netlify function must not convert total upstream failure into a zero-result success');
+assert.match(opsSearch, /SUCCESS_WITH_RESULTS/, 'SAM Netlify function must identify successful result-bearing searches');
+assert.match(opsSearch, /SUCCESS_EMPTY/, 'SAM Netlify function must identify successful zero-result searches');
+
+const explicitEmpty = parseSamResponsePayload({ totalRecords: 0, limit: 30, offset: 0, opportunitiesData: [] });
+assert.deepEqual(explicitEmpty.rows, [], 'explicit SAM zero-result arrays must remain an empty successful set');
+assert.equal(explicitEmpty.totalRecords, 0, 'explicit SAM zero-result payload must retain totalRecords=0');
+assert.equal(explicitEmpty.payloadStatus, 'SUCCESS_EMPTY', 'explicit SAM zero-result payload must classify as SUCCESS_EMPTY');
+
+const omittedEmptyCollection = parseSamResponsePayload({ totalRecords: 0, limit: 30, offset: 0 });
+assert.deepEqual(omittedEmptyCollection.rows, [], 'SAM zero-result payload may omit the collection without becoming a fetch failure');
+assert.equal(omittedEmptyCollection.payloadStatus, 'SUCCESS_EMPTY', 'omitted zero-result collection must classify as SUCCESS_EMPTY');
+
+const populated = parseSamResponsePayload({ totalRecords: 1, limit: 30, offset: 0, opportunitiesData: [{ noticeId: 'TEST-1' }] });
+assert.equal(populated.rows.length, 1, 'populated SAM payload must retain returned opportunities');
+assert.equal(populated.payloadStatus, 'SUCCESS_DATA', 'populated SAM payload must classify as SUCCESS_DATA');
+
+assert.throws(
+  () => parseSamResponsePayload({ totalRecords: 2, limit: 30, offset: 0 }),
+  /without an opportunity collection/,
+  'non-zero SAM payload without an opportunity collection must fail instead of masquerading as an empty search'
+);
 
 assert.match(v3, /Discovery Match/, 'built v3 must expose Discovery Match');
 assert.match(v3, /Contract Qualification/, 'built v3 must expose Contract Qualification');
