@@ -19,12 +19,19 @@ assert.match(v5, /ops-command-center-v3\.html\?v5=4/, 'v5 must load the canonica
 assert.match(v5, /SUCCESS_EMPTY/, 'Stage 01 must explicitly distinguish a successful empty SAM.gov result set');
 assert.match(v5, /active SAM\.gov opportunities loaded/, 'Stage 01 must report the active opportunity count after a successful SAM.gov fetch');
 assert.match(v5, /Contract queue drawer populated\./, 'Stage 01 must confirm that returned opportunities populated the contract queue drawer');
+assert.match(v5, /id="dateRangePreset"/, 'Stage 01 must expose the SAM date-range preset selector');
+assert.match(v5, /Last 90 Days/, 'Stage 01 must expose a 90-day SAM date preset');
+assert.match(v5, /Last 60 Days/, 'Stage 01 must expose a 60-day SAM date preset');
+assert.match(v5, /Last 30 Days/, 'Stage 01 must expose a 30-day SAM date preset');
+assert.match(v5, /SAM format MM\/DD\/YYYY/, 'Stage 01 must display the SAM-native MM/DD/YYYY date format');
+assert.match(v5, /preset\.value='90';apply\(90\)/, 'Stage 01 must initialize and reset to the 90-day preset');
 
 assert.match(opsSearch, /search_status:\s*searchStatus/, 'SAM Netlify function must expose an explicit search status');
 assert.match(opsSearch, /active_count:\s*activeCount/, 'SAM Netlify function must expose the displayed active count');
 assert.match(opsSearch, /if \(!successfulPaths\.length\)/, 'SAM Netlify function must not convert total upstream failure into a zero-result success');
 assert.match(opsSearch, /SUCCESS_WITH_RESULTS/, 'SAM Netlify function must identify successful result-bearing searches');
 assert.match(opsSearch, /SUCCESS_EMPTY/, 'SAM Netlify function must identify successful zero-result searches');
+assert.match(opsSearch, /defaultDays:\s*90/, 'Stage 01 SAM backend must default missing posted dates to a 90-day window');
 assert.match(samService, /response\.status === 404/, 'shared SAM service must treat documented HTTP 404 no-data responses separately from upstream failures');
 assert.match(samService, /upstreamStatus:\s*404/, 'documented SAM 404 no-data responses must be recorded as successful empty searches');
 
