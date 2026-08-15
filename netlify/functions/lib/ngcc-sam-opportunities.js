@@ -225,6 +225,26 @@ async function searchSamOpportunities(options = {}) {
     signal: controllerSignal,
   });
 
+  // SAM.gov's published Get Opportunities API contract uses HTTP 404 for a
+  // valid search that finds no data. Treat that as a successful empty search,
+  // not as an upstream transport failure.
+  if (response.status === 404) {
+    return {
+      rows: [],
+      rawCount: 0,
+      activeCount: 0,
+      payloadStatus: 'SUCCESS_EMPTY',
+      resultStatus: 'SUCCESS_EMPTY',
+      totalRecords: 0,
+      limit,
+      offset,
+      postedFrom: window.postedFrom,
+      postedTo: window.postedTo,
+      upstreamStatus: 404,
+      raw: null,
+    };
+  }
+
   if (!response.ok) {
     const text = await response.text();
     throw new Error(`SAM.gov ${response.status}: ${text.slice(0, 400)}`);
@@ -246,6 +266,7 @@ async function searchSamOpportunities(options = {}) {
     offset: Math.max(0, Number(data.offset ?? offset ?? 0)),
     postedFrom: window.postedFrom,
     postedTo: window.postedTo,
+    upstreamStatus: response.status,
     raw: data,
   };
 }
