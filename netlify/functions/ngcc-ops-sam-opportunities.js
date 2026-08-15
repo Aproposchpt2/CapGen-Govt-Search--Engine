@@ -8,6 +8,7 @@
 'use strict';
 const { json, opsGuard } = require('./lib/ngcc-ops');
 
+// Official SAM.gov Get Opportunities Public API v2 production endpoint.
 const SAM_BASE = 'https://api.sam.gov/opportunities/v2/search';
 const SAM_KEY = process.env.SAM_API_KEY;
 
@@ -27,7 +28,10 @@ const SUPPORTED_SET_ASIDES = Object.freeze([
 ]);
 const SET_ASIDE_BY_CODE = new Map(SUPPORTED_SET_ASIDES.map(item => [item.code.toUpperCase(), item]));
 
-function daysFromNow(d) { return Math.ceil((new Date(d) - new Date()) / 864e5); }
+function daysFromNow(d) {
+  return Math.ceil((new Date(d) - new Date()) / 864e5);
+}
+
 function urgency(deadline) {
   if (!deadline) return 'ok';
   const d = daysFromNow(deadline);
@@ -36,23 +40,51 @@ function urgency(deadline) {
   if (d <= 14) return 'warm';
   return 'ok';
 }
-function formatDate(mmddyyyy) {
-  const [m, d, y] = String(mmddyyyy || '').split('/');
-  return (y && m && d) ? `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}` : null;
+
+function formatDate(value) {
+  if (!value) return null;
+  const raw = String(value).trim();
+
+  // SAM request dates are MM/dd/yyyy, while response dates are commonly ISO.
+  const slash = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (slash) {
+    return `${slash[3]}-${slash[1].padStart(2, '0')}-${slash[2].padStart(2, '0')}`;
+  }
+
+  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+
+  return raw;
 }
+
+function mmddyyyy(date) {
+  return `${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}/${date.getFullYear()}`;
+}
+
 function postedFromDate(daysBack) {
   const d = new Date();
   d.setDate(d.getDate() - daysBack);
-  return `${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getDate().toString().padStart(2, '0')}/${d.getFullYear()}`;
+  return mmddyyyy(d);
 }
+
+function isActiveOpportunity(o) {
+  const active = String(o?.active ?? '').trim().toLowerCase();
+  if (!active) return true;
+  return ['yes', 'true', 'active', 'y', '1'].includes(active);
+}
+
 function mapOpportunity(o, requestedSetAsideCode) {
-  const deadline = formatDate(o.responseDeadLine || o.responseDeadline) || o.responseDeadLine || o.responseDeadline || null;
+  // SAM's public API documentation currently spells this field
+  // "reponseDeadLine". Keep the known historical spellings as fallbacks.
+  const rawDeadline = o.reponseDeadLine || o.responseDeadLine || o.responseDeadline || null;
+  const deadline = formatDate(rawDeadline);
   const responseCode = String(o.setAsideCode || o.typeOfSetAside || requestedSetAsideCode || '').trim();
   const setAsideMeta = SET_ASIDE_BY_CODE.get(responseCode.toUpperCase());
   const place = o.placeOfPerformance || o.data?.placeOfPerformance || {};
   const stateObj = place.state || {};
   const state = String(stateObj.code || stateObj.stateCode || place.stateCode || '').trim().toUpperCase();
   const stateName = String(stateObj.name || stateObj.state || place.stateName || '').trim();
+
   return {
     noticeId: o.noticeId || o.solicitationNumber || '',
     solicitationNumber: o.solicitationNumber || '',
@@ -65,33 +97,36 @@ function mapOpportunity(o, requestedSetAsideCode) {
     responseDeadline: deadline,
     urgency: urgency(deadline),
     postedDate: formatDate(o.postedDate) || o.postedDate || null,
-    description: (o.description || '').slice(0, 1200),
-    descriptionUrl: o.description || null,
+    description: typeof o.description === 'string' ? o.description.slice(0, 1200) : '',
+    descriptionUrl: typeof o.description === 'string' && /^https?:\/\//i.test(o.description) ? o.description : null,
     resourceLinks: Array.isArray(o.resourceLinks) ? o.resourceLinks.filter(Boolean) : [],
     additionalInfoLink: o.additionalInfoLink || null,
     state,
     stateName,
     placeOfPerformance: place,
-    samUrl: o.uiLink || `https://sam.gov/opp/${o.noticeId}/view`,
+    samUrl: o.uiLink || (o.noticeId ? `https://sam.gov/opp/${o.noticeId}/view` : 'https://sam.gov/content/opportunities'),
     type: o.type || 'Solicitation',
     active: o.active,
     source: 'SAM.gov Opportunities API',
   };
 }
 
-async function fetchOpportunities({ naicsCode, title, state, setAsideCode, limit, pageIndex }) {
+async function fetchOpportunities({ naicsCode, keyword, state, setAsideCode, limit, pageIndex }) {
   const today = new Date();
+
+  // postedFrom/postedTo are mandatory for the public v2 API. Use the widest
+  // documented window so active notices are not silently limited to 90 days.
   const params = new URLSearchParams({
     api_key: SAM_KEY,
-    active: 'Yes',
     limit: String(limit),
     offset: String(Math.max(0, pageIndex || 0)),
-    postedFrom: postedFromDate(90),
-    postedTo: `${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getDate().toString().padStart(2, '0')}/${today.getFullYear()}`,
+    postedFrom: postedFromDate(365),
+    postedTo: mmddyyyy(today),
   });
+
   if (setAsideCode) params.set('typeOfSetAside', setAsideCode);
   if (naicsCode) params.set('ncode', naicsCode);
-  if (title) params.set('title', title);
+  if (keyword) params.set('title', keyword);
   if (state) params.set('state', state);
 
   const res = await fetch(`${SAM_BASE}?${params.toString()}`);
@@ -99,9 +134,16 @@ async function fetchOpportunities({ naicsCode, title, state, setAsideCode, limit
     const t = await res.text();
     throw new Error(`SAM ${res.status}: ${t.slice(0, 300)}`);
   }
+
   const data = await res.json();
+  const sourceRows = Array.isArray(data.opportunitiesData)
+    ? data.opportunitiesData
+    : Array.isArray(data.opportunities)
+      ? data.opportunities
+      : [];
+
   return {
-    rows: (data.opportunitiesData || []).map(o => mapOpportunity(o, setAsideCode)),
+    rows: sourceRows.filter(isActiveOpportunity).map(o => mapOpportunity(o, setAsideCode)),
     totalRecords: Math.max(0, Number(data.totalRecords || 0)),
     limit: Math.max(1, Number(data.limit || limit || 1)),
     offset: Math.max(0, Number(data.offset ?? pageIndex ?? 0)),
@@ -122,13 +164,14 @@ function requestedSetAsideCodes(value) {
 
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: {}, body: '' };
+
   const denied = opsGuard(event);
   if (denied) return denied;
   if (!SAM_KEY) return json(500, { ok: false, error: 'SAM_API_KEY not configured', results: [] });
 
   const qs = event.queryStringParameters || {};
   const naicsParam = String(qs.naics || '').trim();
-  const titleParam = String(qs.title || '').trim();
+  const keywordParam = String(qs.keyword || qs.title || qs.q || '').trim();
   const stateParam = String(qs.state || '').trim().toUpperCase();
 
   if (stateParam && !/^[A-Z]{2}$/.test(stateParam)) {
@@ -139,11 +182,15 @@ exports.handler = async (event) => {
   const page = Math.max(1, Math.min(parseInt(qs.page || '1', 10) || 1, 1000));
   const pageIndex = page - 1;
   const setAsideCodes = requestedSetAsideCodes(qs.set_aside || qs.setAside || '');
+
   if (!setAsideCodes.length) {
     return json(400, { ok: false, error: 'Unsupported set-aside code supplied.', results: [] });
   }
 
-  const naicsCodes = naicsParam ? naicsParam.split(',').map(n => n.trim()).filter(Boolean).slice(0, 10) : [null];
+  const naicsCodes = naicsParam
+    ? naicsParam.split(',').map(n => n.trim()).filter(Boolean).slice(0, 10)
+    : [null];
+
   const paths = [];
   for (const setAsideCode of setAsideCodes) {
     for (const naicsCode of naicsCodes) paths.push({ setAsideCode, naicsCode });
@@ -165,12 +212,13 @@ exports.handler = async (event) => {
         try {
           const batch = await fetchOpportunities({
             naicsCode: path.naicsCode,
-            title: titleParam || undefined,
+            keyword: keywordParam || undefined,
             state: stateParam || undefined,
             setAsideCode: path.setAsideCode || undefined,
             limit: perPath,
             pageIndex,
           });
+
           execution.push({
             ...path,
             setAsideCode: path.setAsideCode || null,
@@ -226,7 +274,8 @@ exports.handler = async (event) => {
       source: 'SAM.gov Opportunities API',
       setAsideCodes: setAsideCodes.filter(Boolean),
       naicsCodes: naicsCodes.filter(Boolean),
-      title: titleParam || null,
+      keyword: keywordParam || null,
+      title: keywordParam || null,
       state: stateParam || null,
       returned: Math.min(results.length, limit),
       page,
