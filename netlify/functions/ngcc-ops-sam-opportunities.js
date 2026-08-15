@@ -3,8 +3,8 @@
 //
 // Governing inventory rule: operator-defined scope drives the search.
 // Keyword, NAICS, and place-of-performance state are optional filters.
-// SAM.gov remains the source of truth; NGCC does not force a set-aside class
-// unless the operator explicitly supplies one.
+// A keyword that exactly matches a supported SAM set-aside code is treated as
+// a set-aside filter. SAM.gov remains the source of truth.
 'use strict';
 const { json, opsGuard } = require('./lib/ngcc-ops');
 
@@ -170,18 +170,32 @@ exports.handler = async (event) => {
   if (!SAM_KEY) return json(500, { ok: false, error: 'SAM_API_KEY not configured', results: [] });
 
   const qs = event.queryStringParameters || {};
-  const naicsParam = String(qs.naics || '').trim();
+  const rawNaicsParam = String(qs.naics || '').trim();
+  const naicsParam = rawNaicsParam.toLowerCase() === 'optional' ? '' : rawNaicsParam;
   const keywordParam = String(qs.keyword || qs.title || qs.q || '').trim();
-  const stateParam = String(qs.state || '').trim().toUpperCase();
+  const rawStateParam = String(qs.state || '').trim();
+  const stateParam = /^(?:\(all states\)|all states)$/i.test(rawStateParam)
+    ? ''
+    : rawStateParam.toUpperCase();
+  const explicitSetAsideParam = String(
+    qs.set_aside || qs.setAside || qs.setAsideType || qs.typeOfSetAside || ''
+  ).trim();
 
   if (stateParam && !/^[A-Z]{2}$/.test(stateParam)) {
     return json(400, { ok: false, error: 'State must be a two-character state or territory code.', results: [] });
   }
 
+  // Stage 01 keyword convenience: an exact supported set-aside code becomes
+  // typeOfSetAside. Ordinary keyword text remains a SAM title search.
+  const keywordSetAsideMeta = SET_ASIDE_BY_CODE.get(keywordParam.toUpperCase());
+  const keywordInterpretedAsSetAside = !explicitSetAsideParam && Boolean(keywordSetAsideMeta);
+  const effectiveKeyword = keywordInterpretedAsSetAside ? '' : keywordParam;
+  const effectiveSetAsideParam = explicitSetAsideParam || keywordSetAsideMeta?.code || '';
+
   const limit = Math.max(1, Math.min(parseInt(qs.limit || '30', 10) || 30, 100));
   const page = Math.max(1, Math.min(parseInt(qs.page || '1', 10) || 1, 1000));
   const pageIndex = page - 1;
-  const setAsideCodes = requestedSetAsideCodes(qs.set_aside || qs.setAside || '');
+  const setAsideCodes = requestedSetAsideCodes(effectiveSetAsideParam);
 
   if (!setAsideCodes.length) {
     return json(400, { ok: false, error: 'Unsupported set-aside code supplied.', results: [] });
@@ -212,7 +226,7 @@ exports.handler = async (event) => {
         try {
           const batch = await fetchOpportunities({
             naicsCode: path.naicsCode,
-            keyword: keywordParam || undefined,
+            keyword: effectiveKeyword || undefined,
             state: stateParam || undefined,
             setAsideCode: path.setAsideCode || undefined,
             limit: perPath,
@@ -273,9 +287,11 @@ exports.handler = async (event) => {
       inventory: setAsideCodes[0] ? 'ACTIVE_FEDERAL_OPPORTUNITIES_FILTERED_BY_SET_ASIDE' : 'ACTIVE_FEDERAL_OPPORTUNITIES',
       source: 'SAM.gov Opportunities API',
       setAsideCodes: setAsideCodes.filter(Boolean),
-      naicsCodes: naicsCodes.filter(Boolean),
       keyword: keywordParam || null,
-      title: keywordParam || null,
+      keywordInterpretedAsSetAside,
+      setAsideKeyword: keywordInterpretedAsSetAside ? keywordSetAsideMeta.code : null,
+      naicsCodes: naicsCodes.filter(Boolean),
+      title: effectiveKeyword || null,
       state: stateParam || null,
       returned: Math.min(results.length, limit),
       page,
