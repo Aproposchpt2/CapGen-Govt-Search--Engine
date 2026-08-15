@@ -88,6 +88,18 @@ that this designation requires genuine Native American ownership and control —
 it cannot be obtained or established for the purpose of pursuing a specific
 opportunity. Do NOT suggest the contractor explore or verify obtaining it.
 
+PLAIN-LANGUAGE FIELDS (opportunity_summary, what_youd_deliver, key_dates,
+how_theyll_choose, not_specified_in_listing): write these for a small
+business owner deciding whether to bid, not a contracting professional.
+Follow the federal Plain Writing Act standard (plainlanguage.gov): short
+sentences, active voice, no jargon; define any unavoidable term in
+parentheses. Base every one of these fields strictly on the OPPORTUNITY text
+provided — never infer or assume a fact that isn't stated, even if you
+recognize the agency or the type of work. If something a bidder would want
+to know (budget, evaluation method, a site visit or pre-bid conference,
+submission format) is not stated in the opportunity text, list it in
+not_specified_in_listing instead of guessing.
+
 Respond with ONLY a single valid JSON object. No markdown, no code fences,
 no commentary before or after the JSON.`;
 
@@ -122,6 +134,18 @@ Past performance: ${p.past_performance || 'Not specified'}
 Keywords: ${(p.keywords || []).join(', ') || 'None'}`;
 }
 
+// response_deadline is a trustworthy structured field on the opportunity row,
+// not a model guess -- assert it into key_dates in code rather than leaving
+// it purely to the model to notice inside the description text. (Found this
+// exact failure mode once already, on a different report -- cheap insurance.)
+function withStructuredDeadline(stage1, o) {
+  const dates = Array.isArray(stage1?.key_dates) ? [...stage1.key_dates] : [];
+  if (o.response_deadline && !dates.some(d => /due|response|deadline|submit/i.test(d?.label || ''))) {
+    dates.unshift({ label: 'Response due', value: String(o.response_deadline) });
+  }
+  return { ...stage1, key_dates: dates };
+}
+
 function buildOppBlock(o) {
   const raw  = o.raw || {};
   const desc = (raw.description || raw.fullParentPathName || '').toString().slice(0, 6000);
@@ -142,6 +166,10 @@ Description: ${desc || 'Not provided'}`;
 const STAGE1_SCHEMA = `Return JSON matching exactly this schema:
 {
   "opportunity_summary": "3-4 sentence plain-English summary of what the government is buying",
+  "what_youd_deliver": "2-4 sentence plain-English description of the actual scope of work the winning bidder must perform",
+  "key_dates": [{"label": "Response due", "value": "..."}],
+  "how_theyll_choose": "1-2 sentence plain-English summary of how the winner is selected (price vs. qualifications, etc.), or a clear statement that this is not specified",
+  "not_specified_in_listing": ["things a bidder would want to know that the opportunity text does not state, e.g. budget, evaluation method, site visit"],
   "match": {
     "naics_match": true,
     "naics_detail": "1-2 sentences",
@@ -268,8 +296,8 @@ export const handler = async (event) => {
       console.log('[bg] Running Stage 1…');
       const stage1User = `${profileBlock}\n\n${oppBlock}\n\n${STAGE1_SCHEMA}`;
       try {
-        const r1   = await callClaudeWithRetry(STAGE1_SYSTEM, stage1User, 1200, STAGE1_MODEL);
-        stage1     = r1.parsed;
+        const r1   = await callClaudeWithRetry(STAGE1_SYSTEM, stage1User, 1800, STAGE1_MODEL);
+        stage1     = withStructuredDeadline(r1.parsed, opp);
         s1Usage    = r1.usage;
         recommendation = stage1.recommendation || 'NO_BID';
         fitScore       = stage1.fit_score || 0;

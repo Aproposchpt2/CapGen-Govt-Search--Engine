@@ -1135,6 +1135,10 @@ function renderFitResult(d, opp) {
     + '<div class="fit-match-item"><div class="fit-match-icon">' + (m.set_aside_eligible?'✅':'❌') + '</div><div class="fit-match-label">Set-Aside</div><div class="fit-match-val">' + esc(m.set_aside_detail||(m.set_aside_eligible?'Eligible':'Not eligible')) + '</div></div>'
     + '<div class="fit-match-item"><div class="fit-match-icon">' + ((m.capability_alignment||'').toUpperCase()==='HIGH'?'✅':(m.capability_alignment||'').toUpperCase()==='MEDIUM'?'⚡':'⚠️') + '</div><div class="fit-match-label">Capability</div><div class="fit-match-val">' + esc((m.capability_alignment||'LOW').toUpperCase()) + '</div></div>'
     + '</div>'
+    + '<div class="fit-section"><div class="fit-h">What You\'d Actually Deliver</div><span class="fit-rule">Plain-language scope, straight from the listing</span><p class="fit-text">' + esc(s1.what_youd_deliver||'Scope detail was not available from the source listing.') + '</p>'
+    + (Array.isArray(s1.key_dates) && s1.key_dates.length ? '<p class="fit-text" style="margin-top:8px"><strong>Key dates:</strong> ' + esc(s1.key_dates.map(function(d){return d&&d.label?d.label+': '+d.value:''}).filter(Boolean).join(' · ')) + '</p>' : '')
+    + '<p class="fit-text" style="margin-top:8px"><strong>How they\'ll choose a winner:</strong> ' + esc(s1.how_theyll_choose||'Not specified in the listing.') + '</p>'
+    + (Array.isArray(s1.not_specified_in_listing) && s1.not_specified_in_listing.length ? '<p class="fit-text" style="margin-top:8px;color:rgba(255,255,255,.5)"><strong>Not stated in the listing:</strong> ' + esc(s1.not_specified_in_listing.join('; ')) + '</p>' : '') + '</div>'
     + '<div class="fit-section"><div class="fit-h">Analyst Rationale</div><span class="fit-rule">Bid / No-Bid reasoning</span><p class="fit-text">' + esc(s1.rationale||'') + '</p></div>';
 
   if (d.stage2) html += buildStage2(d.stage2);
