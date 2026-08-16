@@ -1,0 +1,37 @@
+name: NGCC IT Search Preset Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "ops-command-center-v5.html"
+      - "scripts/apply-ngcc-tablet-sticky-execution.cjs"
+      - "scripts/apply-ngcc-it-search-preset.cjs"
+      - "netlify/functions/ngcc-ops-sam-opportunities.js"
+      - "tests/ngcc-it-search-preset.test.js"
+      - "netlify.toml"
+      - ".github/workflows/ngcc-it-search-preset-validation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-it-search-preset:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - name: Syntax check IT search preset implementation
+        run: |
+          node --check scripts/apply-ngcc-it-search-preset.cjs
+          node --check netlify/functions/ngcc-ops-sam-opportunities.js
+          node --check tests/ngcc-it-search-preset.test.js
+      - name: Build Stage 01 filters and IT preset
+        run: |
+          node scripts/apply-ngcc-tablet-sticky-execution.cjs
+          node scripts/apply-ngcc-it-search-preset.cjs
+      - name: Validate complete IT search preset
+        run: node tests/ngcc-it-search-preset.test.js
