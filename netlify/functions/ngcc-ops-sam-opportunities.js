@@ -17,6 +17,7 @@ const {
 } = require('./lib/ngcc-sam-opportunities');
 
 const SAM_KEY = process.env.SAM_API_KEY;
+const MAX_NAICS_CODES = 25;
 const SET_ASIDE_BY_CODE = new Map(SUPPORTED_SET_ASIDES.map(item => [item.code.toUpperCase(), item]));
 
 function daysFromNow(d) {
@@ -208,7 +209,7 @@ exports.handler = async (event) => {
   }
 
   const naicsCodes = naicsParam
-    ? naicsParam.split(',').map(n => n.trim()).filter(Boolean).slice(0, 10)
+    ? [...new Set(naicsParam.split(',').map(n => n.trim()).filter(Boolean))].slice(0, MAX_NAICS_CODES)
     : [null];
 
   const paths = [];
@@ -226,7 +227,10 @@ exports.handler = async (event) => {
       : Math.max(10, Math.min(100, Math.ceil(limit / Math.max(1, Math.min(paths.length, 4))) * 2));
     const concurrency = 4;
 
-    for (let i = 0; i < paths.length && results.length < limit; i += concurrency) {
+    // Execute every requested NAICS/set-aside path before ranking and capping the
+    // display set. This keeps broad category presets honest instead of stopping
+    // after the first few high-volume NAICS paths fill the browser result limit.
+    for (let i = 0; i < paths.length; i += concurrency) {
       const group = paths.slice(i, i + concurrency);
       const batches = await Promise.all(group.map(async path => {
         try {
@@ -291,9 +295,7 @@ exports.handler = async (event) => {
           if (opp.urgency === 'expired' || !opp.noticeId || seen.has(opp.noticeId)) continue;
           seen.add(opp.noticeId);
           results.push(opp);
-          if (results.length >= limit) break;
         }
-        if (results.length >= limit) break;
       }
     }
 
