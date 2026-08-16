@@ -6,7 +6,8 @@
 //   ?uei=UEI123                -> CapGen subscription / known UEI profile
 'use strict';
 
-const OPP_URL = 'https://api.sam.gov/opportunities/v2/search';
+const { searchSamOpportunities, samDeadline } = require('./lib/ngcc-sam-opportunities');
+
 const PAGE_LIMIT = 100;
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://judislfknmhofcgzyozc.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '';
@@ -105,12 +106,35 @@ async function fetchBCMemberClient(email) {
   } catch { return null; }
 }
 
-function mmddyyyy(d) { const mm = String(d.getMonth()+1).padStart(2,'0'); const dd = String(d.getDate()).padStart(2,'0'); return `${mm}/${dd}/${d.getFullYear()}`; }
 function daysUntil(deadline) { if (!deadline) return null; return Math.floor((new Date(deadline) - new Date()) / (1000 * 60 * 60 * 24)); }
 function urgencyClass(days) { if (days === null || days < 1) return 'none'; if (days <= 7) return 'hot'; if (days <= 30) return 'warm'; return 'ok'; }
 
-async function fetchOpps(naics, postedFrom, postedTo) { const url = new URL(OPP_URL); url.searchParams.set('api_key', process.env.SAM_API_KEY); url.searchParams.set('postedFrom', postedFrom); url.searchParams.set('postedTo', postedTo); url.searchParams.set('ncode', naics); url.searchParams.set('limit', String(PAGE_LIMIT)); url.searchParams.set('offset', '0'); const res = await fetch(url, { headers: { Accept: 'application/json' } }); if (!res.ok) throw new Error(`SAM opp ${res.status} (${naics})`); const data = await res.json(); return data.opportunitiesData || []; }
-async function fetchOppsByPSC(psc, postedFrom, postedTo) { const url = new URL(OPP_URL); url.searchParams.set('api_key', process.env.SAM_API_KEY); url.searchParams.set('postedFrom', postedFrom); url.searchParams.set('postedTo', postedTo); url.searchParams.set('psc', psc); url.searchParams.set('limit', String(PAGE_LIMIT)); url.searchParams.set('offset', '0'); const res = await fetch(url, { headers: { Accept: 'application/json' } }); if (!res.ok) throw new Error(`SAM opp PSC ${res.status} (${psc})`); const data = await res.json(); return data.opportunitiesData || []; }
+async function fetchOpps(naics, postedFrom, postedTo) {
+  const batch = await searchSamOpportunities({
+    apiKey: process.env.SAM_API_KEY,
+    postedFrom,
+    postedTo,
+    naicsCode: naics,
+    limit: PAGE_LIMIT,
+    offset: 0,
+    activeOnly: true,
+    userAgent: 'APROPOS-NGCC-Client-Pipeline/1.0',
+  });
+  return batch.rows;
+}
+async function fetchOppsByPSC(psc, postedFrom, postedTo) {
+  const batch = await searchSamOpportunities({
+    apiKey: process.env.SAM_API_KEY,
+    postedFrom,
+    postedTo,
+    psc,
+    limit: PAGE_LIMIT,
+    offset: 0,
+    activeOnly: true,
+    userAgent: 'APROPOS-NGCC-Client-Pipeline/1.0',
+  });
+  return batch.rows;
+}
 
 exports.handler = async (event) => {
   const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
@@ -145,11 +169,11 @@ exports.handler = async (event) => {
   if (!client.naics || !client.naics.length) return { statusCode: 409, headers, body: JSON.stringify({ error: 'Client profile found, but no NAICS codes are available yet. First-login automation must scan or enrich the capability profile before creating the dashboard.', client }) };
   if (!process.env.SAM_API_KEY) return { statusCode: 500, headers, body: JSON.stringify({ error: 'SAM_API_KEY not set' }) };
 
-  const now = new Date(); const from = new Date(now); from.setDate(from.getDate() - days); const postedFrom = mmddyyyy(from); const postedTo = mmddyyyy(now); const seen = new Map();
-  for (const naics of client.naics) { try { const opps = await fetchOpps(naics, postedFrom, postedTo); for (const o of opps) if (o.noticeId && !seen.has(o.noticeId)) seen.set(o.noticeId, o); } catch (e) { console.error(e.message); } }
-  for (const psc of (client.psc || [])) { try { const opps = await fetchOppsByPSC(psc, postedFrom, postedTo); for (const o of opps) if (o.noticeId && !seen.has(o.noticeId)) seen.set(o.noticeId, o); } catch (e) { console.error(e.message); } }
+  const now = new Date(); const from = new Date(now); from.setDate(from.getDate() - days); const seen = new Map();
+  for (const naics of client.naics) { try { const opps = await fetchOpps(naics, from, now); for (const o of opps) if (o.noticeId && !seen.has(o.noticeId)) seen.set(o.noticeId, o); } catch (e) { console.error(e.message); } }
+  for (const psc of (client.psc || [])) { try { const opps = await fetchOppsByPSC(psc, from, now); for (const o of opps) if (o.noticeId && !seen.has(o.noticeId)) seen.set(o.noticeId, o); } catch (e) { console.error(e.message); } }
 
-  const mapped = [...seen.values()].map(o => { const days_left = daysUntil(o.responseDeadLine); return { notice_id: o.noticeId, title: o.title, agency: o.fullParentPathName, type: o.type, naics: o.naicsCode, set_aside: o.typeOfSetAsideDescription || o.setAside || 'None', posted_date: o.postedDate, deadline: o.responseDeadLine, days_left, urgency: urgencyClass(days_left), url: o.uiLink || `https://sam.gov/opp/${o.noticeId}/view` }; });
+  const mapped = [...seen.values()].map(o => { const deadline = samDeadline(o); const days_left = daysUntil(deadline); return { notice_id: o.noticeId, title: o.title, agency: o.fullParentPathName, type: o.type, naics: o.naicsCode, set_aside: o.typeOfSetAsideDescription || o.setAside || 'None', posted_date: o.postedDate, deadline, days_left, urgency: urgencyClass(days_left), url: o.uiLink || `https://sam.gov/opp/${o.noticeId}/view` }; });
   const results = mapped.filter(o => includeClosed || (o.days_left !== null && o.days_left >= 1)).sort((a, b) => { if (!a.deadline && !b.deadline) return 0; if (!a.deadline) return 1; if (!b.deadline) return -1; return new Date(a.deadline) - new Date(b.deadline); });
 
   return { statusCode: 200, headers, body: JSON.stringify({ client: { uei: client.uei || resolvedId, name: client.name, business_name: client.business_name || client.name, naics: client.naics, city: client.city || null, state: client.state || null, cage: client.cage || null, member_type: client.member_type || 'capgen_subscriber', source: client.source || null, profile_complete: !!client.profile_complete }, window_days: days, total: results.length, opportunities: results }) };

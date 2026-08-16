@@ -1,4 +1,5 @@
 [build]
+  command = "node scripts/apply-ngcc-tablet-sticky-execution.cjs && node scripts/apply-ngcc-qualification-v2-ui.cjs && node scripts/apply-ngcc-research-routing-v1.cjs && node scripts/apply-ngcc-stage05-auto-queue-gate.cjs && node scripts/apply-ngcc-outreach-review-v1.cjs && node scripts/apply-ngcc-marketplace-claim-email-v1.cjs && node scripts/apply-ngcc-controlled-test-delivery-v1.cjs"
   publish = "."
   functions = "netlify/functions"
 
@@ -104,9 +105,6 @@
   to = "/capability-report.html"
   status = 200
 
-# Nested pretty-URLs need explicit redirects (Netlify only auto-resolves
-# single segments). These were lost in c45e7ac and broke the dashboard's
-# Capability Report CTA and emailed dashboard links.
 [[redirects]]
   from = "/demo/report"
   to = "/demo-report.html"
@@ -126,6 +124,28 @@
   from = "/admin/leads"
   to = "/admin-leads.html"
   status = 200
+
+[[redirects]]
+  from = "/ops-outreach"
+  to = "/ops-outreach.html"
+  status = 200
+
+[[redirects]]
+  from = "/ops-dashboard"
+  to = "/ops-dashboard.html"
+  status = 200
+
+# Canonical NGCC procurement command center — stable v5 implementation.
+[[redirects]]
+  from = "/ops-command-center"
+  to = "/ops-command-center-v5.html"
+  status = 200
+  force = true
+
+[[headers]]
+  for = "/ops-command-center-stage01-hotfix.html"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
 
 [[headers]]
   for = "/*"

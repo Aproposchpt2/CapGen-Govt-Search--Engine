@@ -1,0 +1,211 @@
+'use strict';
+
+const { randomUUID } = require('node:crypto');
+const { json, opsGuard, SUPABASE_URL, SUPABASE_KEY, sbHeaders } = require('./lib/ngcc-ops');
+const {
+  initialStepRows,
+  assertSequentialTransition,
+  nextStepCode,
+  deriveStatus,
+  missionProjection,
+  effectiveTransitionStatus,
+} = require('./lib/ngcc-mission-state');
+
+const MISSIONS = 'ngcc_procurement_missions';
+const STEPS = 'ngcc_procurement_mission_steps';
+const EVENTS = 'ngcc_procurement_mission_events';
+const nowIso = () => new Date().toISOString();
+
+function ensureDb() {
+  if (!SUPABASE_URL || !SUPABASE_KEY) throw new Error('NGCC operational database configuration is incomplete.');
+}
+
+async function db(table, method = 'GET', query = '', body, prefer = '') {
+  ensureDb();
+  const response = await fetch(`${String(SUPABASE_URL).replace(/\/+$/, '')}/rest/v1/${table}${query}`, {
+    method,
+    headers: { ...sbHeaders(), ...(prefer ? { Prefer: prefer } : {}) },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  if (!response.ok) throw new Error(`${table} ${method} failed: ${response.status} ${(await response.text()).slice(0, 500)}`);
+  if (response.status === 204) return [];
+  const text = await response.text();
+  return text ? JSON.parse(text) : [];
+}
+
+function missionNumber() {
+  const d = new Date();
+  const date = `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, '0')}${String(d.getUTCDate()).padStart(2, '0')}`;
+  return `NGCC-FP-${date}-${randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase()}`;
+}
+
+async function loadMission(missionId) {
+  const mission = (await db(MISSIONS, 'GET', `?id=eq.${encodeURIComponent(missionId)}&select=*&limit=1`))[0];
+  if (!mission) throw new Error('NGCC procurement mission was not found.');
+  const steps = await db(STEPS, 'GET', `?mission_id=eq.${encodeURIComponent(missionId)}&select=*&order=sequence_number.asc`);
+  const events = await db(EVENTS, 'GET', `?mission_id=eq.${encodeURIComponent(missionId)}&select=*&order=created_at.desc&limit=50`);
+  const staleSeconds = Math.max(30, Number(process.env.NGCC_MISSION_STALE_SECONDS || 180));
+  return { mission, steps: steps.map(step => ({ ...step, derived_status: deriveStatus(step, staleSeconds) })), events };
+}
+
+async function createMission(opportunity) {
+  const noticeId = String(opportunity.noticeId || opportunity.notice_id || '').trim();
+  const title = String(opportunity.title || '').trim();
+  if (!noticeId || !title) throw new Error('A SAM notice ID and contract title are required to create a mission.');
+  const now = nowIso();
+  const mission = (await db(MISSIONS, 'POST', '', [{
+    mission_number: missionNumber(),
+    sam_notice_id: noticeId,
+    solicitation_number: opportunity.solicitationNumber || opportunity.solicitation_number || null,
+    contract_title: title,
+    issuing_agency: opportunity.agency || opportunity.organizationName || null,
+    source_url: opportunity.samUrl || opportunity.sam_url || null,
+    current_step: 'CONTRACT_DNA',
+    overall_status: 'ACTIVE',
+    completion_percentage: 13,
+    next_required_action: 'Construct Contract DNA',
+    selected_opportunity_snapshot: opportunity,
+    created_at: now,
+    updated_at: now,
+    last_activity_at: now,
+  }], 'return=representation'))[0];
+  if (!mission) throw new Error('Mission creation did not return a record.');
+
+  await db(STEPS, 'POST', '', initialStepRows(mission.id, opportunity, now), 'return=minimal');
+  await db(EVENTS, 'POST', '', [{
+    mission_id: mission.id,
+    event_type: 'MISSION_CREATED',
+    event_summary: 'Fresh federal procurement mission created. Contract DNA is ready; downstream stages remain locked.',
+    event_payload: { sam_notice_id: noticeId, workflow_version: 'ngcc-proactive-procurement-v1', fresh_execution: true },
+    actor_type: 'OPERATOR',
+  }], 'return=minimal');
+  return loadMission(mission.id);
+}
+
+function safeProgress(value, fallback) {
+  const n = Number(value ?? fallback ?? 0);
+  return Math.max(0, Math.min(100, Number.isFinite(n) ? n : 0));
+}
+
+async function transitionMission(body) {
+  const missionId = String(body.mission_id || '').trim();
+  const stepCode = String(body.step_code || '').trim().toUpperCase();
+  const requestedStatusRaw = String(body.status || '').trim().toUpperCase();
+  if (!missionId || !stepCode || !requestedStatusRaw) throw new Error('mission_id, step_code, and status are required.');
+
+  const qualificationZeroResult = stepCode === 'CONTRACTOR_QUALIFICATION' && requestedStatusRaw === 'ZERO_RESULT';
+  const requestedStatus = effectiveTransitionStatus(stepCode, requestedStatusRaw);
+  const loaded = await loadMission(missionId);
+  const check = assertSequentialTransition(loaded.steps, stepCode, requestedStatus);
+  const now = nowIso();
+  const isSuccess = ['SUCCESS', 'ZERO_RESULT', 'COMPLETE'].includes(check.status);
+  const qualificationWaitingActivity = 'No QUALIFIED contractors are available for outreach. Review qualification evidence or rerun contractor research and qualification.';
+  const patch = {
+    status: check.status,
+    progress_percentage: safeProgress(body.progress_percentage, isSuccess ? 100 : check.status === 'RUNNING' ? Math.max(1, check.step.progress_percentage || 0) : check.step.progress_percentage),
+    current_activity: qualificationZeroResult ? qualificationWaitingActivity : body.current_activity || null,
+    output_summary: body.output_summary && typeof body.output_summary === 'object' ? body.output_summary : check.step.output_summary || {},
+    evidence: Array.isArray(body.evidence) ? body.evidence : check.step.evidence || [],
+    records_examined: Math.max(0, Number(body.records_examined ?? check.step.records_examined ?? 0)),
+    records_accepted: Math.max(0, Number(body.records_accepted ?? check.step.records_accepted ?? 0)),
+    records_rejected: Math.max(0, Number(body.records_rejected ?? check.step.records_rejected ?? 0)),
+    error_code: body.error_code || null,
+    error_message: body.error_message || null,
+    updated_at: now,
+  };
+
+  if (check.status === 'RUNNING') Object.assign(patch, { started_at: check.step.started_at || now, last_heartbeat_at: now, completed_at: null });
+  if (isSuccess) Object.assign(patch, { started_at: check.step.started_at || now, last_heartbeat_at: now, completed_at: now, error_code: null, error_message: null });
+  if (check.status === 'WAITING') Object.assign(patch, { started_at: check.step.started_at || now, last_heartbeat_at: now, completed_at: null });
+  if (check.status === 'FAILED') Object.assign(patch, { started_at: check.step.started_at || now, last_heartbeat_at: now, completed_at: now, retry_count: Number(check.step.retry_count || 0) + 1 });
+
+  await db(STEPS, 'PATCH', `?id=eq.${encodeURIComponent(check.step.id)}`, patch, 'return=minimal');
+
+  const nextCode = nextStepCode(stepCode);
+  if (isSuccess && nextCode) {
+    const next = loaded.steps.find(step => step.step_code === nextCode);
+    if (next?.status === 'NOT_STARTED') {
+      await db(STEPS, 'PATCH', `?id=eq.${encodeURIComponent(next.id)}`, {
+        status: 'READY', progress_percentage: 0, current_activity: 'Awaiting operator execution', updated_at: now,
+      }, 'return=minimal');
+    }
+  }
+
+  const afterSteps = await db(STEPS, 'GET', `?mission_id=eq.${encodeURIComponent(missionId)}&select=*&order=sequence_number.asc`);
+  const projection = missionProjection(afterSteps);
+  const waitingCondition = qualificationZeroResult
+    ? 'Stage 07 remains locked until Contractor Qualification produces at least one QUALIFIED contractor with a verified public email and evidence source.'
+    : body.waiting_condition || body.current_activity || 'Operator review required';
+  await db(MISSIONS, 'PATCH', `?id=eq.${encodeURIComponent(missionId)}`, {
+    ...projection,
+    waiting_condition: check.status === 'WAITING' ? waitingCondition : null,
+    updated_at: now,
+    last_activity_at: now,
+  }, 'return=minimal');
+  await db(EVENTS, 'POST', '', [{
+    mission_id: missionId,
+    event_type: 'STEP_TRANSITION',
+    event_summary: `${stepCode} -> ${check.status}`,
+    event_payload: {
+      step_code: stepCode,
+      status: check.status,
+      requested_status: requestedStatusRaw,
+      progress_percentage: patch.progress_percentage,
+      next_step: isSuccess ? nextCode : null,
+      qualification_zero_result_gate: qualificationZeroResult,
+    },
+    actor_type: body.actor_type || 'SYSTEM',
+  }], 'return=minimal');
+  return loadMission(missionId);
+}
+
+async function heartbeat(body) {
+  const missionId = String(body.mission_id || '').trim();
+  const stepCode = String(body.step_code || '').trim().toUpperCase();
+  if (!missionId || !stepCode) throw new Error('mission_id and step_code are required.');
+  const loaded = await loadMission(missionId);
+  const step = loaded.steps.find(item => item.step_code === stepCode);
+  if (!step) throw new Error('Mission step was not found.');
+  if (step.status !== 'RUNNING') throw new Error('Heartbeat is accepted only for a RUNNING step.');
+  const now = nowIso();
+  await db(STEPS, 'PATCH', `?id=eq.${encodeURIComponent(step.id)}`, {
+    last_heartbeat_at: now,
+    progress_percentage: Math.max(Number(step.progress_percentage || 0), Math.min(99, safeProgress(body.progress_percentage, step.progress_percentage))),
+    current_activity: body.current_activity || step.current_activity,
+    records_examined: Math.max(0, Number(body.records_examined ?? step.records_examined ?? 0)),
+    records_accepted: Math.max(0, Number(body.records_accepted ?? step.records_accepted ?? 0)),
+    records_rejected: Math.max(0, Number(body.records_rejected ?? step.records_rejected ?? 0)),
+    updated_at: now,
+  }, 'return=minimal');
+  await db(MISSIONS, 'PATCH', `?id=eq.${encodeURIComponent(missionId)}`, { last_activity_at: now, updated_at: now }, 'return=minimal');
+  return loadMission(missionId);
+}
+
+exports.handler = async event => {
+  if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: {}, body: '' };
+  const denied = opsGuard(event);
+  if (denied) return denied;
+  try {
+    if (event.httpMethod === 'GET') {
+      const qs = event.queryStringParameters || {};
+      if (qs.mission_id) return json(200, { ok: true, ...(await loadMission(qs.mission_id)) });
+      return json(200, { ok: true, missions: await db(MISSIONS, 'GET', '?select=*&order=last_activity_at.desc&limit=50') });
+    }
+    if (event.httpMethod !== 'POST') return json(405, { ok: false, error: 'GET or POST only.' });
+
+    let body;
+    try { body = JSON.parse(event.body || '{}'); }
+    catch { return json(400, { ok: false, error: 'Invalid JSON.' }); }
+
+    const action = String(body.action || '').trim().toLowerCase();
+    if (action === 'create') return json(201, { ok: true, ...(await createMission(body.opportunity || {})) });
+    if (action === 'transition') return json(200, { ok: true, ...(await transitionMission(body)) });
+    if (action === 'heartbeat') return json(200, { ok: true, ...(await heartbeat(body)) });
+    return json(400, { ok: false, error: 'Unknown mission-control action.' });
+  } catch (error) {
+    console.error('[ngcc-ops-mission-control]', error);
+    const message = String(error?.message || 'Mission-control failure.');
+    const status = /locked|cannot|requires action/i.test(message) ? 409 : /required|not found/i.test(message) ? 400 : 500;
+    return json(status, { ok: false, error: message });
+  }
+};

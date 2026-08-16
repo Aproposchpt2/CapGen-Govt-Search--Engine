@@ -4,15 +4,17 @@
 // Logs each send to email_batch. Updates outreach_status to 'sent' on the contractor.
 // Rate-limited to 2/sec to stay within Resend limits.
 // Trigger: POST /.netlify/functions/send-contractor-outreach
-// Requires: RESEND_API_KEY, RESEND_FROM_EMAIL, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+// Requires: RESEND_API_KEY, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 // Optional QS: ?limit=10&dry_run=1 (dry_run skips actual send, logs only)
 'use strict';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const RESEND_KEY   = process.env.RESEND_API_KEY;
-const FROM_EMAIL   = process.env.RESEND_FROM_EMAIL || 'outreach@aproposcontracts.com';
-const FROM_NAME    = 'Jeff Mitchell — Apropos Group LLC';
+const FROM_EMAIL   = process.env.NGCC_OPPORTUNITY_EMAIL || 'opportunities@aproposcontracts.com';
+const FROM_NAME    = 'National Government Contract Center';
+const REPLY_TO     = process.env.NGCC_OUTREACH_REPLY_TO || 'jmitchell@aproposgroupllc.com';
+const MAILING_ADDRESS = process.env.MAILING_ADDRESS || 'APROPOS GROUP LLC, 5892 Losee Rd., Ste 132, North Las Vegas, NV 89081';
 const NGCC_URL     = 'https://ngcc.aproposgroupllc.com';
 
 const NAICS_SHORT = {
@@ -62,11 +64,12 @@ Start your dashboard here: ${NGCC_URL}
 
 The first 30 days are free. No credit card required to get started.
 
-If you have any questions, reply directly to this email — I'm the one sending it.
+If you have any questions, reply directly to this email.
 
 Best,
 Jeff Mitchell
 Founder, Apropos Group LLC
+${MAILING_ADDRESS}
 ${NGCC_URL}
 
 ---
@@ -141,7 +144,7 @@ exports.handler = async (event) => {
             to: [`${contact.first_name || ''} ${contact.last_name || ''} <${contact.email}>`],
             subject,
             text: body,
-            reply_to: FROM_EMAIL,
+            reply_to: REPLY_TO,
             tags: [{ name: 'campaign', value: 'ngcc-launch-outreach' }]
           })
         });

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>NGCC Command Center</title>
+</head>
+<body>
+<script>
+(async()=>{
+  try {
+    const res = await fetch('/ops-command-center-v3.html?stage01_hotfix=2', { cache: 'no-store' });
+    if (!res.ok) throw new Error(`Unable to load command center (${res.status}).`);
+    let html = await res.text();
+
+    const originalSave = "function saveEvidence(){if(ctx?.mission?.id)sessionStorage.setItem(key(ctx.mission.id),JSON.stringify(evidence))}";
+    const patchedSave = `function saveEvidence(){if(!ctx?.mission?.id)return;sessionStorage.setItem(key(ctx.mission.id),JSON.stringify(evidence));fetch('/.netlify/functions/ngcc-ops-mission-evidence',{method:'POST',headers:{'content-type':'application/json',...auth()},body:JSON.stringify({mission_id:ctx.mission.id,operational_state:evidence})}).catch(error=>console.error('[ngcc-mission-evidence]',error));}`;
+    const originalLoad = "function loadEvidence(){try{evidence=JSON.parse(sessionStorage.getItem(key(ctx.mission.id))||'{}')}catch{evidence={}}}";
+    const patchedLoad = `function loadEvidence(){let local={};try{local=JSON.parse(sessionStorage.getItem(key(ctx.mission.id))||'{}')}catch{local={}}const server=ctx?.mission?.operational_state&&typeof ctx.mission.operational_state==='object'?ctx.mission.operational_state:{};evidence={...server,...local};if(!evidence.opportunity&&ctx?.mission?.selected_opportunity_snapshot&&typeof ctx.mission.selected_opportunity_snapshot==='object'){evidence.opportunity=ctx.mission.selected_opportunity_snapshot;}sessionStorage.setItem(key(ctx.mission.id),JSON.stringify(evidence));}`;
+    if (!html.includes(originalSave) || !html.includes(originalLoad)) throw new Error('Mission evidence patch markers were not found.');
+    html = html.replace(originalSave, patchedSave).replace(originalLoad, patchedLoad);
+
+    const startMarker = "$('searchOpps').onclick=async()=>{";
+    const endMarker = "async function transition(step,status,extra={})";
+    const start = html.indexOf(startMarker);
+    const end = html.indexOf(endMarker, start);
+    if (start < 0 || end < 0) throw new Error('Stage 01 command-center patch markers were not found.');
+
+    const replacement = `$('searchOpps').onclick=async()=>{const p=new URLSearchParams({limit:'30'});if($('keyword').value.trim())p.set('title',$('keyword').value.trim());if($('naics').value.trim())p.set('naics',$('naics').value.trim());$('searchOpps').disabled=true;$('opps').innerHTML='';$('oppsMsg').className='msg';try{const d=await req('/.netlify/functions/ngcc-ops-sam-opportunities?'+p);const results=d.results||[];$('oppsMsg').textContent=results.length+' open opportunities returned. Select one contract to create a fresh mission.';$('opps').innerHTML=results.map((o,i)=>'<div class="opp" data-contract-card="'+i+'"><div><b>'+esc(o.title)+'</b><br><small>'+esc(o.organizationName||o.agency||'')+' · '+esc(o.naicsCode||'NAICS unavailable')+' · '+esc(o.responseDeadline||o.response_date||'')+'</small></div><div class="controls" style="margin-bottom:0"><button type="button" class="btn secondary" data-select-contract="'+i+'">Select Contract</button></div></div>').join('');document.querySelectorAll('[data-select-contract]').forEach(btn=>btn.onclick=async e=>{e.preventDefault();e.stopPropagation();const i=Number(btn.dataset.selectContract);const opp=results[i];if(!opp)return;document.querySelectorAll('[data-contract-card]').forEach(card=>{card.style.borderColor='';card.style.background='';});const card=document.querySelector('[data-contract-card="'+i+'"]');if(card){card.style.borderColor='var(--gold)';card.style.background='rgba(213,174,85,.08)';}document.querySelectorAll('[data-select-contract]').forEach(b=>{b.disabled=true;});btn.textContent='Creating Mission…';await createMission(opp,btn);});}catch(e){$('oppsMsg').className='msg err';$('oppsMsg').textContent=e.message}finally{$('searchOpps').disabled=false}};
+async function createMission(opp,button){try{ctx=await req('/.netlify/functions/ngcc-ops-mission-control',{method:'POST',body:JSON.stringify({action:'create',opportunity:opp})});evidence={opportunity:opp,ranked_candidates:[],contacts:[],outreach_result:null,reconciliation:null,closeout:null};saveEvidence();render();$('oppsMsg').className='msg ok';$('oppsMsg').textContent='Contract selected. Fresh mission created. Stage 02 — Contract DNA is READY; all later stages remain locked.';if(button){button.textContent='Selected';button.classList.remove('secondary');button.classList.add('warn');}document.querySelectorAll('[data-select-contract]').forEach(b=>{if(b!==button){b.disabled=false;b.textContent='Select Contract';}});}catch(e){$('oppsMsg').className='msg err';$('oppsMsg').textContent=e.message;document.querySelectorAll('[data-select-contract]').forEach(b=>{b.disabled=false;if(b.textContent!=='Selected')b.textContent='Select Contract';});}}\n`;
+
+    html = html.slice(0, start) + replacement + html.slice(end);
+    document.open();
+    document.write(html);
+    document.close();
+  } catch (error) {
+    document.body.innerHTML = '<pre style="white-space:pre-wrap;color:#fff;background:#071a3c;padding:24px;min-height:100vh">NGCC Stage 01/02 development patch failed to initialize:\n' + String(error && error.message || error) + '</pre>';
+  }
+})();
+</script>
+</body>
+</html>

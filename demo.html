@@ -8,7 +8,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital@1&family=Jost:wght@400;600;700&display=swap" rel="stylesheet">
 <script>var _cs=sessionStorage.getItem('capgen_session');var _bt=new URLSearchParams(location.search).get('t')||localStorage.getItem('demo_view_token')||'';</script>
 <style>
-.sub-bar{display:var(--sub-bar,flex)!important}
 :root{
   --bg:#0A1A3A;--surface:#0f2244;--panel:#132954;--line:rgba(91,175,255,.15);
   --line2:rgba(91,175,255,.28);--text:#f0f6ff;--muted:#8facd0;--soft:#5a7899;
@@ -108,24 +107,12 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:14p
 .empty{text-align:center;padding:52px;color:var(--soft)}
 .loading-state{text-align:center;padding:52px;color:var(--muted)}
 
-/* Contract Proposal Development message */
-.sub-bar{position:fixed;bottom:0;left:0;right:0;background:var(--panel);border-top:1px solid var(--line2);
-  padding:13px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px;
-  z-index:100;flex-wrap:wrap}
-.sub-bar-text{font-size:.84rem;color:var(--muted);line-height:1.4}
-.sub-bar-text strong{color:var(--text)}
-.sub-cta{background:#fff;color:#0A1A3A;font-family:'Jost',sans-serif;font-weight:700;
-  font-size:.88rem;padding:10px 22px;border-radius:8px;text-decoration:none;white-space:nowrap;
-  transition:.15s;display:inline-block}
-.sub-cta:hover{background:#e8edf8}
-
 @media(max-width:700px){
   .demo-banner{flex-direction:column;align-items:flex-start;padding:10px 14px}
   .page{padding:14px 12px 100px}
   .stat-bar{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .opp-table th:nth-child(3),.opp-table td:nth-child(3),
   .opp-table th:nth-child(4),.opp-table td:nth-child(4){display:none}
-  .sub-bar{flex-direction:column;align-items:stretch;text-align:center}
 }
 </style>
   <style>
@@ -203,12 +190,6 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:14p
       <tbody id="oppBody"><tr><td colspan="5" class="loading-state">Loading your opportunities…</td></tr></tbody>
     </table>
   </div>
-</div>
-
-<!-- Contract Proposal Development message -->
-<div class="sub-bar">
-  <div class="sub-bar-text"><strong>Ready to Pursue This Opportunity?</strong> You've discovered the opportunity and analyzed the fit. NGCC provides free access to contract discovery, opportunity matching, and Analyze Fit. When you are ready to compete, Apropos Group LLC can help prepare a professional, responsive Contract Proposal.</div>
-  <a href="/#analyze" id="subCta" class="sub-cta">Explore Contract Proposal Development →</a>
 </div>
 
 <script>

@@ -1,0 +1,37 @@
+name: NGCC Marketplace Claim Routing Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "scripts/apply-ngcc-marketplace-claim-email-v1.cjs"
+      - "scripts/apply-ngcc-controlled-test-delivery-v1.cjs"
+      - "tests/ngcc-marketplace-claim-routing.test.js"
+      - "tests/ngcc-controlled-delivery-mode.test.js"
+      - "netlify.toml"
+      - ".github/workflows/ngcc-marketplace-claim-routing-validation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - name: Apply Marketplace claim routing patch
+        run: node scripts/apply-ngcc-marketplace-claim-email-v1.cjs
+      - name: Apply controlled VAR test-delivery patch
+        run: node scripts/apply-ngcc-controlled-test-delivery-v1.cjs
+      - name: Syntax check patched functions
+        run: |
+          node --check netlify/functions/ngcc-ops-outreach.js
+          node --check netlify/functions/ngcc-federal-claim.js
+      - name: Validate Marketplace front-door claim routing
+        run: node tests/ngcc-marketplace-claim-routing.test.js
+      - name: Validate controlled test delivery before VAR
+        run: node tests/ngcc-controlled-delivery-mode.test.js
