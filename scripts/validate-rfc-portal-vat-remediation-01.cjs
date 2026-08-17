@@ -12,10 +12,13 @@ const stateMatches = read('netlify/functions/ngcc-state-matches.mjs');
 const analyzeFit = read('analyze-fit.html');
 
 assert.match(dashboard, /Federal \+ State Contract Dashboard · Registered Contractors Portal/, 'merged dashboard branding must be visible');
-assert.match(dashboard, /State Contracts/, 'dashboard must expose a state-contract tab');
+assert.match(dashboard, /State Contracts/, 'dashboard must expose a generalized state-contract tab');
+assert.doesNotMatch(dashboard, /data-tab="california"/, 'state availability must not be hard-coded as a separate Coming Soon California tab');
 assert.match(dashboard, /fetch\('\/api\/state-matches'/, 'state dashboard must use the shared verified-profile state matching service');
 assert.doesNotMatch(dashboard, /fetch\('\/.netlify\/functions\/ngem-pipeline'/, 'merged dashboard must not use the legacy Nevada-only NGEM feed');
 assert.doesNotMatch(dashboard, /Open Full Nevada Dashboard/, 'merged portal must not send the primary state workflow to the standalone Nevada site');
+assert.match(dashboard, /Search state contracts by title, agency, or state/, 'state search must expose generalized state filtering');
+assert.match(dashboard, /state_code/, 'state result rendering must preserve state identity');
 assert.match(dashboard, /Purchase a report — \$79/, 'Analyze Fit must retain the current $79 price after Contract Assistance integration');
 assert.doesNotMatch(dashboard, /Stage 2 — complete proposal prep/, 'retired proposal-development positioning must not survive in the merged dashboard');
 assert.match(dashboard, /Pursuit Readiness Detail/, 'Analyze Fit Stage 2 must remain positioned as readiness analysis');
