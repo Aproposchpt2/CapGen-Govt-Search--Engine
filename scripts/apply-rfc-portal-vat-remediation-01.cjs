@@ -78,6 +78,7 @@ dashboard = dashboard.replace('Federal Contract Pipeline · NGCC', 'Federal + St
 dashboard = dashboard.replace('🇺🇸 Federal', '🇺🇸 Federal Contracts');
 dashboard = dashboard.replace('◆ Nevada State', '◆ State Contracts');
 dashboard = dashboard.replace(/\n  <button class="mkt-tab" data-tab="california">[\s\S]*?<\/button>/,'');
+dashboard = dashboard.replace(/\n<!-- California panel -->[\s\S]*?<\/div>\n<\/div>\n\n(?=<\/div><!-- \/app -->)/,'\n');
 dashboard = dashboard.replace('<div id="nv-service-panel" style="background:rgba(255,255,255,.04);','<div id="nv-service-panel" style="display:none;background:rgba(255,255,255,.04);');
 dashboard = dashboard.replace(/  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:rgba\(255,255,255,\.03\);border:1px solid var\(--line\);border-radius:12px;padding:12px 16px;margin-bottom:18px">\s*<span style="font-size:\.82rem;color:var\(--muted\)">Want the full standalone Nevada experience — saved preferences, email alerts, and more\?<\/span>\s*<a id="nv-explore-link"[\s\S]*?<\/a>\s*<\/div>/,'  <div style="background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-bottom:18px"><span style="font-size:.82rem;color:var(--muted)">State opportunities are matched automatically from your verified business capability profile and current released contract inventory.</span></div>');
 dashboard = dashboard.replace('Search Nevada bids by title or agency…','Search state contracts by title, agency, or state…');
@@ -88,6 +89,11 @@ dashboard = dashboard.replace('View full solicitation on the Nevada Procurement 
 dashboard = dashboard.replace("b.url || 'https://nevada.ionwave.net'","b.url || '#'");
 dashboard = dashboard.replace("b.agency || 'Nevada State Agency'","b.agency || 'State Agency'");
 dashboard = dashboard.replace("source:      'nevada_ngem'","source:      'apie_state_inventory'");
+
+// Remove dead standalone-state handoff helpers left by the pre-merge dashboard.
+dashboard = dashboard.replace(/\n  updateCaExploreLink\(\);\n  updateNvExploreLink\(\);/,'');
+dashboard = dashboard.replace(/\n\/\/ Carries the already-authenticated user's identity into CalGovCC[\s\S]*?(?=\/\/ ── Tab switching)/,'\n');
+dashboard = dashboard.replace("['federal','nevada','california'].forEach(function(p) {","['federal','nevada'].forEach(function(p) {");
 
 const newLoadNevada = `function loadNevada() {
   var tok = getToken();
