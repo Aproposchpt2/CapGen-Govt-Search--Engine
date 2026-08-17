@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const read = rel => fs.readFileSync(path.join(process.cwd(), rel), 'utf8');
 
+const publicHome = read('index.html');
 const dashboard = read('dashboard.html');
 const onboarding = read('onboarding.html');
 const analyzePage = read('analyze-fit.html');
@@ -48,4 +49,19 @@ assert.doesNotMatch(analyzePage, /Proposal Development Plan/, 'retired standalon
 assert.match(toml, /from = "\/apropos"[\s\S]*?to = "\/dashboard\.html"/, 'legacy /apropos alias must resolve to the canonical dashboard');
 assert.match(toml, /from = "\/ag-dashboard\.html"[\s\S]*?to = "\/dashboard\.html"/, 'direct legacy customer dashboard path must redirect to canonical dashboard');
 
-console.log('RFC Portal VAT Remediation 02 validation passed.');
+// Public sale/acquisition identity must describe the product that actually
+// exists after the Federal + State merger, and must canonicalize to the live
+// Registered Federal Contractors Portal domain.
+assert.match(publicHome, /<link rel="canonical" href="https:\/\/federalcontractorportal\.aproposgroupllc\.com\/">/, 'public homepage canonical must use the live portal domain');
+assert.match(publicHome, /property="og:url" content="https:\/\/federalcontractorportal\.aproposgroupllc\.com\/"/, 'OpenGraph URL must use the live portal domain');
+assert.doesNotMatch(publicHome, /https:\/\/ngcc\.aproposgroupllc\.com\//, 'legacy NGCC domain must not remain in public homepage metadata or schema');
+assert.match(publicHome, /Federal \+ State Contract Opportunities for Registered Contractors/, 'public product title must reflect Federal + State access');
+assert.match(publicHome, /Federal \+ State Procurement Intelligence/, 'public hero must reflect merged procurement scope');
+assert.match(publicHome, /Federal \+ State contract opportunities for registered contractors\./, 'public hero promise must reflect merged customer value');
+assert.match(publicHome, /released state contract opportunities/, 'public positioning must describe released state inventory without claiming universal state coverage');
+assert.match(publicHome, /Personalized Federal \+ State Contract Dashboard/, 'public features must identify the canonical merged dashboard');
+assert.match(publicHome, /\$99 per month/, 'public homepage must preserve the current portal subscription price');
+assert.match(publicHome, /\$79\.00 one-time/, 'public homepage must preserve the current Analyze Fit price');
+assert.match(publicHome, /ai4-product-purchasing\.ai4businesses\.org\/ngcc-offer\.html/, 'historical purchasing route must remain connected for checkout compatibility');
+
+console.log('RFC Portal VAT Remediation 02 validation passed with public Federal + State identity and canonical-domain gates.');
