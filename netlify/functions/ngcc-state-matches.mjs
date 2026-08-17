@@ -22,6 +22,17 @@ import { loadProfileSession } from './_shared/ngcc-profile-session.mjs';
 const RELEASE_FILTER = 'natcorp_release_status=eq.eligible&is_latest_version=eq.true&status=eq.open&match_readiness_status=eq.MATCH_READY';
 const SELECT = 'select=id,title,description,agency:issuing_organization,solicitation_number:solicitation_number,state_code,jurisdiction_name,place_of_performance_county,procurement_type,response_deadline,posted_at,source_url,official_source_url,acquisition_method,package_document_count,match_readiness_status,naics_codes';
 
+// Real profile fields are full descriptive phrases -- e.g. "Government
+// Technology (custom software, AI, data engineering)" -- not atomic
+// keywords. An ILIKE match against the whole phrase, punctuation and all,
+// essentially never matches a real contract title/description verbatim
+// (confirmed live: this returned zero matches for a real, populated profile
+// with genuinely relevant services on file). Tokenize into individual
+// words instead and rank by frequency across fields, so words that recur
+// across services/products/capabilities (more likely core to the business)
+// surface before incidental ones.
+const STOPWORDS = new Set(['and', 'the', 'for', 'with', 'from', 'into', 'of', 'to', 'or', 'in', 'on', 'at', 'by', 'your', 'our']);
+
 function collectTerms(verified) {
   const pool = [
     ...(verified.procurement_terms || []),
@@ -30,7 +41,13 @@ function collectTerms(verified) {
     ...(verified.products || []),
     ...(verified.capabilities || []),
   ];
-  return [...new Set(pool.map((t) => String(t || '').trim()).filter((t) => t.length >= 4))].slice(0, 10);
+  const words = pool
+    .flatMap((phrase) => String(phrase || '').toLowerCase().split(/[^a-z0-9]+/))
+    .map((w) => w.trim())
+    .filter((w) => w.length >= 4 && !STOPWORDS.has(w));
+  const freq = new Map();
+  for (const w of words) freq.set(w, (freq.get(w) || 0) + 1);
+  return [...freq.entries()].sort((a, b) => b[1] - a[1]).map(([w]) => w).slice(0, 12);
 }
 
 async function queryByKeyword(terms) {
