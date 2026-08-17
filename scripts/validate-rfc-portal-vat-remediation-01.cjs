@@ -29,6 +29,8 @@ assert.match(onboarding, /Enter or paste the 6-digit access code/, 'OTP guidance
 
 assert.match(profileSession, /RFC_PORTAL_PIPELINE_SESSION_BRIDGE_V1/, 'profile session helper must contain the returning-member bridge');
 assert.match(profileSession, /client_sessions/, 'profile session bridge must validate the server-side pipeline session');
+assert.match(profileSession, /session_token=eq\.\$\{encodeURIComponent\(bearer\)\}&revoked=eq\.false/, 'revoked bearer sessions must be excluded at the database lookup boundary');
+assert.match(profileSession, /client\.revoked === true/, 'profile session bridge must fail closed if a revoked session row is ever returned');
 assert.match(profileSession, /discovery_status=eq\.verified/, 'pipeline session fallback must resolve only a verified shared business profile');
 
 assert.match(stateMatches, /match_readiness_status=eq\.MATCH_READY/, 'state matching must exclude records the production database marks as not match-ready');
@@ -38,4 +40,4 @@ assert.match(stateMatches, /APIE released state contract inventory/, 'state matc
 assert.doesNotMatch(analyzeFit, /PROPOSAL READINESS/, 'Analyze Fit report must not present itself as the retired proposal-development service');
 assert.match(analyzeFit, /PURSUIT READINESS/, 'Analyze Fit report must retain pursuit-readiness framing');
 
-console.log('RFC Portal VAT Remediation 01 validation passed with Analyze Fit retained at $79.');
+console.log('RFC Portal VAT Remediation 01 validation passed with revoked-session rejection and Analyze Fit retained at $79.');
