@@ -212,15 +212,15 @@ dashboard = dashboard.replace(
   "+ '<div class=\"nv-meta\"><span>' + esc(b.agency||'—') + '</span>' + (b.state_code ? '<span class=\"chip chip-naics\">'+esc(b.state_code)+'</span>' : '')"
 );
 
-// Product/pricing consistency.
-dashboard = dashboard.replace('Purchase a report — $79 →', 'Purchase a report — $49.99 →');
+// Analyze Fit is $79 after Contract Assistance was integrated into the report.
+// Retain the current price; only remove retired standalone proposal-development framing.
 dashboard = dashboard.replace('Full Pursuit Package', 'Pursuit Readiness Detail');
 dashboard = dashboard.replace('Stage 2 — complete proposal prep', 'Stage 2 — deeper contract requirements and readiness analysis');
 write('ag-dashboard.html', dashboard);
 
 // ---------------------------------------------------------------------------
-// 5) Standalone Analyze Fit report: product is analysis/readiness, not a
-//    resurrected standalone proposal-development service.
+// 5) Standalone Analyze Fit report: product is analysis/readiness (including
+//    integrated Contract Assistance), not the retired standalone proposal service.
 // ---------------------------------------------------------------------------
 let analyzeFit = read('analyze-fit.html');
 analyzeFit = analyzeFit.replace(/PROPOSAL READINESS/g, 'PURSUIT READINESS');
@@ -229,4 +229,4 @@ analyzeFit = analyzeFit.replace(/final bid production/g, 'final pursuit authoriz
 analyzeFit = analyzeFit.replace(/Proposal Checklist/g, 'Response Readiness Checklist');
 write('analyze-fit.html', analyzeFit);
 
-console.log('[rfc-vat-01] returning-member session bridge, state pipeline integration, readiness gate, and product-copy corrections applied.');
+console.log('[rfc-vat-01] returning-member session bridge, state pipeline integration, readiness gate, and product-copy corrections applied; Analyze Fit remains $79.');
