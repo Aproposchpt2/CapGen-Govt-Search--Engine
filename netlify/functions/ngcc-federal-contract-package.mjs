@@ -5,6 +5,7 @@ import { searchSamOpportunities } from './lib/ngcc-sam-opportunities.js';
 
 const require = createRequire(import.meta.url);
 const AdmZip = require('adm-zip');
+const { fetchableSamUrl } = require('./lib/ngcc-federal-workspace.js');
 const MAX_PACKAGE_BYTES = 80 * 1024 * 1024;
 const MAX_FILE_BYTES = 35 * 1024 * 1024;
 
@@ -17,7 +18,7 @@ function ext(type) {
   return ({'application/pdf':'.pdf','application/zip':'.zip','application/msword':'.doc','application/vnd.openxmlformats-officedocument.wordprocessingml.document':'.docx','application/vnd.ms-excel':'.xls','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':'.xlsx','text/plain':'.txt','text/html':'.html','application/json':'.json','image/jpeg':'.jpg','image/png':'.png'})[t] || '';
 }
 async function acquire(url, fallbackName) {
-  const response = await fetch(url, { headers: { 'user-agent': 'APROPOS-Federal-Contract-Workspace/1.0', accept: '*/*' }, redirect: 'follow', signal: AbortSignal.timeout(55000) });
+  const response = await fetch(fetchableSamUrl(url), { headers: { 'user-agent': 'APROPOS-Federal-Contract-Workspace/1.0', accept: '*/*' }, redirect: 'follow', signal: AbortSignal.timeout(55000) });
   if (!response.ok) throw new Error(`Upstream resource returned HTTP ${response.status}.`);
   const declared = Number(response.headers.get('content-length') || 0);
   if (declared > MAX_FILE_BYTES) throw new Error('Resource exceeds package size limit.');
@@ -83,7 +84,15 @@ export default async function handler(req) {
     const bytes = zip.toBuffer();
     if (bytes.length > MAX_PACKAGE_BYTES) return json(413, { ok: false, error: 'This contract package exceeds the direct-download size limit.' });
     const slug = safeName(row.solicitationNumber || row.noticeId || 'Federal-Contract').replace(/\s+/g, '-');
-    return { statusCode: 200, headers: { 'Content-Type': 'application/zip', 'Content-Disposition': `attachment; filename="APROPOS_Federal_Contract_Package_${slug}.zip"`, 'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff' }, isBase64Encoded: true, body: bytes.toString('base64') };
+    return new Response(bytes, {
+      status: 200,
+      headers: {
+        'content-type': 'application/zip',
+        'content-disposition': `attachment; filename="APROPOS_Federal_Contract_Package_${slug}.zip"`,
+        'cache-control': 'private, no-store',
+        'x-content-type-options': 'nosniff',
+      },
+    });
   } catch (error) {
     console.error('[ngcc-federal-contract-package]', error);
     return json(500, { ok: false, error: 'The federal contract package could not be generated.' });
