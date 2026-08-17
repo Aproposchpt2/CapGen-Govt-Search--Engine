@@ -15,6 +15,8 @@ assert.match(detail,/loadProfileSession/,'internal contract detail must require 
 assert.match(detail,/\/api\/federal-contract-package\?id=/,'internal contract detail must hand off package downloads to Apropos');
 assert.doesNotMatch(detail,/sam\.gov/i,'customer contract detail payload must not expose SAM.gov');
 assert.match(pkg,/loadProfileSession/,'package download must require the verified customer session');
+assert.match(pkg,/new Response\(bytes/,'package download must return binary data through the current Netlify Response API');
+assert.match(pkg,/fetchableSamUrl/,'package acquisition must normalize authenticated upstream resource URLs server-side');
 assert.doesNotMatch(pkg,/official_sam_url|source_url\s*:/i,'customer package manifest must not expose upstream URLs');
 assert.doesNotMatch(pkg,/Use the official SAM\.gov|direct SAM\.gov access/i,'package errors must not redirect customers upstream');
 assert.match(page,/Federal Contract Workspace/,'internal customer contract workspace page must exist');
