@@ -41,7 +41,17 @@ jobs:
         run: node scripts/validate-rfc-portal-vat-remediation-02.cjs
       - name: 13 Internal workspace apply
         run: node scripts/apply-rfc-portal-internal-contract-workspace.cjs
-      - name: 14 Internal workspace validate
+      - name: 14A Dashboard internal selection
+        run: node -e "const a=require('node:assert/strict'),s=require('node:fs').readFileSync('dashboard.html','utf8');a.match(s,/\\/federal-contract\\.html\\?id=/);a.doesNotMatch(s,/View Official Listing/i);a.doesNotMatch(s,/href=[\"'\x60][^\"'\x60]*sam\\.gov/i);a.doesNotMatch(s,/r\\.ui_link|ui_link\\s*:/)"
+      - name: 14B Federal match payload
+        run: node -e "const a=require('node:assert/strict'),s=require('node:fs').readFileSync('netlify/functions/ngcc-federal-matches.mjs','utf8');a.doesNotMatch(s,/ui_link\\s*:/);a.doesNotMatch(s,/https:\\/\\/sam\\.gov/i)"
+      - name: 14C Contract detail boundary
+        run: node -e "const a=require('node:assert/strict'),s=require('node:fs').readFileSync('netlify/functions/ngcc-federal-contract.mjs','utf8');a.match(s,/loadProfileSession/);a.match(s,/\\/api\\/federal-contract-package\\?id=/);a.doesNotMatch(s,/https:\\/\\/sam\\.gov|ui_link\\s*:/i)"
+      - name: 14D Package boundary
+        run: node -e "const a=require('node:assert/strict'),s=require('node:fs').readFileSync('netlify/functions/ngcc-federal-contract-package.mjs','utf8');a.match(s,/loadProfileSession/);a.match(s,/new Response\\(bytes/);a.match(s,/fetchableUpstreamUrl/);a.doesNotMatch(s,/official_sam_url|source_url\\s*:/i);a.doesNotMatch(s,/Use the official SAM\\.gov|direct SAM\\.gov access/i)"
+      - name: 14E Workspace page boundary
+        run: node -e "const a=require('node:assert/strict'),s=require('node:fs').readFileSync('federal-contract.html','utf8');a.match(s,/Federal Contract Workspace/);a.match(s,/Download Contract Package/);a.match(s,/Analyze Fit — \\$79/);a.doesNotMatch(s,/href=[\"'\x60][^\"'\x60]*sam\\.gov/i)"
+      - name: 14F Full internal workspace validator
         run: node scripts/validate-rfc-portal-internal-contract-workspace.cjs
       - name: 15 VAT pass04 validate
         run: node scripts/validate-rfc-portal-vat-remediation-04.cjs
