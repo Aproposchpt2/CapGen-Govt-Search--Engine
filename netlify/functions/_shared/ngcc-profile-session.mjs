@@ -89,19 +89,47 @@ function cookieValue(req, name) {
   return '';
 }
 
-export async function loadProfileSession(req) {
-  const token = cookieValue(req, PROFILE_COOKIE);
-  if (!token) return null;
-  const hash = sessionTokenHash(token);
-  const rows = await db(
+async function loadPipelineProfileSession(req) {
+  // RFC_PORTAL_PIPELINE_SESSION_BRIDGE_V1
+  const authorization = req.headers.get('authorization') || '';
+  const match = authorization.match(/^Bearer\s+(.+)$/i);
+  const bearer = match?.[1]?.trim() || '';
+  if (!bearer) return null;
+
+  // A revoked bearer must never recover the merged verified profile, even when
+  // the token itself has not reached expires_at yet.
+  const clientRows = await db(
+    'client_sessions',
+    'GET',
+    `?session_token=eq.${encodeURIComponent(bearer)}&revoked=eq.false&select=email,expires_at,revoked&limit=1`,
+  );
+  const client = clientRows?.[0] || null;
+  if (!client?.email || client.revoked === true) return null;
+  if (client.expires_at && new Date(client.expires_at).getTime() <= Date.now()) return null;
+
+  const email = validEmail(client.email);
+  if (!email) return null;
+  const intakeRows = await db(
     'natcorp_business_intakes',
     'GET',
-    `?intake_kind=eq.business_profile&session_token_hash=eq.${encodeURIComponent(hash)}&select=*&limit=1`,
+    `?intake_kind=eq.business_profile&business_email=eq.${encodeURIComponent(email)}&discovery_status=eq.verified&select=*&order=updated_at.desc&limit=1`,
   );
-  const session = rows?.[0] || null;
-  if (!session) return null;
-  if (session.session_expires_at && new Date(session.session_expires_at).getTime() <= Date.now()) return null;
-  return session;
+  return intakeRows?.[0] || null;
+}
+
+export async function loadProfileSession(req) {
+  const token = cookieValue(req, PROFILE_COOKIE);
+  if (token) {
+    const hash = sessionTokenHash(token);
+    const rows = await db(
+      'natcorp_business_intakes',
+      'GET',
+      `?intake_kind=eq.business_profile&session_token_hash=eq.${encodeURIComponent(hash)}&select=*&limit=1`,
+    );
+    const session = rows?.[0] || null;
+    if (session && (!session.session_expires_at || new Date(session.session_expires_at).getTime() > Date.now())) return session;
+  }
+  return loadPipelineProfileSession(req);
 }
 
 export function publicProfileSession(session) {
