@@ -41,8 +41,14 @@ jobs:
         run: node scripts/validate-rfc-portal-vat-remediation-02.cjs
       - name: 13 Internal workspace apply
         run: node scripts/apply-rfc-portal-internal-contract-workspace.cjs
-      - name: 14A Dashboard internal selection
-        run: node -e "const a=require('node:assert/strict'),s=require('node:fs').readFileSync('dashboard.html','utf8');a.match(s,/\\/federal-contract\\.html\\?id=/);a.doesNotMatch(s,/View Official Listing/i);a.doesNotMatch(s,/href=[\"'\x60][^\"'\x60]*sam\\.gov/i);a.doesNotMatch(s,/r\\.ui_link|ui_link\\s*:/)"
+      - name: 14A1 Dashboard has internal contract route
+        run: node -e "const a=require('node:assert/strict'),s=require('node:fs').readFileSync('dashboard.html','utf8');a.match(s,/\\/federal-contract\\.html\\?id=/)"
+      - name: 14A2 Dashboard removes official-listing action
+        run: node -e "const a=require('node:assert/strict'),s=require('node:fs').readFileSync('dashboard.html','utf8');a.doesNotMatch(s,/View Official Listing/i)"
+      - name: 14A3 Dashboard has no SAM.gov hyperlink
+        run: node -e "const a=require('node:assert/strict'),s=require('node:fs').readFileSync('dashboard.html','utf8');a.doesNotMatch(s,/href=[\"'\x60][^\"'\x60]*sam\\.gov/i)"
+      - name: 14A4 Dashboard does not consume ui_link
+        run: node -e "const a=require('node:assert/strict'),s=require('node:fs').readFileSync('dashboard.html','utf8');a.doesNotMatch(s,/r\\.ui_link|ui_link\\s*:/)"
       - name: 14B Federal match payload
         run: node -e "const a=require('node:assert/strict'),s=require('node:fs').readFileSync('netlify/functions/ngcc-federal-matches.mjs','utf8');a.doesNotMatch(s,/ui_link\\s*:/);a.doesNotMatch(s,/https:\\/\\/sam\\.gov/i)"
       - name: 14C Contract detail boundary
