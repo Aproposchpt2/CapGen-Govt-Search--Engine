@@ -1,0 +1,51 @@
+name: RFC PR61 Build Diagnostics
+
+on:
+  push:
+    branches:
+      - agent/rfc-portal-critical-internal-contract-workspace
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+      - name: 01 tablet sticky execution
+        run: node scripts/apply-ngcc-tablet-sticky-execution.cjs
+      - name: 02 IT search preset
+        run: node scripts/apply-ngcc-it-search-preset.cjs
+      - name: 03 qualification UI
+        run: node scripts/apply-ngcc-qualification-v2-ui.cjs
+      - name: 04 research routing
+        run: node scripts/apply-ngcc-research-routing-v1.cjs
+      - name: 05 Stage05 queue gate
+        run: node scripts/apply-ngcc-stage05-auto-queue-gate.cjs
+      - name: 06 outreach review
+        run: node scripts/apply-ngcc-outreach-review-v1.cjs
+      - name: 07 marketplace claim email
+        run: node scripts/apply-ngcc-marketplace-claim-email-v1.cjs
+      - name: 08 controlled test delivery
+        run: node scripts/apply-ngcc-controlled-test-delivery-v1.cjs
+      - name: 09 VAT pass01 apply
+        run: node scripts/apply-rfc-portal-vat-remediation-01.cjs
+      - name: 10 VAT pass01 validate
+        run: node scripts/validate-rfc-portal-vat-remediation-01.cjs
+      - name: 11 VAT pass02 apply
+        run: node scripts/apply-rfc-portal-vat-remediation-02.cjs
+      - name: 12 VAT pass02 validate
+        run: node scripts/validate-rfc-portal-vat-remediation-02.cjs
+      - name: 13 Internal workspace apply
+        run: node scripts/apply-rfc-portal-internal-contract-workspace.cjs
+      - name: 14 Internal workspace validate
+        run: node scripts/validate-rfc-portal-internal-contract-workspace.cjs
+      - name: 15 VAT pass04 validate
+        run: node scripts/validate-rfc-portal-vat-remediation-04.cjs
+      - name: 16 Syntax check new functions
+        run: |
+          node --check netlify/functions/ngcc-federal-contract.mjs
+          node --check netlify/functions/ngcc-federal-contract-package.mjs
