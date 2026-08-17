@@ -50,7 +50,7 @@ export default async function handler(req) {
         ok: true,
         results: [],
         naics_codes: [],
-        data_source: { relation: 'SAM.gov Contract Opportunities API (live)' },
+        data_source: { relation: 'Federal Contract Opportunities system (official public records, live)' },
         note: 'No NAICS classifications were confirmed on this profile yet, so no federal matching can run. Edit your profile to add NAICS candidates.',
       });
     }
@@ -84,7 +84,7 @@ export default async function handler(req) {
       ok: true,
       results,
       naics_codes: naicsCodes,
-      data_source: { relation: 'SAM.gov Contract Opportunities API (live)' },
+      data_source: { relation: 'Federal Contract Opportunities system (official public records, live)' },
     });
   } catch (error) {
     console.error('[ngcc-federal-matches]', error);

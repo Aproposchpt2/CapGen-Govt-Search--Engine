@@ -80,7 +80,7 @@ export default async function handler(req) {
       ok: true,
       results,
       naics_codes: naicsCodes,
-      data_source: { relation: 'state_contract_opportunities (APIE Procurement Warehouse, this Supabase project)' },
+      data_source: { relation: 'State contract inventory — official government records' },
     });
   } catch (error) {
     console.error('[ngcc-state-matches]', error);
