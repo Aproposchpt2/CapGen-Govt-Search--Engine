@@ -16,8 +16,7 @@ assert.match(dashboard, /State Contracts/, 'dashboard must expose a state-contra
 assert.match(dashboard, /fetch\('\/api\/state-matches'/, 'state dashboard must use the shared verified-profile state matching service');
 assert.doesNotMatch(dashboard, /fetch\('\/.netlify\/functions\/ngem-pipeline'/, 'merged dashboard must not use the legacy Nevada-only NGEM feed');
 assert.doesNotMatch(dashboard, /Open Full Nevada Dashboard/, 'merged portal must not send the primary state workflow to the standalone Nevada site');
-assert.doesNotMatch(dashboard, /Purchase a report — \$79/, 'stale Analyze Fit $79 price must not survive');
-assert.match(dashboard, /Purchase a report — \$49\.99/, 'current Analyze Fit price must be shown when credits are unavailable');
+assert.match(dashboard, /Purchase a report — \$79/, 'Analyze Fit must retain the current $79 price after Contract Assistance integration');
 assert.doesNotMatch(dashboard, /Stage 2 — complete proposal prep/, 'retired proposal-development positioning must not survive in the merged dashboard');
 assert.match(dashboard, /Pursuit Readiness Detail/, 'Analyze Fit Stage 2 must remain positioned as readiness analysis');
 
@@ -36,4 +35,4 @@ assert.match(stateMatches, /APIE released state contract inventory/, 'state matc
 assert.doesNotMatch(analyzeFit, /PROPOSAL READINESS/, 'Analyze Fit report must not present itself as the retired proposal-development service');
 assert.match(analyzeFit, /PURSUIT READINESS/, 'Analyze Fit report must retain pursuit-readiness framing');
 
-console.log('RFC Portal VAT Remediation 01 validation passed.');
+console.log('RFC Portal VAT Remediation 01 validation passed with Analyze Fit retained at $79.');
