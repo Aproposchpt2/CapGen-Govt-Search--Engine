@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>NGCC — Member Access</title>
+<title>Registered Federal Contractors Portal — Member Access</title>
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -36,25 +36,25 @@ input:focus{border-color:var(--gold)}
 </head>
 <body>
 <div class="card">
-  <div class="brand">NGCC</div>
-  <div class="eyebrow">National Government Contract Center</div>
+  <div class="brand">Registered Federal Contractors Portal</div>
+  <div class="eyebrow">Federal + State Contract Dashboard</div>
 
   <section id="emailStep">
     <h1>Access your dashboard.</h1>
     <p class="sub">Enter your registered business email and we will send a secure one-time access code.</p>
     <label for="email">Business Email</label>
     <input id="email" type="email" autocomplete="email" placeholder="you@yourbusiness.com">
-    <p style="font-size:.72rem;color:rgba(255,255,255,.38);margin:-8px 0 12px;line-height:1.5">⌨ Please <strong style="color:rgba(255,255,255,.55)">type</strong> your email address — do not paste.</p>
+    <p style="font-size:.72rem;color:rgba(255,255,255,.38);margin:-8px 0 12px;line-height:1.5">Enter or paste your registered business email.</p>
     <button id="sendBtn" class="btn">Send My Access Code →</button>
     <div id="msg1" class="msg"></div>
   </section>
 
   <section id="codeStep" style="display:none">
     <h1>Enter your access code.</h1>
-    <p class="sub">A 6-digit code was sent to <strong style="color:#fff" id="emailEcho"></strong>. It expires in 15 minutes.</p>
+    <p class="sub">If the email is associated with an eligible portal profile or account, a 6-digit code has been sent to <strong style="color:#fff" id="emailEcho"></strong>. It expires in 10 minutes.</p>
     <label for="code">6-digit code</label>
-    <input id="code" type="text" inputmode="numeric" maxlength="6" placeholder="· · · · · ·">
-    <p style="font-size:.72rem;color:rgba(255,255,255,.38);margin:-8px 0 12px;line-height:1.5">⌨ Please <strong style="color:rgba(255,255,255,.55)">type</strong> the 6-digit code — do not paste.</p>
+    <input id="code" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="· · · · · ·">
+    <p style="font-size:.72rem;color:rgba(255,255,255,.38);margin:-8px 0 12px;line-height:1.5">Enter or paste the 6-digit access code.</p>
     <button id="verifyBtn" class="btn">Open My Dashboard →</button>
     <div id="msg2" class="msg"></div>
     <button id="back" class="back">← Use a different email</button>
@@ -80,7 +80,7 @@ $('sendBtn').addEventListener('click', async () => {
   const b=$('sendBtn'); b.disabled=true; b.textContent='Sending…';
   try{
     const {ok,data} = await post('/.netlify/functions/pipeline-otp-send',{email});
-    if(!ok||!data.ok){m.className='msg err';m.textContent=data.error||'No access record found for that email.';b.disabled=false;b.textContent='Send My Access Code →';return;}
+    if(!ok||!data.ok){m.className='msg err';m.textContent=data.error||'We could not process that login request. Please try again.';b.disabled=false;b.textContent='Send My Access Code →';return;}
     theEmail=email;$('emailEcho').textContent=email;$('emailStep').style.display='none';$('codeStep').style.display='block';$('code').focus();
   }catch(e){m.className='msg err';m.textContent='Request timed out. Please try again.';b.disabled=false;b.textContent='Send My Access Code →';}
 });
@@ -98,7 +98,7 @@ $('verifyBtn').addEventListener('click', async () => {
     if(pTok){sessionStorage.setItem('pipeline_session',pTok);localStorage.setItem('pipeline_session',pTok);}
     localStorage.setItem('capgen_email',theEmail);
     m.className='msg ok';m.textContent='Verified — opening your dashboard…';
-    setTimeout(()=>{window.location.assign('/apropos');},400);
+    setTimeout(()=>{window.location.assign('/dashboard.html');},400);
   }catch(e){m.className='msg err';m.textContent='Connection error. Please try again.';b.disabled=false;b.textContent='Open My Dashboard →';}
 });
 
