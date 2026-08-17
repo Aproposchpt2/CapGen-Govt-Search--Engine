@@ -15,7 +15,6 @@ export default async function handler(req) {
     const email = String(profileSession.business_email || profileSession.contact_email || '').trim().toLowerCase();
     if (!email) return json(409, { ok: false, error: 'Verified profile does not contain a business email.' });
 
-    // Reuse a still-valid session for this verified business when possible.
     const existing = await db(
       'client_sessions',
       'GET',
@@ -32,7 +31,7 @@ export default async function handler(req) {
       email,
       uei: profileSession.verified_profile?.uei || null,
       business_name: profileSession.business_name || profileSession.verified_profile?.business_name || null,
-      account_type: 'subscriber',
+      account_type: 'portal_profile',
       expires_at: expiresAt,
       revoked: false,
     }], 'return=representation');
