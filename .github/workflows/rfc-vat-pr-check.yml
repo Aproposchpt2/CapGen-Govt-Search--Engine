@@ -1,0 +1,30 @@
+name: RFC Portal VAT PR Check
+
+on:
+  push:
+    branches:
+      - agent/rfc-portal-vat-remediation-01
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Apply existing NGCC build patches
+        run: |
+          node scripts/apply-ngcc-tablet-sticky-execution.cjs
+          node scripts/apply-ngcc-it-search-preset.cjs
+          node scripts/apply-ngcc-qualification-v2-ui.cjs
+          node scripts/apply-ngcc-research-routing-v1.cjs
+          node scripts/apply-ngcc-stage05-auto-queue-gate.cjs
+          node scripts/apply-ngcc-outreach-review-v1.cjs
+          node scripts/apply-ngcc-marketplace-claim-email-v1.cjs
+          node scripts/apply-ngcc-controlled-test-delivery-v1.cjs
+      - name: Apply RFC Portal merger remediation
+        run: node scripts/apply-rfc-portal-vat-remediation-01.cjs
+      - name: Validate RFC Portal merger remediation
+        run: node scripts/validate-rfc-portal-vat-remediation-01.cjs
