@@ -1,13 +1,9 @@
 // NGCC — live federal contract matching for a verified business profile.
 // Registered Federal Contractors Portal merge, 2026-08-16.
 //
-// Deliberately NOT a stored/synced table like the state pipeline (NV/AZ/CA
-// scrapers -> state_contract_opportunities). SAM.gov's own Contract
-// Opportunities API is itself the authoritative, current, sortable/searchable
-// federal source -- there is nothing to acquire or keep fresh ourselves. This
-// queries SAM.gov live, scoped to the profile's own NAICS codes, on every
-// dashboard load. If/when NGCC has real subscribers, a caching/storage layer
-// can be added without changing this contract; not needed to ship correctly.
+// The upstream federal source is queried server-side. Customer-facing payloads
+// deliberately do not expose upstream opportunity URLs; selection remains
+// inside the Apropos Federal Contract Workspace.
 import { json, sameOrigin } from './_shared/ngcc-profile-db.mjs';
 import { loadProfileSession } from './_shared/ngcc-profile-session.mjs';
 import { searchSamOpportunities, samDeadline } from './lib/ngcc-sam-opportunities.js';
@@ -29,8 +25,6 @@ function opportunityView(row, matchedNaics) {
     response_deadline: samDeadline(row),
     active: row.active,
     place_of_performance_state: row.placeOfPerformance?.state?.code || null,
-    description_url: row.description || null,
-    ui_link: row.uiLink || (row.noticeId ? `https://sam.gov/opp/${row.noticeId}/view` : null),
   };
 }
 
@@ -50,7 +44,7 @@ export default async function handler(req) {
         ok: true,
         results: [],
         naics_codes: [],
-        data_source: { relation: 'Federal Contract Opportunities system (official public records, live)' },
+        data_source: { relation: 'Official federal public records (queried live server-side)' },
         note: 'No NAICS classifications were confirmed on this profile yet, so no federal matching can run. Edit your profile to add NAICS candidates.',
       });
     }
@@ -67,7 +61,7 @@ export default async function handler(req) {
 
     const byNotice = new Map();
     for (const row of perCode.flat()) {
-      const key = row.notice_id || row.solicitation_number || row.ui_link;
+      const key = row.notice_id || row.solicitation_number;
       if (!key) continue;
       const existing = byNotice.get(key);
       if (existing) { existing.matched_naics = [...new Set([...([].concat(existing.matched_naics)), row.matched_naics])]; continue; }
@@ -84,7 +78,7 @@ export default async function handler(req) {
       ok: true,
       results,
       naics_codes: naicsCodes,
-      data_source: { relation: 'Federal Contract Opportunities system (official public records, live)' },
+      data_source: { relation: 'Official federal public records (queried live server-side)' },
     });
   } catch (error) {
     console.error('[ngcc-federal-matches]', error);
