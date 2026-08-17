@@ -1,0 +1,7 @@
+# Enforce LF line endings for all text files, regardless of local git
+# config (core.autocrlf) on any machine that clones/commits to this repo.
+# Defensive hygiene: this repo's build-time patch scripts (scripts/apply-*.cjs)
+# match literal strings containing bare \n; a CRLF-converted file would
+# silently fail those matches. The actual stored blobs were confirmed LF
+# already (2026-08-17) -- this just guards against that ever changing.
+* text=auto eol=lf

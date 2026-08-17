@@ -15,8 +15,12 @@
 import { db, json, sameOrigin } from './_shared/ngcc-profile-db.mjs';
 import { loadProfileSession } from './_shared/ngcc-profile-session.mjs';
 
-const RELEASE_FILTER = 'natcorp_release_status=eq.eligible&is_latest_version=eq.true&status=eq.open';
-const SELECT = 'select=id,title,description,agency:issuing_organization,solicitation_number:solicitation_number,state_code,jurisdiction_name,place_of_performance_county,procurement_type,response_deadline,posted_at,source_url,official_source_url,acquisition_method';
+// match_readiness_status=eq.MATCH_READY is a real, meaningful gate (99 of
+// 211 currently-eligible rows -- confirmed against live data, unlike
+// naics_codes) -- only show contracts whose document package + requirements
+// extraction actually completed, same standard NAT-CORP's own dashboard uses.
+const RELEASE_FILTER = 'natcorp_release_status=eq.eligible&is_latest_version=eq.true&status=eq.open&match_readiness_status=eq.MATCH_READY';
+const SELECT = 'select=id,title,description,agency:issuing_organization,solicitation_number:solicitation_number,state_code,jurisdiction_name,place_of_performance_county,procurement_type,response_deadline,posted_at,source_url,official_source_url,acquisition_method,package_document_count,match_readiness_status,naics_codes';
 
 function collectTerms(verified) {
   const pool = [
@@ -71,6 +75,9 @@ export default async function handler(req) {
         posted_at: row.posted_at,
         source_url: row.official_source_url || row.source_url,
         acquisition_method: row.acquisition_method,
+        package_document_count: row.package_document_count || 0,
+        match_readiness_status: row.match_readiness_status,
+        naics_codes: row.naics_codes || [],
         match: { basis: 'keyword', detail: hits.length ? `Matched on: ${hits.slice(0, 3).join(', ')}` : 'Matched on procurement-term keyword search.' },
       };
     });
