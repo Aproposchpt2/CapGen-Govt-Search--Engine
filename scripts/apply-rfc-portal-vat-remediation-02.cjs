@@ -157,4 +157,32 @@ const docxLoader = `async function loadProfile(account){
 docx = replaceBetween(docx, docxStart, docxEnd, docxLoader, 'Analyze Fit DOCX merged profile loader');
 write('netlify/functions/analyze-fit-docx.mjs', docx);
 
-console.log('[rfc-vat-02] canonical dashboard/session and merged Analyze Fit profile integration applied.');
+// ---------------------------------------------------------------------------
+// 7) Public portal identity reflects the completed Federal + State merger.
+//    Keep the historical /ngcc purchasing route for compatibility, but the
+//    public product name and canonical domain are the Registered Federal
+//    Contractors Portal at federalcontractorportal.aproposgroupllc.com.
+// ---------------------------------------------------------------------------
+let publicHome = read('index.html');
+publicHome = publicHome.replaceAll('https://ngcc.aproposgroupllc.com/', 'https://federalcontractorportal.aproposgroupllc.com/');
+publicHome = publicHome.replaceAll('Federal Contract Matching for Registered Contractors | Registered Federal Contractors Portal', 'Federal + State Contract Opportunities for Registered Contractors | Registered Federal Contractors Portal');
+publicHome = publicHome.replace('Registered federal contractors receive personalized federal contract matches, intelligent rankings, guided onboarding, Analyze Fit support, and a 14-day free trial.', 'Registered federal contractors receive personalized federal opportunities plus released state contract opportunities, intelligent rankings, guided onboarding, Analyze Fit support, and a 14-day free trial.');
+publicHome = publicHome.replace('Registered federal contractors receive guided onboarding, personalized federal contract matches, intelligent rankings, and Analyze Fit support.', 'Registered federal contractors receive guided onboarding, personalized federal opportunities, released state contract opportunities, intelligent rankings, and Analyze Fit support.');
+publicHome = publicHome.replace('Guided federal contractor onboarding, personalized opportunity matching, intelligent rankings, and Analyze Fit support.', 'Guided contractor onboarding, personalized federal and released state opportunity matching, intelligent rankings, and Analyze Fit support.');
+publicHome = publicHome.replace('Registered Federal Contractors Portal federal procurement intelligence platform', 'Registered Federal Contractors Portal Federal + State procurement intelligence platform');
+publicHome = publicHome.replace('"alternateName":"NGCC"', '"alternateName":"Registered Federal Contractors Portal"');
+publicHome = publicHome.replace('"name":"Federal Contract Matching for Registered Contractors","serviceType":"Personalized federal procurement opportunity matching"', '"name":"Federal + State Contract Opportunities for Registered Contractors","serviceType":"Personalized federal opportunity matching plus released state contract opportunity access"');
+publicHome = publicHome.replace('Apropos Group LLC · Federal Procurement Intelligence', 'Apropos Group LLC · Federal + State Procurement Intelligence');
+publicHome = publicHome.replace('Federal contract matching for registered contractors.', 'Federal + State contract opportunities for registered contractors.');
+publicHome = publicHome.replace('The Registered Federal Contractors Portal serves registered federal contractors. NAT-CORP serves licensed contractors seeking applicable state and local opportunities.', 'The Registered Federal Contractors Portal serves registered federal contractors with personalized federal opportunities plus released state contract opportunities available through the portal. NAT-CORP remains the dedicated state and local contract-intelligence product for licensed contractors.');
+publicHome = publicHome.replace('Your federal business profile becomes the foundation for opportunity matching.', 'Your registered business profile becomes the foundation for Federal + State opportunity matching.');
+publicHome = publicHome.replace('The Registered Federal Contractors Portal organizes federal opportunities around your capabilities, NAICS classifications, certifications, and procurement readiness.', 'The Registered Federal Contractors Portal organizes personalized federal opportunities and released state contract opportunities around your capabilities, NAICS classifications, certifications, and procurement readiness.');
+publicHome = publicHome.replace('Federal capability-profile matching', 'Federal + State capability-profile matching');
+publicHome = publicHome.replace('Personalized federal contract dashboard', 'Personalized Federal + State Contract Dashboard');
+publicHome = publicHome.replace("Your active monthly membership provides continued access to the Portal's guided federal procurement experience.", "Your active monthly membership provides continued access to the Portal's guided Federal + State procurement experience.");
+publicHome = publicHome.replace('A guided path from contractor identification to an informed federal opportunity decision.', 'A guided path from contractor identification to informed Federal + State opportunity decisions.');
+publicHome = publicHome.replace('Build Your Federal Profile', 'Build Your Business Profile');
+publicHome = publicHome.replace('Your personalized dashboard organizes federal', 'Your personalized Federal + State dashboard organizes federal');
+write('index.html', publicHome);
+
+console.log('[rfc-vat-02] canonical dashboard/session, merged Analyze Fit profile integration, and public Federal + State portal identity applied.');
