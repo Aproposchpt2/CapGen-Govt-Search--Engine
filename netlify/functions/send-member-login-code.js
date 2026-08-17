@@ -15,7 +15,9 @@ const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
+  'Cache-Control': 'no-store',
 };
+const GENERIC_ACCEPTED = { ok: true, message: 'If that email is associated with an eligible portal profile or account, an access code has been sent.' };
 const j = (statusCode, body) => ({ statusCode, headers: CORS, body: JSON.stringify(body) });
 const sbH = (extra = {}) => ({ apikey: SERVICE_KEY, authorization: `Bearer ${SERVICE_KEY}`, 'content-type': 'application/json', ...extra });
 
@@ -70,6 +72,14 @@ async function findReturningIdentity(email) {
   return null;
 }
 
+async function invalidateOutstandingCodes(email) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/capgen_member_login_codes?email=eq.${encodeURIComponent(email)}`, {
+    method: 'DELETE',
+    headers: sbH({ Prefer: 'return=minimal' }),
+  });
+  if (!r.ok) throw new Error('Existing login codes could not be invalidated.');
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: CORS, body: '' };
   if (event.httpMethod !== 'POST') return j(405, { error: 'POST only' });
@@ -83,10 +93,17 @@ exports.handler = async (event) => {
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return j(400, { error: 'A valid email is required.' });
 
   const identity = await findReturningIdentity(email);
-  if (!identity) return j(200, { ok: true, found: false });
+  if (!identity) return j(200, GENERIC_ACCEPTED);
 
   const code = String(crypto.randomInt(100000, 1000000));
   const expires_at = new Date(Date.now() + 10 * 60000).toISOString();
+  try {
+    await invalidateOutstandingCodes(email);
+  } catch (e) {
+    console.error('[send-member-login-code]', e.message);
+    return j(502, { error: 'Login code could not be issued.' });
+  }
+
   const codeWrite = await fetch(`${SUPABASE_URL}/rest/v1/capgen_member_login_codes`, {
     method: 'POST',
     headers: sbH({ Prefer: 'return=minimal' }),
@@ -102,14 +119,21 @@ exports.handler = async (event) => {
     <p style="color:#7890b5;font-size:11px;margin-top:20px">A service of Apropos Group LLC</p></div></div>`;
 
   if (RESEND_KEY) {
-    try {
-      await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: { Authorization: 'Bearer ' + RESEND_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from: FROM, to: [email], subject: `Your portal login code: ${code}`, html }),
-      });
-    } catch (e) { console.error('[send-member-login-code]', e.message); }
+    const mail = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + RESEND_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: FROM, to: [email], subject: `Your portal login code: ${code}`, html }),
+    }).catch((e) => ({ ok: false, text: async () => e.message }));
+    if (!mail.ok) {
+      const detail = await mail.text().catch(() => 'unknown email delivery error');
+      console.error('[send-member-login-code] email delivery failed:', String(detail).slice(0, 300));
+      await invalidateOutstandingCodes(email).catch(() => {});
+      return j(502, { error: 'Login code could not be sent.' });
+    }
+  } else {
+    await invalidateOutstandingCodes(email).catch(() => {});
+    return j(500, { error: 'Email delivery is not configured.' });
   }
 
-  return j(200, { ok: true, found: true, account_type: identity.account_type });
+  return j(200, GENERIC_ACCEPTED);
 };
