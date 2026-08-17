@@ -1,11 +1,8 @@
-import { createRequire } from 'node:module';
+import AdmZip from 'adm-zip';
 import { json, sameOrigin } from './_shared/ngcc-profile-db.mjs';
 import { loadProfileSession } from './_shared/ngcc-profile-session.mjs';
 import { searchSamOpportunities } from './lib/ngcc-sam-opportunities.js';
 
-const require = createRequire(import.meta.url);
-const AdmZip = require('adm-zip');
-const { fetchableSamUrl } = require('./lib/ngcc-federal-workspace.js');
 const MAX_PACKAGE_BYTES = 80 * 1024 * 1024;
 const MAX_FILE_BYTES = 35 * 1024 * 1024;
 
@@ -17,8 +14,14 @@ function ext(type) {
   const t = String(type || '').split(';')[0].toLowerCase();
   return ({'application/pdf':'.pdf','application/zip':'.zip','application/msword':'.doc','application/vnd.openxmlformats-officedocument.wordprocessingml.document':'.docx','application/vnd.ms-excel':'.xls','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':'.xlsx','text/plain':'.txt','text/html':'.html','application/json':'.json','image/jpeg':'.jpg','image/png':'.png'})[t] || '';
 }
+function fetchableUpstreamUrl(value) {
+  const parsed = new URL(value);
+  const apiKey = globalThis.Netlify?.env?.get('SAM_API_KEY') || process.env.SAM_API_KEY || '';
+  if (parsed.hostname === 'api.sam.gov' && apiKey && !parsed.searchParams.get('api_key')) parsed.searchParams.set('api_key', apiKey);
+  return parsed.toString();
+}
 async function acquire(url, fallbackName) {
-  const response = await fetch(fetchableSamUrl(url), { headers: { 'user-agent': 'APROPOS-Federal-Contract-Workspace/1.0', accept: '*/*' }, redirect: 'follow', signal: AbortSignal.timeout(55000) });
+  const response = await fetch(fetchableUpstreamUrl(url), { headers: { 'user-agent': 'APROPOS-Federal-Contract-Workspace/1.0', accept: '*/*' }, redirect: 'follow', signal: AbortSignal.timeout(55000) });
   if (!response.ok) throw new Error(`Upstream resource returned HTTP ${response.status}.`);
   const declared = Number(response.headers.get('content-length') || 0);
   if (declared > MAX_FILE_BYTES) throw new Error('Resource exceeds package size limit.');
