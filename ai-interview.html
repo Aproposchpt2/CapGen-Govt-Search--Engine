@@ -63,10 +63,26 @@ async function submitAnswer(){
   finally{btn.disabled=false;input.disabled=false;input.focus()}
 }
 
+async function pollInterview(sessionId){
+  for(let i=0;i<40;i++){
+    await new Promise(r=>setTimeout(r,2000));
+    const r=await fetch('/.netlify/functions/ngcc-ai-interview-start?session_id='+encodeURIComponent(sessionId),{headers:headers(false)});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok||d.ok===false)throw new Error(d.error||'The AI Interview could not continue.');
+    if(d.status!=='generating')return d;
+  }
+  throw new Error('This is taking longer than expected. Refresh the page to check again.');
+}
+
 async function startInterview(){
   const btn=$('startBtn');btn.disabled=true;btn.textContent='Starting…';
   try{
-    const d=await api('/.netlify/functions/ngcc-ai-interview-start',{notice_id:noticeId});
+    let d=await api('/.netlify/functions/ngcc-ai-interview-start',{notice_id:noticeId});
+    if(d.status==='generating'){
+      $('plainLanguagePlaceholder').textContent='Reading the contract and preparing your questions… this can take up to a minute.';
+      d=await pollInterview(d.session_id);
+    }
+    if(d.status==='failed')throw new Error('The AI Interview could not be prepared for this opportunity. Please try again.');
     interviewData=d;
     $('startRow').remove();
     $('inputRow').hidden=false;
