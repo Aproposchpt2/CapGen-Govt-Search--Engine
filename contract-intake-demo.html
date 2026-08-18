@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Apropos Group LLC — Opportunity Intake Portal</title>
+<style>
+:root{--navy:#071a3c;--blue:#0f2a6a;--gold:#d5ae55;--green:#3ee391;--red:#ff7777;--line:rgba(255,255,255,.13);--soft:rgba(255,255,255,.05)}
+*{box-sizing:border-box}body{margin:0;background:var(--navy);color:#eef3ff;font:15px/1.55 Arial,sans-serif;min-height:100vh}
+.hidden{display:none!important}
+.gate{min-height:100vh;display:grid;place-items:center;padding:24px}
+.gate .card{width:min(420px,100%)}
+.shell{max-width:980px;margin:auto;padding:28px 20px 60px}
+.card{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:22px}
+h1,h2,h3{margin:.2rem 0 .5rem;font-family:Georgia,serif;font-weight:400}
+.tag{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);font-weight:700}
+.muted{color:rgba(255,255,255,.58)}
+.brand{margin-bottom:22px}
+.brand strong{font:24px Georgia,serif;display:block;margin-top:4px}
+.steps{display:flex;gap:6px;margin-bottom:22px}
+.step-chip{flex:1;text-align:center;padding:9px 6px;border:1px solid var(--line);border-radius:8px;font-size:11px;letter-spacing:.04em;color:rgba(255,255,255,.45)}
+.step-chip.active{border-color:var(--gold);color:#fff;background:rgba(213,174,85,.08)}
+.step-chip.done{border-color:rgba(62,227,145,.4);color:var(--green)}
+.section{margin-bottom:20px}
+label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.5);margin-bottom:6px}
+input,select{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:6px;padding:11px;color:#fff;font:inherit}
+input[type=file]{padding:9px}
+.row{display:flex;gap:12px;flex-wrap:wrap}
+.row>div{flex:1;min-width:180px}
+button.btn{border:0;border-radius:6px;padding:12px 16px;background:#fff;color:var(--blue);font-weight:700;cursor:pointer;font:inherit}
+button.btn:disabled{opacity:.4;cursor:not-allowed}
+.upload-box{border:1px dashed var(--line);border-radius:9px;padding:16px;text-align:center;margin-bottom:14px}
+.upload-box.attached{border-color:var(--green);border-style:solid}
+.file-name{color:var(--green);font-size:13px;margin-top:6px}
+.opp-list{display:grid;gap:8px;margin-top:14px;max-height:420px;overflow-y:auto}
+.opp{border:1px solid var(--line);border-radius:8px;padding:12px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.opp small{display:block;color:rgba(255,255,255,.5);margin-bottom:3px}
+.opp strong{font-size:13px;line-height:1.3}
+.msg{margin-top:10px;font-size:13px}
+.err{color:var(--red)}
+.ok{color:var(--green)}
+.stage-list{display:grid;gap:8px;margin-top:10px}
+.stage-row{display:flex;justify-content:space-between;align-items:center;border:1px solid var(--line);border-radius:8px;padding:11px 13px}
+.pill{display:inline-block;border-radius:999px;padding:3px 9px;font-size:10px;font-weight:700;letter-spacing:.03em}
+.pill.SUCCESS,.pill.COMPLETE,.pill.SENT{background:rgba(62,227,145,.15);color:var(--green)}
+.pill.RUNNING,.pill.READY{background:rgba(213,174,85,.15);color:var(--gold)}
+.pill.WAITING,.pill.NOT_STARTED{background:rgba(255,255,255,.08);color:rgba(255,255,255,.5)}
+.pill.FAILED,.pill.STALLED{background:rgba(255,119,119,.15);color:var(--red)}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:14px}
+th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line)}
+th{font-size:10px;text-transform:uppercase;color:rgba(255,255,255,.45);letter-spacing:.05em}
+.summary-line{font-size:15px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.summary-line strong{color:var(--green)}
+</style></head>
+<body>
+<div id="gate" class="gate"><div class="card"><div class="tag">Internal — Not Public</div><h1>Opportunity Intake Portal</h1><p class="muted">Apropos Group LLC — pilot demonstration.</p><label>Password</label><input id="pw" type="password"><p><button id="unlock" class="btn">Unlock</button></p><div id="gateMsg" class="msg"></div></div></div>
+
+<div id="app" class="shell hidden">
+  <div class="brand"><div class="tag">Apropos Group LLC</div><strong>Opportunity Intake Portal</strong><p class="muted">An entity submits a contract for processing. Apropos AI Intelligence Operating System takes it from there.</p></div>
+  <div class="steps">
+    <div class="step-chip" id="chip1">1 · Submit Contract</div>
+    <div class="step-chip" id="chip2">2 · Opportunity Pipeline</div>
+    <div class="step-chip" id="chip3">3 · Contractors Discovered</div>
+  </div>
+
+  <section id="stepInput" class="section card">
+    <h2>Step 1 — Submit a Contract</h2>
+    <p class="muted">Upload the solicitation, then confirm the matching opportunity to begin processing.</p>
+    <label>Solicitation Documents</label>
+    <div id="uploadBox" class="upload-box"><input id="fileInput" type="file" accept=".pdf,.doc,.docx"><div id="fileName" class="file-name"></div></div>
+    <div class="row">
+      <div><label>Keyword</label><input id="keyword" placeholder="optional"></div>
+      <div><label>NAICS</label><input id="naics" placeholder="e.g. 541511"></div>
+    </div>
+    <p><button id="searchBtn" class="btn">Search Matching Opportunities</button></p>
+    <div id="searchMsg" class="msg"></div>
+    <div id="oppList" class="opp-list"></div>
+  </section>
+
+  <section id="stepPipeline" class="section card hidden">
+    <h2>Step 2 — Apropos Group LLC Opportunity Pipeline</h2>
+    <p class="muted" id="pipelineSub">Processing <span id="missionTitle"></span></p>
+    <div id="stageList" class="stage-list"></div>
+  </section>
+
+  <section id="stepResults" class="section card hidden">
+    <h2>Step 3 — Contractors Discovered</h2>
+    <p class="muted">Businesses identified by the Apropos AI Intelligence Operating System as qualified for this requirement.</p>
+    <table id="resultsTable"><thead><tr><th>Business</th><th>NAICS Match</th><th>Business Email</th><th>Notification Status</th></tr></thead><tbody id="resultsBody"></tbody></table>
+    <div id="summaryLine" class="summary-line"></div>
+  </section>
+</div>
+
+<script>
+(()=>{'use strict';
+const $=id=>document.getElementById(id);
+const esc=v=>String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+let token=sessionStorage.getItem('ngcc_ops_token')||'';
+const auth=()=>token?{authorization:`Bearer ${token}`}:{};
+async function req(url,opt={}){
+  const r=await fetch(url,{cache:'no-store',...opt,headers:{...(opt.body?{'content-type':'application/json'}:{}),...auth(),...(opt.headers||{})}});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok||d.ok===false){const e=new Error(d.error||`HTTP ${r.status}`);e.payload=d;throw e}
+  return d;
+}
+$('unlock').onclick=async()=>{
+  const password=$('pw').value;
+  if(!password)return;
+  $('unlock').disabled=true;
+  try{
+    const r=await fetch('/.netlify/functions/ngcc-ops-auth',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password})});
+    const d=await r.json();
+    if(!r.ok||!d.ok)throw new Error(d.error||'Access denied');
+    token=d.token;sessionStorage.setItem('ngcc_ops_token',token);
+    $('gate').classList.add('hidden');$('app').classList.remove('hidden');
+  }catch(e){$('gateMsg').className='msg err';$('gateMsg').textContent=e.message;$('unlock').disabled=false}
+};
+if(token){$('gate').classList.add('hidden');$('app').classList.remove('hidden')}
+
+$('fileInput').onchange=()=>{
+  const f=$('fileInput').files[0];
+  if(f){$('uploadBox').classList.add('attached');$('fileName').textContent='Attached: '+f.name}
+};
+
+$('searchBtn').onclick=async()=>{
+  $('searchBtn').disabled=true;$('searchMsg').className='msg';$('searchMsg').textContent='Searching…';$('oppList').innerHTML='';
+  try{
+    const p=new URLSearchParams({limit:'20'});
+    if($('keyword').value.trim())p.set('title',$('keyword').value.trim());
+    if($('naics').value.trim())p.set('naics',$('naics').value.trim());
+    const d=await req('/.netlify/functions/ngcc-ops-sam-opportunities?'+p);
+    const results=d.results||[];
+    $('searchMsg').className='msg ok';$('searchMsg').textContent=results.length+' active opportunities found.';
+    $('oppList').innerHTML=results.map((o,i)=>`<div class="opp"><div><small>${esc(o.organizationName||o.agency||'Agency unavailable')} · NAICS ${esc(o.naicsCode||'—')} · Deadline ${esc(o.responseDeadline||'Unavailable')}</small><strong>${esc(o.title||'Untitled opportunity')}</strong></div><button class="btn" data-idx="${i}">Submit Contract</button></div>`).join('');
+    window.__opps=results;
+    $('oppList').querySelectorAll('[data-idx]').forEach(btn=>btn.onclick=()=>submitContract(window.__opps[Number(btn.dataset.idx)],btn));
+  }catch(e){$('searchMsg').className='msg err';$('searchMsg').textContent=e.message}
+  finally{$('searchBtn').disabled=false}
+};
+
+let pollTimer=null;
+async function submitContract(opp,btn){
+  btn.disabled=true;btn.textContent='Submitting…';
+  try{
+    const created=await req('/.netlify/functions/ngcc-ops-mission-control',{method:'POST',body:JSON.stringify({action:'create',opportunity:opp})});
+    const missionId=created.mission.id;
+    req('/.netlify/functions/ngcc-demo-pipeline-background',{method:'POST',body:JSON.stringify({mission_id:missionId,opportunity:opp})}).catch(()=>{});
+    $('stepInput').classList.add('hidden');
+    $('stepPipeline').classList.remove('hidden');
+    $('chip1').classList.add('done');$('chip2').classList.add('active');
+    $('missionTitle').textContent=opp.title||'Selected opportunity';
+    startPolling(missionId);
+  }catch(e){btn.disabled=false;btn.textContent='Submit Contract';alert(e.message)}
+}
+
+const STAGE_LABELS={OPPORTUNITY_DISCOVERY:'Opportunity Discovery',CONTRACT_DNA:'Contract DNA',BUSINESS_SEARCH_DNA:'Business Search DNA',SAM_CONTRACTOR_DISCOVERY:'SAM Contractor Discovery',CONTACT_DISCOVERY:'Contractor Research & Contact Discovery',CONTRACTOR_QUALIFICATION:'Contractor Qualification',BUSINESS_OUTREACH:'Business Outreach',RESPONSE_CONTRACT_ASSISTANCE:'Response / Contract Assistance'};
+
+function renderStages(steps){
+  $('stageList').innerHTML=(steps||[]).map(s=>`<div class="stage-row"><span>${esc(STAGE_LABELS[s.step_code]||s.step_code)}</span><span class="pill ${esc(s.derived_status||s.status)}">${esc(s.derived_status||s.status)}</span></div>`).join('');
+}
+
+function renderResults(operationalState){
+  const candidates=operationalState.ranked_candidates||[];
+  const outreach=operationalState.outreach_result;
+  if(!candidates.length)return false;
+  $('stepResults').classList.remove('hidden');
+  $('chip2').classList.add('done');$('chip3').classList.add('active');
+  const sentByName=new Map((outreach?.sent_list||[]).map(r=>[r.business_name,r]));
+  $('resultsBody').innerHTML=candidates.map(c=>{
+    const sent=sentByName.get(c.business_name);
+    const status=sent?(sent.status==='SENT'?'<span class="pill SENT">Notified</span>':'<span class="pill FAILED">Failed</span>'):'<span class="pill WAITING">Pending</span>';
+    return `<tr><td><b>${esc(c.business_name)}</b></td><td>${esc((c.registered_naics||[])[0]||'—')}</td><td>${esc(c.real_contact_email||c.contact_email||'—')}</td><td>${status}</td></tr>`;
+  }).join('');
+  if(outreach){
+    $('summaryLine').innerHTML=`<strong>✓ ${esc(outreach.summary.sent)} of ${esc(outreach.summary.eligible)} qualified businesses notified.</strong> ${outreach.pilot_note?'<br><span class="muted">'+esc(outreach.pilot_note)+'</span>':''}`;
+    return true;
+  }
+  $('summaryLine').innerHTML=`<span class="muted">${candidates.length} candidate(s) discovered — notification in progress…</span>`;
+  return false;
+}
+
+function startPolling(missionId){
+  if(pollTimer)clearInterval(pollTimer);
+  pollTimer=setInterval(async()=>{
+    try{
+      const d=await req('/.netlify/functions/ngcc-ops-mission-control?mission_id='+encodeURIComponent(missionId));
+      renderStages(d.steps);
+      const state=d.mission?.operational_state;
+      let done=false;
+      if(state&&typeof state==='object')done=renderResults(state);
+      if(done||d.mission?.overall_status==='FAILED'){clearInterval(pollTimer)}
+    }catch(e){console.error('[poll]',e)}
+  },3000);
+}
+})();
+</script>
+</body></html>
