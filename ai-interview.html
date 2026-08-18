@@ -31,6 +31,17 @@ function scoreBannerHtml(original,revised){
 
 function appendMsg(role,html){const log=$('log');const div=document.createElement('div');div.className='msg '+role;div.innerHTML=html;log.appendChild(div);log.scrollTop=log.scrollHeight}
 function updateScore(original,revised){const b=$('scoreBanner');if(b){b.hidden=false}$('scoreOriginal').textContent=original??'—';$('scoreRevised').textContent=revised??'—'}
+function enterOpenMode(msg){mode='open';appendMsg('ai',msg);const dr=$('doneRow');if(dr)dr.hidden=false}
+
+async function closeInterview(){
+  const btn=$('doneBtn');btn.disabled=true;btn.textContent='Ending…';
+  try{
+    await api('/api/ai-interview-open-qa',{session_id:interviewData.session_id,close:true});
+    appendMsg('ai','This interview is complete. Thanks for walking through it — you can review this transcript anytime from Contract Matches.');
+    $('inputRow').hidden=true;
+    $('doneRow').hidden=true;
+  }catch(e){appendMsg('ai','<em>'+esc(e.message)+'</em>');btn.disabled=false;btn.textContent='Done — end interview'}
+}
 
 async function api(path,body){
   const r=await fetch(path,{method:'POST',headers:headers(true),body:JSON.stringify(body||{})});
@@ -54,7 +65,7 @@ async function submitAnswer(){
       appendMsg('ai',`${esc(d.verdict_note||'')}<span class="verdict ${esc(d.verdict)}">${esc(d.verdict)}</span>`);
       updateScore(d.original_fit_score,d.revised_fit_score);
       if(d.next_question){renderQuestion(d.next_question)}
-      else{mode='open';appendMsg('ai','That covers what I needed to verify for this opportunity. Do you have any questions?')}
+      else{enterOpenMode('That covers what I needed to verify for this opportunity. Do you have any questions?')}
     }else if(mode==='open'){
       const d=await api('/api/ai-interview-open-qa',{session_id:interviewData.session_id,question:text});
       appendMsg('ai',esc(d.answer));
@@ -89,14 +100,16 @@ async function startInterview(){
     if(d.resumed){
       (d.answers||[]).forEach(a=>{appendMsg('contractor',esc(a.answer_text));appendMsg('ai',`${esc(a.verdict_note||'')}<span class="verdict ${esc(a.verdict)}">${esc(a.verdict)}</span>`)});
       updateScore(d.original_fit_score,d.revised_fit_score);
-      if(d.next_question){renderQuestion(d.next_question)}
-      else{mode='open';appendMsg('ai','Welcome back. Do you have any questions about this opportunity?')}
+      if(d.status==='complete'){
+        appendMsg('ai','This interview was already completed. Here is the full transcript.');
+        $('inputRow').hidden=true;
+      }else if(d.next_question){renderQuestion(d.next_question)}
+      else{enterOpenMode('Welcome back. Do you have any questions about this opportunity?')}
       return;
     }
     if(d.opening_message)appendMsg('ai',esc(d.opening_message));
     if(d.no_gaps_found||!d.next_question){
-      mode='open';
-      appendMsg('ai','No specific verification gaps were identified for this contract and your profile. Do you have any questions?');
+      enterOpenMode('No specific verification gaps were identified for this contract and your profile. Do you have any questions?');
     }else{
       updateScore(d.original_fit_score,d.revised_fit_score);
       renderQuestion(d.next_question);
@@ -106,7 +119,7 @@ async function startInterview(){
 
 async function init(){
   try{
-    shell(`<div id="plainLanguagePlaceholder" class="status">Preparing this contract's overview…</div>${scoreBannerHtml(null,null)}<div class="log" id="log"></div><div class="input-row" id="inputRow" hidden><textarea id="answerInput" rows="2" placeholder="Type your answer…"></textarea><button class="btn primary" id="sendBtn">Send</button></div><div id="startRow" style="text-align:center;margin-top:8px"><button class="btn primary" id="startBtn">Start AI Interview</button></div><p class="note">This interview is AI-driven: it asks the questions first, based on what this specific contract requires and what your profile confirms. You'll get the floor to ask your own questions at the end.</p>`);
+    shell(`<div id="plainLanguagePlaceholder" class="status">Preparing this contract's overview…</div>${scoreBannerHtml(null,null)}<div class="log" id="log"></div><div class="input-row" id="inputRow" hidden><textarea id="answerInput" rows="2" placeholder="Type your answer…"></textarea><button class="btn primary" id="sendBtn">Send</button></div><div id="doneRow" hidden style="text-align:center;margin-top:10px"><button class="btn" id="doneBtn">Done — end interview</button></div><div id="startRow" style="text-align:center;margin-top:8px"><button class="btn primary" id="startBtn">Start AI Interview</button></div><p class="note">This interview is AI-driven: it asks the questions first, based on what this specific contract requires and what your profile confirms. You'll get the floor to ask your own questions at the end.</p>`);
     $('scoreBanner').hidden=true;
     $('startBtn').addEventListener('click',async()=>{
       $('plainLanguagePlaceholder').textContent='Reading the contract…';
@@ -116,6 +129,7 @@ async function init(){
       }
     });
     $('sendBtn').addEventListener('click',submitAnswer);
+    $('doneBtn').addEventListener('click',closeInterview);
     $('answerInput')?.addEventListener?.('keydown',()=>{});
     document.addEventListener('keydown',e=>{if(e.target?.id==='answerInput'&&e.key==='Enter'&&!e.shiftKey){e.preventDefault();submitAnswer()}});
     $('plainLanguagePlaceholder').textContent='Click "Start AI Interview" to begin.';
