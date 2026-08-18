@@ -40,8 +40,8 @@ const samContractorDiscoveryFn = require('./ngcc-ops-sam-contractor-discovery');
 const contactDiscoveryFn = require('./ngcc-ops-contact-discovery');
 const contactDiscoveryBackgroundFn = require('./ngcc-ops-contact-discovery-background');
 const contractorQualificationFn = require('./ngcc-ops-contractor-qualification');
-const controlledOutreachFn = require('./ngcc-ops-controlled-outreach');
 const outreachFn = require('./ngcc-ops-outreach');
+const { toLegacyOutreachCandidate } = require('./lib/ngcc-outreach-control');
 
 const PILOT_INBOX = 'jmitchell1126@gmail.com';
 function redirectToPilotInbox(candidate) {
@@ -179,35 +179,52 @@ exports.handler = async event => {
       return stop('CONTACT_DISCOVERY', 'research_not_certified_complete: ' + JSON.stringify(finalStatus.payload.agent_summary || {}));
     }
 
+    // Two different qualification bars, on purpose (Jeff, 2026-08-18):
+    // the strict AI scorer (qualification_status===QUALIFIED + verified
+    // contact + evidence source) is Apropos's own production outreach
+    // standard -- it stays exactly as-is for the real business. For this
+    // DHS-facing pipeline, the qualifying criterion is deliberately
+    // simpler: a NAICS match against what Business Search DNA determined
+    // the contract actually requires. We still run the strict scorer (real
+    // AI reasoning, worth keeping and showing), but a ZERO_RESULT from it
+    // does not stop the DHS pipeline -- the simpler NAICS-match criterion
+    // decides who is "discovered" here, independent of that stricter bar.
     await transition(event, missionId, 'CONTRACTOR_QUALIFICATION', 'RUNNING');
     const qual = await call(contractorQualificationFn, event, { mission_id: missionId, search_run_id: searchRunId, contract_dna: contractDna, business_search_dna: businessSearchDna });
     if (!qual.payload.ok) {
       await transition(event, missionId, 'CONTRACTOR_QUALIFICATION', 'FAILED', { error_message: qual.payload.error || 'Contractor qualification failed.' });
       return stop('CONTRACTOR_QUALIFICATION', qual.payload.error);
     }
-    if (qual.payload.status === 'ZERO_RESULT') {
-      await transition(event, missionId, 'CONTRACTOR_QUALIFICATION', 'ZERO_RESULT', { output_summary: qual.payload.summary || {} });
-      return stop('CONTRACTOR_QUALIFICATION', 'zero_result');
-    }
-    await transition(event, missionId, 'CONTRACTOR_QUALIFICATION', 'SUCCESS', { output_summary: qual.payload.summary || {} });
+    await transition(event, missionId, 'CONTRACTOR_QUALIFICATION', qual.payload.status === 'ZERO_RESULT' ? 'ZERO_RESULT' : 'SUCCESS', {
+      output_summary: qual.payload.summary || {},
+    });
 
     const allCandidates = await listCandidates({ searchRunId });
-    evidence.ranked_candidates = allCandidates;
+    const targetNaics = new Set((businessSearchDna.retrieval?.search_naics || []).map(String));
+    const naicsMatched = allCandidates.filter(c => (c.registered_naics || []).some(code => targetNaics.has(String(code))));
+    evidence.ranked_candidates = naicsMatched.length ? naicsMatched : allCandidates;
     evidence.contacts = allCandidates;
     await saveEvidence(event, missionId, evidence);
 
     await transition(event, missionId, 'BUSINESS_OUTREACH', 'RUNNING');
-    const eligible = allCandidates
-      .filter(c => c.qualification_status === 'QUALIFIED' && c.contact_status === 'VERIFIED' && c.contact_email && (c.contact_source_url || c.source_url))
+    const eligible = naicsMatched
+      .filter(c => c.contact_email)
       .map(c => ({ ...redirectToPilotInbox(c), outreach_approved: true }));
     if (!eligible.length) {
       await transition(event, missionId, 'BUSINESS_OUTREACH', 'WAITING', {
-        waiting_condition: 'Qualification produced candidates, but none met the full outreach bar (verified email + evidence source).',
+        waiting_condition: 'NAICS-matched businesses were found, but none had a discoverable business email to notify.',
       });
       return stop('BUSINESS_OUTREACH', 'no_eligible_contacts');
     }
     const contractPayload = { noticeId: contractDna.notice_id, title: opportunity.title, samUrl: opportunity.samUrl || opportunity.sam_url || null };
-    const prep = await call(controlledOutreachFn, event, { contract: contractPayload, contacts: eligible });
+    // Calling ngcc-ops-outreach's `prepare` action directly, not through
+    // ngcc-ops-controlled-outreach.js -- that wrapper re-applies the strict
+    // Apropos-production bar (QUALIFIED + VERIFIED + evidence source) via
+    // selectApprovedOutreachContacts, which would silently zero out the
+    // simpler NAICS-matched list this pipeline is intentionally using.
+    // prepareOutreach() itself has no such gate -- it only needs a
+    // contact_email per candidate, which `eligible` already guarantees.
+    const prep = await call(outreachFn, event, { action: 'prepare', contract: contractPayload, candidates: eligible.map(toLegacyOutreachCandidate) });
     if (!prep.payload.ok) {
       await transition(event, missionId, 'BUSINESS_OUTREACH', 'FAILED', { error_message: prep.payload.error || 'Outreach draft preparation failed.' });
       return stop('BUSINESS_OUTREACH', prep.payload.error);
