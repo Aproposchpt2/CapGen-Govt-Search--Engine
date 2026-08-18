@@ -87,7 +87,13 @@ function todayUtc() {
 }
 
 function normalizePostedWindow(rawFrom, rawTo, options = {}) {
-  const defaultDays = Math.max(1, Math.min(Number(options.defaultDays || 365), 365));
+  // Capped at 350, not 365: SAM.gov's own "no more than 1 year apart" check
+  // rejected an exact 365-day window in production (confirmed live --
+  // upstream 400 "Date range must be no more than 1 year apart" -- even
+  // though this code's own maxTo guard below allowed it through). Whatever
+  // SAM.gov's exact boundary math is internally, 350 leaves enough margin
+  // that this default window can never be the thing that trips it.
+  const defaultDays = Math.max(1, Math.min(Number(options.defaultDays || 350), 350));
   let from = parseRequestDate(rawFrom, 'postedFrom');
   let to = parseRequestDate(rawTo, 'postedTo');
 
