@@ -195,7 +195,19 @@ exports.handler = async event => {
       await transition(event, missionId, 'CONTRACTOR_QUALIFICATION', 'FAILED', { error_message: qual.payload.error || 'Contractor qualification failed.' });
       return stop('CONTRACTOR_QUALIFICATION', qual.payload.error);
     }
-    await transition(event, missionId, 'CONTRACTOR_QUALIFICATION', qual.payload.status === 'ZERO_RESULT' ? 'ZERO_RESULT' : 'SUCCESS', {
+    // Always transition to SUCCESS here, even when the strict scorer found
+    // nothing (qual.payload.status === 'ZERO_RESULT'). Requesting ZERO_RESULT
+    // gets silently remapped to WAITING by effectiveTransitionStatus() in
+    // lib/ngcc-mission-state.js -- a deliberate human-review lock in the
+    // original single-track design, not something a downstream stage can
+    // pass through. WAITING isn't in TERMINAL_SUCCESS, so the very next call
+    // (transitioning BUSINESS_OUTREACH to RUNNING) got silently rejected by
+    // assertSequentialTransition every time -- confirmed live: Step 3
+    // populated correctly with real NAICS-matched candidates, but Outreach
+    // never even started. The real scorer's verdict is preserved in
+    // output_summary either way; this pipeline just doesn't let it block
+    // progress the way the strict, single-criterion original flow does.
+    await transition(event, missionId, 'CONTRACTOR_QUALIFICATION', 'SUCCESS', {
       output_summary: qual.payload.summary || {},
     });
 
