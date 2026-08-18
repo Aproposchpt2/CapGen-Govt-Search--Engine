@@ -164,16 +164,20 @@ exports.handler = async event => {
       researchAttempt = await call(contactDiscoveryBackgroundFn, event, bgPayload);
     }
     const finalStatus = await getJson(contactDiscoveryFn, event, { mission_id: missionId, search_run_id: searchRunId, attempt_number: String(bgPayload.attempt_number || '') });
+    // NOTE: unlike every other stage, Contact Discovery completes ITSELF --
+    // updateResearchStep() (lib/ngcc-contact-research-queue.js) writes the
+    // step directly to SUCCESS/FAILED and unlocks CONTRACTOR_QUALIFICATION
+    // to READY on its own, bypassing mission-control's transition()
+    // entirely (no event is logged for it either -- confirmed live, no
+    // "CONTACT_DISCOVERY -> SUCCESS" event exists even on a run that
+    // genuinely completed). Calling transition() here ourselves duplicates
+    // that and gets rejected -- the state machine refuses a second SUCCESS
+    // transition from an already-SUCCESS step, which silently killed the
+    // whole run on the previous attempt. Just confirm it finished and move
+    // straight on; do not transition this step ourselves.
     if (finalStatus.payload.status !== 'SUCCESS' && finalStatus.payload.status !== 'COMPLETE') {
-      await transition(event, missionId, 'CONTACT_DISCOVERY', 'WAITING', {
-        waiting_condition: 'Contractor research did not reach a certified-complete state after two attempts.',
-        output_summary: { agent_summary: finalStatus.payload.agent_summary || null },
-      });
-      return stop('CONTACT_DISCOVERY', 'research_not_certified_complete');
+      return stop('CONTACT_DISCOVERY', 'research_not_certified_complete: ' + JSON.stringify(finalStatus.payload.agent_summary || {}));
     }
-    await transition(event, missionId, 'CONTACT_DISCOVERY', 'SUCCESS', {
-      output_summary: { queue_summary: finalStatus.payload.research_queue_summary || null },
-    });
 
     await transition(event, missionId, 'CONTRACTOR_QUALIFICATION', 'RUNNING');
     const qual = await call(contractorQualificationFn, event, { mission_id: missionId, search_run_id: searchRunId, contract_dna: contractDna, business_search_dna: businessSearchDna });
