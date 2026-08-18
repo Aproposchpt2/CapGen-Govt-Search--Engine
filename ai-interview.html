@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>AI Interview | Registered Federal Contractors Portal</title>
+<style>:root{--bg:#061126;--panel:#0d1d3b;--line:rgba(255,255,255,.13);--text:#f7f9ff;--muted:#a9b6cd;--cyan:#64d8ff;--gold:#d7b25d;--green:#74e0a7;--red:#ff8a93}*{box-sizing:border-box}body{margin:0;background:linear-gradient(150deg,#061126,#020813);color:var(--text);font-family:Arial,sans-serif;min-height:100vh}.shell{width:min(820px,calc(100% - 28px));margin:auto;padding:18px 0 60px}.top,.card{border:1px solid var(--line);background:rgba(255,255,255,.055);border-radius:16px}.top{padding:14px 18px;display:flex;justify-content:space-between;align-items:center;gap:12px}.brand{font-weight:700}.brand small{display:block;font-size:.68rem;color:var(--muted);margin-top:3px}.btn{border:1px solid var(--line);background:rgba(255,255,255,.07);color:#fff;text-decoration:none;border-radius:9px;padding:.7rem 1rem;font-weight:700;cursor:pointer;font:inherit}.btn.primary{background:var(--cyan);color:#05213b;border-color:transparent}.btn:disabled{opacity:.5;cursor:not-allowed}.card{padding:20px;margin-top:14px}.status{color:var(--muted);padding:30px;text-align:center}.error{color:var(--red)}h1{font:400 clamp(1.6rem,4vw,2.2rem) Georgia,serif;margin:.2rem 0 .6rem}.eyebrow{color:var(--gold);font-size:.68rem;letter-spacing:.15em;text-transform:uppercase;font-weight:800}.plain-block{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:10px}.plain-block b{display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px}.score-banner{display:flex;align-items:center;gap:16px;margin:16px 0;padding:14px 16px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid var(--line)}.score-side{display:flex;flex-direction:column;align-items:center;min-width:100px}.score-side small{font-size:.62rem;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}.score-side b{font-size:1.5rem}.score-side.live b{color:var(--green)}.score-arrow{color:var(--muted);font-size:1.3rem}.log{display:flex;flex-direction:column;gap:12px;margin:16px 0}.msg{padding:11px 14px;border-radius:10px;font-size:.92rem;line-height:1.55;max-width:88%}.msg.ai{background:rgba(100,216,255,.09);border:1px solid rgba(100,216,255,.18);align-self:flex-start}.msg.contractor{background:var(--cyan);color:#05213b;align-self:flex-end;font-weight:600}.verdict{display:inline-block;margin-top:7px;font-size:.68rem;font-weight:800;letter-spacing:.03em;padding:2px 9px;border-radius:999px}.verdict.CONFIRMED{background:rgba(116,224,167,.18);color:var(--green)}.verdict.DENIED{background:rgba(255,138,147,.18);color:var(--red)}.verdict.PARTIAL{background:rgba(215,178,85,.2);color:var(--gold)}.verdict.UNCLEAR{background:rgba(255,255,255,.1);color:var(--muted)}.input-row{display:flex;gap:8px;margin-top:6px}.input-row textarea{flex:1;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.05);color:#fff;font:inherit;resize:vertical}.note{font-size:.75rem;color:var(--muted);margin-top:10px}
+@media(max-width:650px){.top{align-items:flex-start;flex-direction:column}}
+</style></head>
+<body><div class="shell">
+<header class="top"><div class="brand">Registered Federal Contractors Portal<small>AI Interview</small></div><a class="btn" id="backBtn" href="/dashboard.html">← Back to Contract Matches</a></header>
+<main id="workspace"><div class="status">Loading your contract workspace…</div></main>
+</div>
+<script>(()=>{'use strict';
+const $=id=>document.getElementById(id),q=new URLSearchParams(location.search),noticeId=q.get('id')||'',token=sessionStorage.getItem('pipeline_session')||localStorage.getItem('pipeline_session')||'';
+const headers=(json)=>{const h=token?{Authorization:'Bearer '+token}:{};if(json)h['Content-Type']='application/json';return h};
+const esc=v=>String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const root=$('workspace');
+if(!noticeId){root.innerHTML='<div class="status error">No contract was selected.</div>'}
+
+let interviewData=null,mode='idle',currentQuestion=null;
+
+function shell(inner){root.innerHTML=`<section class="card"><div class="eyebrow">AI Interview</div><h1>Verifying this opportunity with you</h1>${inner}</section>`}
+
+function renderPlainLanguage(pl){
+  if(!pl||!pl.opportunity_summary)return'';
+  const dates=(pl.key_dates||[]).map(d=>`<div>${esc(d.label)}: ${esc(d.value)}</div>`).join('');
+  const notSpecified=(pl.not_specified_in_listing||[]).length?`<div class="plain-block"><b>Not stated in the listing</b>${(pl.not_specified_in_listing||[]).map(x=>`<div>• ${esc(x)}</div>`).join('')}</div>`:'';
+  return `<div class="plain-block"><b>What the government is buying</b>${esc(pl.opportunity_summary)}</div><div class="plain-block"><b>What you'd deliver</b>${esc(pl.what_youd_deliver||'')}</div>${dates?`<div class="plain-block"><b>Key dates</b>${dates}</div>`:''}<div class="plain-block"><b>How the winner is chosen</b>${esc(pl.how_theyll_choose||'')}</div>${notSpecified}`;
+}
+
+function scoreBannerHtml(original,revised){
+  return `<div class="score-banner" id="scoreBanner"><div class="score-side"><small>Original</small><b id="scoreOriginal">${esc(original??'—')}</b></div><div class="score-arrow">→</div><div class="score-side live"><small>Current</small><b id="scoreRevised">${esc(revised??'—')}</b></div></div>`;
+}
+
+function appendMsg(role,html){const log=$('log');const div=document.createElement('div');div.className='msg '+role;div.innerHTML=html;log.appendChild(div);log.scrollTop=log.scrollHeight}
+function updateScore(original,revised){const b=$('scoreBanner');if(b){b.hidden=false}$('scoreOriginal').textContent=original??'—';$('scoreRevised').textContent=revised??'—'}
+
+async function api(path,body){
+  const r=await fetch(path,{method:'POST',headers:headers(true),body:JSON.stringify(body||{})});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok||d.ok===false)throw new Error(d.error||'The AI Interview could not continue.');
+  return d;
+}
+
+function renderQuestion(qu){
+  mode='answering';currentQuestion=qu;
+  appendMsg('ai',esc(qu.question_text));
+}
+
+async function submitAnswer(){
+  const input=$('answerInput'),text=input.value.trim();if(!text)return;
+  const btn=$('sendBtn');btn.disabled=true;input.disabled=true;
+  appendMsg('contractor',esc(text));input.value='';
+  try{
+    if(mode==='answering'){
+      const d=await api('/.netlify/functions/ngcc-ai-interview-answer',{session_id:interviewData.session_id,question_id:currentQuestion.id,answer_text:text});
+      appendMsg('ai',`${esc(d.verdict_note||'')}<span class="verdict ${esc(d.verdict)}">${esc(d.verdict)}</span>`);
+      updateScore(d.original_fit_score,d.revised_fit_score);
+      if(d.next_question){renderQuestion(d.next_question)}
+      else{mode='open';appendMsg('ai','That covers what I needed to verify for this opportunity. Do you have any questions?')}
+    }else if(mode==='open'){
+      const d=await api('/.netlify/functions/ngcc-ai-interview-open-qa',{session_id:interviewData.session_id,question:text});
+      appendMsg('ai',esc(d.answer));
+    }
+  }catch(e){appendMsg('ai','<em>'+esc(e.message)+'</em>')}
+  finally{btn.disabled=false;input.disabled=false;input.focus()}
+}
+
+async function startInterview(){
+  const btn=$('startBtn');btn.disabled=true;btn.textContent='Starting…';
+  try{
+    const d=await api('/.netlify/functions/ngcc-ai-interview-start',{notice_id:noticeId});
+    interviewData=d;
+    $('startRow').remove();
+    $('inputRow').hidden=false;
+    if(d.resumed){
+      (d.answers||[]).forEach(a=>{appendMsg('contractor',esc(a.answer_text));appendMsg('ai',`${esc(a.verdict_note||'')}<span class="verdict ${esc(a.verdict)}">${esc(a.verdict)}</span>`)});
+      updateScore(d.original_fit_score,d.revised_fit_score);
+      if(d.next_question){renderQuestion(d.next_question)}
+      else{mode='open';appendMsg('ai','Welcome back. Do you have any questions about this opportunity?')}
+      return;
+    }
+    if(d.opening_message)appendMsg('ai',esc(d.opening_message));
+    if(d.no_gaps_found||!d.next_question){
+      mode='open';
+      appendMsg('ai','No specific verification gaps were identified for this contract and your profile. Do you have any questions?');
+    }else{
+      updateScore(d.original_fit_score,d.revised_fit_score);
+      renderQuestion(d.next_question);
+    }
+  }catch(e){appendMsg('ai','<em>'+esc(e.message)+'</em>');btn.disabled=false;btn.textContent='Start AI Interview'}
+}
+
+async function init(){
+  try{
+    shell(`<div id="plainLanguagePlaceholder" class="status">Preparing this contract's overview…</div>${scoreBannerHtml(null,null)}<div class="log" id="log"></div><div class="input-row" id="inputRow" hidden><textarea id="answerInput" rows="2" placeholder="Type your answer…"></textarea><button class="btn primary" id="sendBtn">Send</button></div><div id="startRow" style="text-align:center;margin-top:8px"><button class="btn primary" id="startBtn">Start AI Interview</button></div><p class="note">This interview is AI-driven: it asks the questions first, based on what this specific contract requires and what your profile confirms. You'll get the floor to ask your own questions at the end.</p>`);
+    $('scoreBanner').hidden=true;
+    $('startBtn').addEventListener('click',async()=>{
+      $('plainLanguagePlaceholder').textContent='Reading the contract…';
+      await startInterview();
+      if(interviewData?.plain_language){
+        $('plainLanguagePlaceholder').outerHTML=renderPlainLanguage(interviewData.plain_language);
+      }
+    });
+    $('sendBtn').addEventListener('click',submitAnswer);
+    $('answerInput')?.addEventListener?.('keydown',()=>{});
+    document.addEventListener('keydown',e=>{if(e.target?.id==='answerInput'&&e.key==='Enter'&&!e.shiftKey){e.preventDefault();submitAnswer()}});
+    $('plainLanguagePlaceholder').textContent='Click "Start AI Interview" to begin.';
+  }catch(e){root.innerHTML='<div class="status error">'+esc(e.message)+'</div>'}
+}
+if(noticeId)init();
+})();</script>
+</body></html>
