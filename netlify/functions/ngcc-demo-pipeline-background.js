@@ -50,8 +50,6 @@ function redirectToPilotInbox(candidate) {
   return { ...candidate, real_contact_email: candidate.contact_email, contact_email: `${user}+${tagSource}@${domain}` };
 }
 
-const MAX_CONTACT_DISCOVERY_ROUNDS = 6;
-
 async function call(fn, event, body) {
   const nestedEvent = { ...event, httpMethod: 'POST', body: JSON.stringify(body) };
   const res = await fn.handler(nestedEvent);
@@ -152,21 +150,30 @@ exports.handler = async event => {
       return stop('CONTACT_DISCOVERY', kickoff.payload.error);
     }
     const bgPayload = kickoff.payload.background_payload;
-    let contactStatus = kickoff.payload.status;
-    let rounds = 0;
-    while (contactStatus !== 'COMPLETE' && contactStatus !== 'FAILED' && rounds < MAX_CONTACT_DISCOVERY_ROUNDS) {
-      rounds += 1;
-      await call(contactDiscoveryBackgroundFn, event, bgPayload);
-      const poll = await getJson(contactDiscoveryFn, event, { mission_id: missionId, search_run_id: searchRunId, attempt_number: String(bgPayload.attempt_number || '') });
-      contactStatus = poll.payload.status;
+    // ngcc-ops-contact-discovery-background.js runs every assigned worker to
+    // completion internally (Promise.all over all agents) before it ever
+    // returns, and it directly writes the step's final SUCCESS/FAILED status
+    // itself. It is a single blocking unit of work, not a "do one chunk,
+    // call again" worker -- calling it repeatedly (the original bug here)
+    // re-enters its internal attempt bookkeeping mid-flight and resets
+    // progress instead of resuming it. Call it exactly once and trust its
+    // own completion signal; retry the whole attempt at most once if it
+    // reports a worker failure.
+    let researchAttempt = await call(contactDiscoveryBackgroundFn, event, bgPayload);
+    if (researchAttempt.statusCode >= 500) {
+      researchAttempt = await call(contactDiscoveryBackgroundFn, event, bgPayload);
     }
-    if (contactStatus !== 'COMPLETE') {
+    const finalStatus = await getJson(contactDiscoveryFn, event, { mission_id: missionId, search_run_id: searchRunId, attempt_number: String(bgPayload.attempt_number || '') });
+    if (finalStatus.payload.status !== 'SUCCESS' && finalStatus.payload.status !== 'COMPLETE') {
       await transition(event, missionId, 'CONTACT_DISCOVERY', 'WAITING', {
-        waiting_condition: `Contractor research did not finish within ${MAX_CONTACT_DISCOVERY_ROUNDS} automated rounds.`,
+        waiting_condition: 'Contractor research did not reach a certified-complete state after two attempts.',
+        output_summary: { agent_summary: finalStatus.payload.agent_summary || null },
       });
-      return stop('CONTACT_DISCOVERY', 'incomplete_after_max_rounds');
+      return stop('CONTACT_DISCOVERY', 'research_not_certified_complete');
     }
-    await transition(event, missionId, 'CONTACT_DISCOVERY', 'SUCCESS', { output_summary: { rounds_executed: rounds } });
+    await transition(event, missionId, 'CONTACT_DISCOVERY', 'SUCCESS', {
+      output_summary: { queue_summary: finalStatus.payload.research_queue_summary || null },
+    });
 
     await transition(event, missionId, 'CONTRACTOR_QUALIFICATION', 'RUNNING');
     const qual = await call(contractorQualificationFn, event, { mission_id: missionId, search_run_id: searchRunId, contract_dna: contractDna, business_search_dna: businessSearchDna });
