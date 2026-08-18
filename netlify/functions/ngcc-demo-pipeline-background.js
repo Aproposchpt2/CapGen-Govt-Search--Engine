@@ -201,8 +201,20 @@ exports.handler = async event => {
 
     const allCandidates = await listCandidates({ searchRunId });
     const targetNaics = new Set((businessSearchDna.retrieval?.search_naics || []).map(String));
-    const naicsMatched = allCandidates.filter(c => (c.registered_naics || []).some(code => targetNaics.has(String(code))));
-    evidence.ranked_candidates = naicsMatched.length ? naicsMatched : allCandidates;
+    // registered_naics is an array of objects ({naics_code, description, ...}),
+    // not plain code strings -- comparing the object itself against the
+    // target set always misses, which silently fell through to "show every
+    // discovered candidate" (the fallback below) rather than a real NAICS
+    // match on a live test run. Extract naics_code explicitly.
+    const candidateNaicsCodes = c => (c.registered_naics || []).map(entry => String(entry?.naics_code ?? entry));
+    const naicsMatched = allCandidates.filter(c => candidateNaicsCodes(c).some(code => targetNaics.has(code)));
+    // No silent fallback to "show everyone" -- SAM Contractor Discovery
+    // itself only returns entities found via a NAICS-code search, so a
+    // correctly-matched candidate here should be the common case, not the
+    // exception. If it's ever genuinely empty, that's real information
+    // (nothing in the discovered pool actually carries the target NAICS),
+    // not something to paper over by relaxing the criterion silently.
+    evidence.ranked_candidates = naicsMatched;
     evidence.contacts = allCandidates;
     await saveEvidence(event, missionId, evidence);
 
@@ -238,7 +250,7 @@ exports.handler = async event => {
       const send = await call(outreachFn, event, { action: 'send', outreach_id: draft.outreach_id });
       const row = {
         business_name: candidate.business_name || draft.business_name || 'Unknown business',
-        naics: (candidate.registered_naics || [])[0] || candidate.naics_code || null,
+        naics: candidate.registered_naics?.[0]?.naics_code || candidate.naics_code || null,
         real_contact_email: candidate.real_contact_email || null,
         delivered_to: candidate.contact_email || null,
         qualification_score: candidate.qualification_score ?? null,

@@ -165,7 +165,9 @@ function renderResults(operationalState){
   $('resultsBody').innerHTML=candidates.map(c=>{
     const sent=sentByName.get(c.business_name);
     const status=sent?(sent.status==='SENT'?'<span class="pill SENT">Notified</span>':'<span class="pill FAILED">Failed</span>'):'<span class="pill WAITING">Pending</span>';
-    return `<tr><td><b>${esc(c.business_name)}</b></td><td>${esc((c.registered_naics||[])[0]||'—')}</td><td>${esc(c.real_contact_email||c.contact_email||'—')}</td><td>${status}</td></tr>`;
+    const naicsList=Array.isArray(c.registered_naics)?c.registered_naics:[];
+    const primaryNaics=(naicsList.find(n=>n&&n.is_primary)||naicsList[0]||{}).naics_code||'—';
+    return `<tr><td><b>${esc(c.business_name)}</b></td><td>${esc(primaryNaics)}</td><td>${esc(c.real_contact_email||c.contact_email||'—')}</td><td>${status}</td></tr>`;
   }).join('');
   if(outreach){
     $('summaryLine').innerHTML=`<strong>✓ ${esc(outreach.summary.sent)} of ${esc(outreach.summary.eligible)} qualified businesses notified.</strong> ${outreach.pilot_note?'<br><span class="muted">'+esc(outreach.pilot_note)+'</span>':''}`;
