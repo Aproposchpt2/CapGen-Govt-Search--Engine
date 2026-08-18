@@ -50,13 +50,13 @@ async function submitAnswer(){
   appendMsg('contractor',esc(text));input.value='';
   try{
     if(mode==='answering'){
-      const d=await api('/.netlify/functions/ngcc-ai-interview-answer',{session_id:interviewData.session_id,question_id:currentQuestion.id,answer_text:text});
+      const d=await api('/api/ai-interview-answer',{session_id:interviewData.session_id,question_id:currentQuestion.id,answer_text:text});
       appendMsg('ai',`${esc(d.verdict_note||'')}<span class="verdict ${esc(d.verdict)}">${esc(d.verdict)}</span>`);
       updateScore(d.original_fit_score,d.revised_fit_score);
       if(d.next_question){renderQuestion(d.next_question)}
       else{mode='open';appendMsg('ai','That covers what I needed to verify for this opportunity. Do you have any questions?')}
     }else if(mode==='open'){
-      const d=await api('/.netlify/functions/ngcc-ai-interview-open-qa',{session_id:interviewData.session_id,question:text});
+      const d=await api('/api/ai-interview-open-qa',{session_id:interviewData.session_id,question:text});
       appendMsg('ai',esc(d.answer));
     }
   }catch(e){appendMsg('ai','<em>'+esc(e.message)+'</em>')}
@@ -66,7 +66,7 @@ async function submitAnswer(){
 async function pollInterview(sessionId){
   for(let i=0;i<40;i++){
     await new Promise(r=>setTimeout(r,2000));
-    const r=await fetch('/.netlify/functions/ngcc-ai-interview-start?session_id='+encodeURIComponent(sessionId),{headers:headers(false)});
+    const r=await fetch('/api/ai-interview-start?session_id='+encodeURIComponent(sessionId),{headers:headers(false)});
     const d=await r.json().catch(()=>({}));
     if(!r.ok||d.ok===false)throw new Error(d.error||'The AI Interview could not continue.');
     if(d.status!=='generating')return d;
@@ -77,7 +77,7 @@ async function pollInterview(sessionId){
 async function startInterview(){
   const btn=$('startBtn');btn.disabled=true;btn.textContent='Starting…';
   try{
-    let d=await api('/.netlify/functions/ngcc-ai-interview-start',{notice_id:noticeId});
+    let d=await api('/api/ai-interview-start',{notice_id:noticeId});
     if(d.status==='generating'){
       $('plainLanguagePlaceholder').textContent='Reading the contract and preparing your questions… this can take up to a minute.';
       d=await pollInterview(d.session_id);
