@@ -100,11 +100,17 @@ async function startInterview(){
     if(d.resumed){
       (d.answers||[]).forEach(a=>{appendMsg('contractor',esc(a.answer_text));appendMsg('ai',`${esc(a.verdict_note||'')}<span class="verdict ${esc(a.verdict)}">${esc(a.verdict)}</span>`)});
       updateScore(d.original_fit_score,d.revised_fit_score);
+      if(d.next_question){renderQuestion(d.next_question);return}
+      const openQa=d.open_qa||[];
+      appendMsg('ai','That covers what I needed to verify for this opportunity.');
+      openQa.forEach(qa=>{appendMsg('contractor',esc(qa.question));appendMsg('ai',esc(qa.answer))});
       if(d.status==='complete'){
         appendMsg('ai','This interview was already completed. Here is the full transcript.');
         $('inputRow').hidden=true;
-      }else if(d.next_question){renderQuestion(d.next_question)}
-      else{enterOpenMode('Welcome back. Do you have any questions about this opportunity?')}
+      }else{
+        mode='open';const dr=$('doneRow');if(dr)dr.hidden=false;
+        if(!openQa.length)appendMsg('ai','Do you have any questions about this opportunity?');
+      }
       return;
     }
     if(d.opening_message)appendMsg('ai',esc(d.opening_message));

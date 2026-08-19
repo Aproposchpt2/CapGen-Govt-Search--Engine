@@ -32,6 +32,7 @@ function toClientShape(row) {
     opening_message: plainLanguage?._opening_message || null,
     questions: row.questions || [],
     answers: row.answers || [],
+    open_qa: row.open_qa || [],
     next_question: (row.status === 'in_progress') ? nextQuestion : null,
     no_gaps_found: row.status === 'awaiting_open_questions' && !(row.answers || []).length,
     original_fit_score: row.original_fit_score,
