@@ -253,10 +253,22 @@ exports.handler = async event => {
       await transition(event, missionId, 'BUSINESS_OUTREACH', 'FAILED', { error_message: prep.payload.error || 'Outreach draft preparation failed.' });
       return stop('BUSINESS_OUTREACH', prep.payload.error);
     }
-    const ready = (prep.payload.results || []).filter(r => r.outcome === 'DRAFT_READY' && r.outreach_id);
+    // prep.payload.results carries one outcome per eligible candidate:
+    // DRAFT_READY (needs a send attempt below), ALREADY_SENT (a prior run
+    // already delivered to this contact -- correct behavior, not a
+    // failure), or FAILED (prepareOutreach() caught an error for this one
+    // candidate, e.g. a suppressed address). The old code only looked at
+    // DRAFT_READY and silently dropped the other two outcomes -- so a rerun
+    // against contacts that were already emailed showed drafted:0, sent:0,
+    // send_errors:[] and got reported as BUSINESS_OUTREACH FAILED, even
+    // though every eligible contact had, in fact, already been reached.
+    const prepResults = prep.payload.results || [];
+    const ready = prepResults.filter(r => r.outcome === 'DRAFT_READY' && r.outreach_id);
+    const alreadySent = prepResults.filter(r => r.outcome === 'ALREADY_SENT');
+    const prepFailed = prepResults.filter(r => r.outcome === 'FAILED');
     let sent = 0;
-    const sendErrors = [];
-    const sentList = [];
+    const sendErrors = prepFailed.map(r => ({ business_name: r.business_name, stage: 'prepare', error: r.error || 'Outreach draft preparation failed for this contact.' }));
+    const sentList = alreadySent.map(r => ({ business_name: r.business_name, status: 'ALREADY_SENT' }));
     for (const draft of ready) {
       const candidate = eligible.find(c => (c.business_name || c.contact_email) === draft.business_name) || {};
       const send = await call(outreachFn, event, { action: 'send', outreach_id: draft.outreach_id });
@@ -268,21 +280,23 @@ exports.handler = async event => {
         qualification_score: candidate.qualification_score ?? null,
       };
       if (send.payload.ok) { sent += 1; sentList.push({ ...row, status: 'SENT' }); }
-      else { sendErrors.push({ outreach_id: draft.outreach_id, error: send.payload.error }); sentList.push({ ...row, status: 'FAILED', error: send.payload.error }); }
+      else { sendErrors.push({ outreach_id: draft.outreach_id, business_name: row.business_name, stage: 'send', error: send.payload.error }); sentList.push({ ...row, status: 'FAILED', error: send.payload.error }); }
     }
-    await transition(event, missionId, 'BUSINESS_OUTREACH', sent > 0 ? 'SUCCESS' : 'FAILED', {
-      output_summary: { eligible: eligible.length, drafted: ready.length, sent, send_errors: sendErrors },
-      error_message: sent === 0 ? 'All outreach sends failed.' : null,
+    const reachedCount = sent + alreadySent.length;
+    const stepStatus = reachedCount > 0 ? 'SUCCESS' : 'FAILED';
+    await transition(event, missionId, 'BUSINESS_OUTREACH', stepStatus, {
+      output_summary: { eligible: eligible.length, drafted: ready.length, already_sent: alreadySent.length, sent, send_errors: sendErrors },
+      error_message: stepStatus === 'FAILED' ? (sendErrors[0]?.error || 'All outreach sends failed.') : null,
     });
     evidence.outreach_result = {
       pilot_mode: true,
       pilot_note: `All sends redirected to ${PILOT_INBOX} during pilot phase.`,
-      summary: { eligible: eligible.length, drafted: ready.length, sent, failed: sendErrors.length },
+      summary: { eligible: eligible.length, drafted: ready.length, already_sent: alreadySent.length, sent, failed: sendErrors.length },
       sent_list: sentList,
     };
     await saveEvidence(event, missionId, evidence);
 
-    return { statusCode: 200, body: JSON.stringify({ ok: true, mission_id: missionId, eligible: eligible.length, drafted: ready.length, sent, send_errors: sendErrors }) };
+    return { statusCode: 200, body: JSON.stringify({ ok: stepStatus === 'SUCCESS', mission_id: missionId, eligible: eligible.length, drafted: ready.length, already_sent: alreadySent.length, sent, send_errors: sendErrors }) };
   } catch (error) {
     console.error('[ngcc-demo-pipeline-background]', error);
     return { statusCode: 200, body: JSON.stringify({ ok: false, mission_id: missionId, error: String(error?.message || error) }) };
