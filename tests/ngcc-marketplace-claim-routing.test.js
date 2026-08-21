@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const { outreachCopy } = require('../netlify/functions/ngcc-ops-outreach');
 
-const unsubscribeUrl = 'https://ngcc.aproposgroupllc.com/.netlify/functions/ngcc-unsubscribe?email=test%40example.com&t=test-token';
+const unsubscribeUrl = 'https://federalcontractorportal.aproposgroupllc.com/.netlify/functions/ngcc-unsubscribe?email=test%40example.com&t=test-token';
 const copy = outreachCopy({
   noticeId: 'NOTICE-TEST',
   title: 'Federal Test Opportunity',
@@ -32,4 +32,4 @@ assert.match(claimSource, /contact_email=eq\.\$\{encodeURIComponent\(email\)\}&s
 assert.match(claimSource, /claimReference\(rowNoticeId, email\) === reference/);
 assert.match(claimSource, /normalize\(businessName\) === normalize\(row\.business_name\)/);
 
-console.log('NGCC Marketplace front-door claim routing passed.');
+console.log('Registered Federal Contractors Portal Marketplace front-door claim routing passed.');
