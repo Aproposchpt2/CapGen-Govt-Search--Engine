@@ -1,0 +1,326 @@
+name: One-time RFCP SEO and entity remediation
+
+on:
+  push:
+    branches:
+      - seo/rfcp-entity-graph-remediation
+
+permissions:
+  contents: write
+
+jobs:
+  remediate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply SEO, GEO, schema, and entity-graph remediation
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json, re, subprocess
+
+          root = Path('.')
+          primary = 'https://federalcontractorportal.aproposgroupllc.com/'
+          old_https = 'https://ngcc.aproposgroupllc.com/'
+          old_http = 'http://ngcc.aproposgroupllc.com/'
+
+          tracked = subprocess.check_output(['git','ls-files','-z']).decode().split('\0')
+          tracked = [p for p in tracked if p]
+
+          # Remove the legacy-host redirect blocks before the repository-wide
+          # hostname replacement so Netlify cannot acquire a self-redirect.
+          netlify_path = root / 'netlify.toml'
+          netlify = netlify_path.read_text(encoding='utf-8')
+          netlify = re.sub(
+              r'\n# NGCC is retained as an alias only\.[\s\S]*?force = true\n\n\[\[redirects\]\]\n  from = "http://ngcc\.aproposgroupllc\.com/\*"\n  to = "https://federalcontractorportal\.aproposgroupllc\.com/:splat"\n  status = 301\n  force = true\n',
+              '\n', netlify, count=1)
+          netlify = netlify.replace(
+              '# Canonical portal procurement command center — NGCC remains an internal alias.',
+              '# Canonical Registered Federal Contractors Portal procurement command center.')
+          netlify_path.write_text(netlify, encoding='utf-8')
+
+          # Phase 2: remove every legacy hostname occurrence from tracked text.
+          for rel in tracked:
+              p = root / rel
+              if not p.exists() or not p.is_file():
+                  continue
+              raw = p.read_bytes()
+              if b'\0' in raw:
+                  continue
+              try:
+                  text = raw.decode('utf-8')
+              except UnicodeDecodeError:
+                  continue
+              updated = text.replace(old_https, primary).replace(old_http, primary)
+              if updated != text:
+                  p.write_text(updated, encoding='utf-8')
+
+          index_path = root / 'index.html'
+          html = index_path.read_text(encoding='utf-8')
+
+          # Phase 1: public identity cleanup.
+          html = html.replace('<div class="lsub">NGCC</div>', '<div class="lsub">Federal Procurement Intelligence</div>')
+          html = html.replace('<div class="lsub">RFCP</div>', '<div class="lsub">Federal Procurement Intelligence</div>')
+
+          graph = {
+              '@context': 'https://schema.org',
+              '@graph': [
+                  {
+                      '@type': 'Organization',
+                      '@id': primary + '#organization',
+                      'name': 'Registered Federal Contractors Portal',
+                      'url': primary,
+                      'parentOrganization': {
+                          '@type': 'Corporation',
+                          'name': 'APROPOS Group LLC',
+                          'url': 'https://aproposgroupllc.com/'
+                      },
+                      'sameAs': [
+                          'https://aproposgroupllc.com/',
+                          'https://natcorp.aproposgroupllc.com/',
+                          'https://nebc.aproposgroupllc.com/',
+                          'https://marketplace.aproposgroupllc.com/',
+                          'https://github.com/Aproposchpt2'
+                      ],
+                      'contactPoint': {
+                          '@type': 'ContactPoint',
+                          'contactType': 'Customer Support',
+                          'email': 'jmitchell@aiflowdeskpro.com'
+                      }
+                  },
+                  {
+                      '@type': 'WebSite',
+                      '@id': primary + '#website',
+                      'url': primary,
+                      'name': 'Registered Federal Contractors Portal',
+                      'publisher': {'@id': primary + '#organization'},
+                      'inLanguage': 'en-US'
+                  },
+                  {
+                      '@type': 'Service',
+                      '@id': primary + '#service',
+                      'name': 'Federal Contract Matching for Registered Contractors',
+                      'serviceType': 'Personalized federal procurement opportunity matching',
+                      'url': primary,
+                      'provider': {'@id': primary + '#organization'},
+                      'areaServed': {'@type': 'Country', 'name': 'United States'},
+                      'offers': {
+                          '@type': 'Offer',
+                          'name': 'Registered Federal Contractors Portal Monthly Membership',
+                          'url': primary,
+                          'itemOffered': {'@type': 'Service', 'name': 'Portal Membership'},
+                          'price': '99.00',
+                          'priceCurrency': 'USD',
+                          'availability': 'https://schema.org/InStock',
+                          'description': 'Monthly Registered Federal Contractors Portal membership with a 14-day free trial.',
+                          'priceSpecification': {
+                              '@type': 'UnitPriceSpecification',
+                              'price': '99.00',
+                              'priceCurrency': 'USD',
+                              'billingDuration': 'P1M',
+                              'billingIncrement': 1
+                          }
+                      }
+                  },
+                  {
+                      '@type': 'FAQPage',
+                      '@id': primary + '#faq',
+                      'mainEntity': [
+                          {
+                              '@type': 'Question',
+                              'name': 'Who does the Registered Federal Contractors Portal serve?',
+                              'acceptedAnswer': {
+                                  '@type': 'Answer',
+                                  'text': 'The Registered Federal Contractors Portal serves registered federal contractors. Licensed contractors seeking applicable state and local opportunities are served through NAT-CORP.'
+                              }
+                          },
+                          {
+                              '@type': 'Question',
+                              'name': 'What does the Registered Federal Contractors Portal cost?',
+                              'acceptedAnswer': {
+                                  '@type': 'Answer',
+                                  'text': 'Start your 14-day free trial. Continue for $99 per month. The subscription remains active until canceled.'
+                              }
+                          },
+                          {
+                              '@type': 'Question',
+                              'name': 'What does an additional Analyze Fit Report cost?',
+                              'acceptedAnswer': {
+                                  '@type': 'Answer',
+                                  'text': 'An additional Analyze Fit Report costs $79.00 one-time.'
+                              }
+                          },
+                          {
+                              '@type': 'Question',
+                              'name': 'Is the Registered Federal Contractors Portal a government agency or part of SAM.gov?',
+                              'acceptedAnswer': {
+                                  '@type': 'Answer',
+                                  'text': 'No. The Registered Federal Contractors Portal is operated by APROPOS Group LLC. It is not a government agency and is not affiliated with or endorsed by SAM.gov. No contract award is guaranteed.'
+                              }
+                          }
+                      ]
+                  }
+              ]
+          }
+          ld = '<script type="application/ld+json">' + json.dumps(graph, separators=(',', ':')) + '</script>'
+          html, count = re.subn(r'<script type="application/ld\+json">[\s\S]*?</script>', ld, html, count=1)
+          if count != 1:
+              raise SystemExit('Expected exactly one homepage JSON-LD script')
+
+          # Open Graph / canonical must be primary-domain signals. The existing
+          # image asset is retained, as authorized by the remediation brief.
+          html = re.sub(r'<link rel="canonical" href="[^"]+">', f'<link rel="canonical" href="{primary}">', html, count=1)
+          html = re.sub(r'<meta property="og:url" content="[^"]+">', f'<meta property="og:url" content="{primary}">', html, count=1)
+          html = re.sub(r'<meta property="og:image" content="[^"]+">', f'<meta property="og:image" content="{primary}og-ngcc.jpg">', html, count=1)
+          html = re.sub(r'<meta name="twitter:image" content="[^"]+">', f'<meta name="twitter:image" content="{primary}og-ngcc.jpg">', html, count=1)
+
+          # Phase 8: cross-property entity links.
+          entity_links = ('<div class="entity-links" aria-label="APROPOS Group LLC network">'
+              '<a href="https://aproposgroupllc.com/">APROPOS Group LLC</a><span aria-hidden="true"> · </span>'
+              '<a href="https://nebc.aproposgroupllc.com/">National Enterprise Business Center</a><span aria-hidden="true"> · </span>'
+              '<a href="https://natcorp.aproposgroupllc.com/">National Corporate Contract Exchange</a><span aria-hidden="true"> · </span>'
+              '<a href="https://marketplace.aproposgroupllc.com/">APROPOS Marketing Marketplace</a>'
+              '</div>')
+          if 'class="entity-links"' not in html:
+              html = html.replace(
+                  '<div class="foot">Registered Federal Contractors Portal · Operated by APROPOS Group LLC</div>',
+                  '<div class="foot">Registered Federal Contractors Portal · Operated by APROPOS Group LLC</div>' + entity_links,
+                  1)
+          if '.entity-links{' not in html:
+              html = html.replace(
+                  '.disc{margin-top:.7rem;font-size:.68rem;color:rgba(255,255,255,.6)}',
+                  '.entity-links{margin-top:.65rem;display:flex;justify-content:center;gap:.45rem;flex-wrap:wrap;font-size:.72rem;color:rgba(255,255,255,.76)}.entity-links a{text-decoration:underline;text-underline-offset:3px}.disc{margin-top:.7rem;font-size:.68rem;color:rgba(255,255,255,.6)}',
+                  1)
+
+          index_path.write_text(html, encoding='utf-8')
+
+          # Prevent future builds from restoring legacy aliases.
+          apply_script = r'''\
+          'use strict';
+
+          const fs = require('fs');
+
+          const file = 'index.html';
+          let html = fs.readFileSync(file, 'utf8');
+          const PRIMARY = 'https://federalcontractorportal.aproposgroupllc.com/';
+
+          html = html.replaceAll('https://ngcc.aproposgroupllc.com/', PRIMARY);
+          html = html.replaceAll('http://ngcc.aproposgroupllc.com/', PRIMARY);
+          html = html.replaceAll('<div class="lsub">NGCC</div>', '<div class="lsub">Federal Procurement Intelligence</div>');
+          html = html.replace(/,"alternateName":"NGCC"/g, '');
+          html = html.replace(/,"alternateName":\["National Government Contract Center","NGCC"\]/g, '');
+
+          const heroHref = '/headquarters.webp';
+          const heroPreload = `<link rel="preload" as="image" href="${heroHref}" type="image/webp" fetchpriority="high">`;
+          if (!html.includes(`url('${heroHref}')`) && !html.includes(`url("${heroHref}")`) && !html.includes(`url(${heroHref})`)) {
+            throw new Error('RFCP performance remediation: active homepage hero reference not found.');
+          }
+          if (!html.includes(heroPreload)) {
+            if (!/<\\/head>/i.test(html)) throw new Error('RFCP performance remediation: closing head tag not found.');
+            html = html.replace(/<\\/head>/i, `${heroPreload}\\n</head>`);
+          }
+          if ((html.match(/rel="preload" as="image" href="\\/headquarters\\.webp"/g) || []).length !== 1) {
+            throw new Error('RFCP performance remediation: hero preload must appear exactly once.');
+          }
+
+          fs.writeFileSync(file, html, 'utf8');
+          console.log('[rfcp-primary-identity] Applied primary portal identity and high-priority hero preload.');
+          require('./apply-nonblocking-fonts.cjs');
+          '''
+          (root / 'scripts/apply-rfcp-primary-identity.cjs').write_text(apply_script, encoding='utf-8')
+
+          validator = r'''\
+          'use strict';
+
+          const fs = require('fs');
+
+          const html = fs.readFileSync('index.html', 'utf8');
+          const robots = fs.readFileSync('robots.txt', 'utf8');
+          const sitemap = fs.readFileSync('sitemap.xml', 'utf8');
+          const netlify = fs.readFileSync('netlify.toml', 'utf8');
+
+          const primary = 'https://federalcontractorportal.aproposgroupllc.com/';
+          const failures = [];
+
+          if (!html.includes(`<link rel="canonical" href="${primary}">`)) failures.push('homepage canonical is not the primary portal domain');
+          if (!html.includes(`"@id":"${primary}#organization"`)) failures.push('Organization @id is not on the primary portal domain');
+          if (!html.includes(`"@type":"FAQPage"`)) failures.push('FAQPage schema is missing');
+          if (!html.includes(`"@type":"WebSite"`)) failures.push('WebSite schema is missing');
+          if (!html.includes(`"@type":"Service"`)) failures.push('Service schema is missing');
+          if (!html.includes('"sameAs":["https://aproposgroupllc.com/","https://natcorp.aproposgroupllc.com/","https://nebc.aproposgroupllc.com/","https://marketplace.aproposgroupllc.com/","https://github.com/Aproposchpt2"]')) failures.push('APROPOS entity-network sameAs links are incomplete');
+          if (!html.includes('Federal Procurement Intelligence</div>')) failures.push('public portal sub-label is not remediated');
+          if (html.includes('"alternateName":"NGCC"') || html.includes('National Government Contract Center')) failures.push('legacy structured-data aliases remain');
+          if (html.includes('https://ngcc.aproposgroupllc.com/') || html.includes('http://ngcc.aproposgroupllc.com/')) failures.push('legacy hostname remains in homepage');
+          if (!robots.includes(`Sitemap: ${primary}sitemap.xml`)) failures.push('robots.txt sitemap is not on the primary portal domain');
+          if (!sitemap.includes(`<loc>${primary}</loc>`)) failures.push('sitemap root URL is not the primary portal domain');
+          if (netlify.includes('ngcc.aproposgroupllc.com')) failures.push('legacy hostname remains in Netlify configuration');
+
+          if (failures.length) {
+            console.error('[rfcp-primary-identity] Validation failed:');
+            failures.forEach(f => console.error(`- ${f}`));
+            process.exit(1);
+          }
+
+          console.log('[rfcp-primary-identity] PASS — primary domain, schema graph, entity links, and public identity are consistent.');
+          '''
+          (root / 'scripts/validate-rfcp-primary-identity.cjs').write_text(validator, encoding='utf-8')
+
+          # Repository-level hostname gate.
+          leftovers = []
+          for rel in subprocess.check_output(['git','ls-files','-z']).decode().split('\0'):
+              if not rel:
+                  continue
+              p = root / rel
+              if not p.exists() or not p.is_file():
+                  continue
+              raw = p.read_bytes()
+              if b'\0' in raw:
+                  continue
+              try:
+                  text = raw.decode('utf-8')
+              except UnicodeDecodeError:
+                  continue
+              if old_https in text or old_http in text:
+                  leftovers.append(rel)
+          if leftovers:
+              raise SystemExit('Legacy hostname remains in: ' + ', '.join(leftovers))
+
+          # Validate the JSON-LD and required public signals before commit.
+          html = index_path.read_text(encoding='utf-8')
+          m = re.search(r'<script type="application/ld\+json">([\s\S]*?)</script>', html)
+          if not m:
+              raise SystemExit('JSON-LD script missing')
+          parsed = json.loads(m.group(1))
+          types = {node.get('@type') for node in parsed.get('@graph', [])}
+          required = {'Organization','WebSite','Service','FAQPage'}
+          if not required.issubset(types):
+              raise SystemExit('Missing JSON-LD graph types: ' + ', '.join(sorted(required - types)))
+          if 'alternateName' in m.group(1):
+              raise SystemExit('alternateName remains in JSON-LD')
+          if '<div class="lsub">Federal Procurement Intelligence</div>' not in html:
+              raise SystemExit('Public sub-label remediation missing')
+          if 'class="entity-links"' not in html:
+              raise SystemExit('Footer entity links missing')
+          PY
+
+      - name: Run identity validator
+        run: node scripts/validate-rfcp-primary-identity.cjs
+
+      - name: Commit remediation
+        shell: bash
+        run: |
+          if git diff --quiet && git diff --cached --quiet; then
+            echo "No remediation changes required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git diff --name-only -z | xargs -0 -r git add --
+          git diff --cached --check
+          git commit -m "seo: remediate RFCP schema and entity graph"
+          git push origin HEAD:seo/rfcp-entity-graph-remediation
