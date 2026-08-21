@@ -18,27 +18,46 @@ function walk(dir) {
   });
 }
 
-const htmlFiles = walk(root).filter(file => file.endsWith('.html'));
-const runtimeFiles = walk(path.join(root, 'netlify', 'functions')).filter(file => /\.(?:js|mjs|cjs)$/.test(file));
-const publicRuntime = [...htmlFiles, ...runtimeFiles];
-
-for (const file of publicRuntime) {
-  let value = fs.readFileSync(file, 'utf8');
-  value = value
+function normalizeDomains(value) {
+  return value
     .replaceAll('https://ngcc.aproposgroupllc.com', rfcp)
     .replaceAll('https://capgenmkt.aproposgroupllc.com', rfcp)
     .replaceAll('https://ai4websitedesign.com', nebcWebsite)
     .replace(/https:\/\/cdc\.aproposgroupllc\.com\/[A-Za-z0-9._~!$&'()*+,;=:@%/?#-]*/gi, `${rfcp}/analyze-fit.html`)
     .replace(/https:\/\/ai4-product-purchasing\.ai4businesses\.org\/analyze-fit(?:\.html)?[^"'\s<]*/gi, `${rfcp}/analyze-fit.html`)
-    .replace(/https:\/\/ai4-product-purchasing\.ai4businesses\.org\/[A-Za-z0-9._~!$&()*+,;=:@%/?#-]*/gi, `${rfcp}/onboarding`)
-    .replaceAll('National Government Contract Center', 'Registered Federal Contractors Portal')
-    .replaceAll('NGCC Analyze Fit', 'Registered Federal Contractors Portal Analyze Fit')
-    .replace(/Analyze Fit Report \| NGCC/gi, 'Analyze Fit Report | Registered Federal Contractors Portal')
-    .replaceAll('CapGen Pro', 'Registered Federal Contractors Portal')
-    .replaceAll('CapGen', 'Registered Federal Contractors Portal');
-  fs.writeFileSync(file, value, 'utf8');
+    .replace(/https:\/\/ai4-product-purchasing\.ai4businesses\.org\/[A-Za-z0-9._~!$&()*+,;=:@%/?#-]*/gi, `${rfcp}/onboarding`);
 }
 
+function normalizeRenderedHtml(value) {
+  const domainClean = normalizeDomains(value);
+  const parts = domainClean.split(/(<script\b[\s\S]*?<\/script>)/gi);
+  return parts.map(part => {
+    if (/^<script\b/i.test(part)) return part;
+    return part
+      .replaceAll('National Government Contract Center', 'Registered Federal Contractors Portal')
+      .replaceAll('NGCC Analyze Fit', 'Registered Federal Contractors Portal Analyze Fit')
+      .replace(/Analyze Fit Report \| NGCC/gi, 'Analyze Fit Report | Registered Federal Contractors Portal')
+      .replaceAll('CapGen Pro', 'Registered Federal Contractors Portal')
+      .replaceAll('CapGen', 'Registered Federal Contractors Portal');
+  }).join('');
+}
+
+const htmlFiles = walk(root).filter(file => file.endsWith('.html'));
+const runtimeFiles = walk(path.join(root, 'netlify', 'functions')).filter(file => /\.(?:js|mjs|cjs)$/.test(file));
+
+for (const file of htmlFiles) {
+  const before = fs.readFileSync(file, 'utf8');
+  const after = normalizeRenderedHtml(before);
+  if (after !== before) fs.writeFileSync(file, after, 'utf8');
+}
+for (const file of runtimeFiles) {
+  const before = fs.readFileSync(file, 'utf8');
+  const after = normalizeDomains(before)
+    .replaceAll('APROPOS Contract Development Center — Contract Assistance', 'Registered Federal Contractors Portal Contract Assistance');
+  if (after !== before) fs.writeFileSync(file, after, 'utf8');
+}
+
+const publicRuntime = [...htmlFiles, ...runtimeFiles];
 const forbiddenDomains = [
   'ngcc.aproposgroupllc.com',
   'capgenmkt.aproposgroupllc.com',
@@ -58,8 +77,9 @@ for (const file of publicRuntime) {
 
 for (const file of htmlFiles) {
   const value = fs.readFileSync(file, 'utf8');
-  if (/\bCapGen\b/.test(value)) failures.push(`${path.relative(root, file)} still renders retired CapGen branding`);
-  if (value.includes('National Government Contract Center')) failures.push(`${path.relative(root, file)} still renders former federal site name`);
+  const renderedSurface = value.replace(/<script\b[\s\S]*?<\/script>/gi, '');
+  if (/\bCapGen\b/.test(renderedSurface)) failures.push(`${path.relative(root, file)} still renders retired CapGen branding`);
+  if (renderedSurface.includes('National Government Contract Center')) failures.push(`${path.relative(root, file)} still renders former federal site name`);
 }
 
 const homepage = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
@@ -77,7 +97,7 @@ if (!homepage.includes(`${rfcp}/onboarding`)) failures.push('homepage trial CTA 
 
 const analyzeFitPath = path.join(root, 'analyze-fit.html');
 if (fs.existsSync(analyzeFitPath)) {
-  const analyzeFit = fs.readFileSync(analyzeFitPath, 'utf8');
+  const analyzeFit = fs.readFileSync(analyzeFitPath, 'utf8').replace(/<script\b[\s\S]*?<\/script>/gi, '');
   if (!analyzeFit.includes('Registered Federal Contractors Portal Analyze Fit')) failures.push('Analyze Fit page still exposes retired federal branding');
 }
 
