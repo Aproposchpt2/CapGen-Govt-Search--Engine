@@ -1,147 +1,88 @@
-name: NGCC Production Correction
+name: RFCP Production Identity Validation
 
 on:
-  push:
-    branches: [fix-ngcc-production-metadata-v1]
-    paths: [".github/workflows/ngcc-production-correction.yml"]
   pull_request:
     branches: [main]
     paths:
       - "index.html"
-      - "og-ngcc.jpg"
       - "robots.txt"
       - "sitemap.xml"
+      - "netlify.toml"
+      - "scripts/apply-rfcp-primary-identity.cjs"
+      - "scripts/apply-nonblocking-fonts.cjs"
+      - "scripts/validate-rfcp-primary-identity.cjs"
+      - ".github/workflows/ngcc-production-correction.yml"
+  push:
+    branches: [main]
+    paths:
+      - "index.html"
+      - "robots.txt"
+      - "sitemap.xml"
+      - "netlify.toml"
+      - "scripts/apply-rfcp-primary-identity.cjs"
+      - "scripts/apply-nonblocking-fonts.cjs"
+      - "scripts/validate-rfcp-primary-identity.cjs"
       - ".github/workflows/ngcc-production-correction.yml"
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  correct-validate-capture:
+  validate-primary-identity:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
-      - name: Generate corrected homepage and crawl assets
-        run: |
-          python3 -m pip install --quiet Pillow
-          python3 - <<'PY'
-          from pathlib import Path
-          from PIL import Image, ImageDraw, ImageFont
+      - name: Apply final portal identity build step
+        run: node scripts/apply-rfcp-primary-identity.cjs
 
-          html = '''<!doctype html>
-          <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-          <title>Federal Contract Matching for Registered Contractors | NGCC</title>
-          <meta name="description" content="Registered federal contractors receive personalized federal contract matches, intelligent rankings, guided onboarding, Analyze Fit support, and a 14-day free trial.">
-          <link rel="canonical" href="https://ngcc.aproposgroupllc.com/">
-          <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
-          <meta property="og:type" content="website"><meta property="og:site_name" content="National Government Contract Center">
-          <meta property="og:title" content="Federal Contract Matching for Registered Contractors | NGCC">
-          <meta property="og:description" content="Registered federal contractors receive guided onboarding, personalized federal contract matches, intelligent rankings, and Analyze Fit support.">
-          <meta property="og:url" content="https://ngcc.aproposgroupllc.com/"><meta property="og:image" content="https://ngcc.aproposgroupllc.com/og-ngcc.jpg">
-          <meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="National Government Contract Center federal procurement intelligence platform">
-          <meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="Federal Contract Matching for Registered Contractors | NGCC">
-          <meta name="twitter:description" content="Guided federal contractor onboarding, personalized opportunity matching, intelligent rankings, and Analyze Fit support.">
-          <meta name="twitter:image" content="https://ngcc.aproposgroupllc.com/og-ngcc.jpg">
-          <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-          <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,400;0,500;0,700&family=Cormorant:ital,wght@1,500;1,600&family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-          <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://ngcc.aproposgroupllc.com/#organization","name":"National Government Contract Center","alternateName":"NGCC","url":"https://ngcc.aproposgroupllc.com/","parentOrganization":{"@type":"Organization","name":"Apropos Group LLC","url":"https://aproposgroupllc.com/"}},{"@type":"WebSite","@id":"https://ngcc.aproposgroupllc.com/#website","url":"https://ngcc.aproposgroupllc.com/","name":"National Government Contract Center","alternateName":"NGCC","publisher":{"@id":"https://ngcc.aproposgroupllc.com/#organization"}},{"@type":"Service","@id":"https://ngcc.aproposgroupllc.com/#service","name":"Federal Contract Matching for Registered Contractors","serviceType":"Personalized federal procurement opportunity matching","provider":{"@id":"https://ngcc.aproposgroupllc.com/#organization"},"areaServed":{"@type":"Country","name":"United States"},"offers":{"@type":"Offer","name":"NGCC Monthly Membership","itemOffered":{"@type":"Service","name":"NGCC Membership"},"price":"99.00","priceCurrency":"USD","availability":"https://schema.org/InStock","description":"Monthly NGCC membership with a 14-day free trial.","priceSpecification":{"@type":"UnitPriceSpecification","price":"99.00","priceCurrency":"USD","billingDuration":"P1M","billingIncrement":1}}}]}</script>
-          <style>:root{--deep:#061126;--blue:#0f2a6a;--gold:#d5aa4d;--gold2:#e8c982;--green:#34d399;--line:rgba(255,255,255,.14);--disp:'Bodoni Moda',serif;--sub:'Cormorant',serif;--body:'Jost',sans-serif}*{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}body{background:var(--deep);color:#fff;font-family:var(--body);font-weight:300;line-height:1.7}.wrap{max-width:1180px;margin:auto;padding:0 clamp(1.4rem,5vw,4rem)}a{color:inherit}a:focus-visible,.btn:focus-visible{outline:3px solid var(--gold2);outline-offset:4px}.top{position:sticky;top:0;z-index:20;background:rgba(5,24,55,.94);border-bottom:1px solid var(--line);backdrop-filter:blur(16px)}.topin{max-width:1180px;margin:auto;padding:.8rem clamp(1.4rem,4vw,3rem);display:flex;align-items:center;justify-content:space-between;gap:20px}.logo{display:flex;align-items:center;gap:10px;text-decoration:none}.mark{width:36px;height:36px;border:1px solid rgba(213,170,77,.6);border-radius:8px;display:grid;place-items:center;color:var(--gold);font:700 .8rem var(--disp)}.lname{font:400 1rem var(--disp)}.lsub{font-size:.52rem;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.48)}nav{display:flex;gap:22px;align-items:center}nav a{text-decoration:none;text-transform:uppercase;letter-spacing:.13em;font-size:.69rem;color:rgba(255,255,255,.72);font-weight:500}.hero{background-image:linear-gradient(100deg,rgba(2,11,23,.78),rgba(7,20,55,.56) 44%,rgba(15,42,106,.12) 75%),url('/headquarters.webp');background-size:cover;background-position:bottom right;padding-top:clamp(3.5rem,8vh,6rem);padding-bottom:clamp(7rem,16vh,12rem)}.hero .wrap{max-width:none;margin:0;padding-left:clamp(.8rem,2vw,1.8rem);padding-right:clamp(1.4rem,5vw,4rem)}.hero-inner{max-width:760px}.eyebrow{font-size:.62rem;letter-spacing:.23em;text-transform:uppercase;color:var(--gold);font-weight:600;margin-bottom:1rem}h1,h2,h3{font-family:var(--disp);font-weight:400}.hero h1{font-size:clamp(2.2rem,3.6vw,3.4rem);line-height:1.08}.hero h1 em{display:block;font:500 italic .5em var(--sub);color:rgba(255,255,255,.68);margin-top:.5rem}.theme{font:400 clamp(1.1rem,2vw,1.5rem)/1.2 var(--disp);margin:1.2rem 0 1rem}.theme em{font-family:var(--sub);font-style:italic;color:var(--gold2)}.hero-copy{max-width:700px;color:rgba(255,255,255,.82);font-size:clamp(1.02rem,1.5vw,1.2rem);line-height:1.75}.hero-copy p+p{margin-top:1rem}.hero-copy strong{color:#fff;font-weight:500}.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:2rem}.btn{display:inline-flex;justify-content:center;align-items:center;text-decoration:none;border-radius:999px;padding:.92rem 1.5rem;font-size:.75rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase}.primary{background:#fff;color:var(--blue)}.secondary{border:1px solid rgba(255,255,255,.36);background:rgba(255,255,255,.1)}section{border-top:1px solid rgba(255,255,255,.09);padding:clamp(4rem,8vh,7rem) 0}.mission{text-align:center;background:linear-gradient(180deg,#0b1b38,#061126)}.inside{max-width:930px;margin:auto}.mission h2,.head h2{font-size:clamp(2rem,4.5vw,3.6rem);line-height:1.08}.big{font:italic clamp(1.35rem,2.7vw,2.1rem) var(--sub);color:var(--gold2);margin:1.2rem 0}.mission p{max-width:830px;margin:auto;color:rgba(255,255,255,.74)}.mission p+p{margin-top:1rem}.mission strong{color:#fff;font-weight:500}.close{font:400 clamp(1.2rem,2.4vw,1.8rem) var(--disp);margin-top:1.5rem}.head{text-align:center;max-width:780px;margin:0 auto 2.8rem}.head p{color:rgba(255,255,255,.66);margin-top:.9rem}.cards,.analysis-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.card,.analysis-card,.faq-item,.step{border:1px solid var(--line);background:rgba(255,255,255,.055);padding:clamp(1.7rem,4vw,3rem)}.tag{font-size:.6rem;letter-spacing:.19em;text-transform:uppercase;font-weight:700;color:rgba(255,255,255,.55);margin-bottom:.8rem}.membership .tag,.proposal .tag{color:var(--green)}.card h3,.analysis-card h3{font-size:clamp(1.5rem,2.6vw,2.1rem);line-height:1.12;margin-bottom:.8rem}.card p,.analysis-card p,.faq-item p,.step p{color:rgba(255,255,255,.66)}.features{display:grid;gap:.55rem;margin:1.4rem 0 1.8rem}.feature{font-size:.8rem;color:rgba(255,255,255,.74)}.commercial-note{text-align:center;margin-top:1.8rem;color:rgba(255,255,255,.72)}.flow,.faq{background:rgba(255,255,255,.035)}.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.stepnum{font:italic 1.5rem var(--sub);color:var(--gold);margin-bottom:.7rem}.step h3{font-size:1.3rem;margin-bottom:.5rem}.faq-list{max-width:900px;margin:auto;display:grid;gap:12px}.faq-item h3{font-size:1.2rem;margin-bottom:.4rem}.cta{text-align:center;background:linear-gradient(180deg,#0b1b38,#061126)}.cta h2{font-size:clamp(2.2rem,5vw,4rem);line-height:1.05}.cta p{max-width:720px;margin:1rem auto 1.8rem;color:rgba(255,255,255,.68)}.cta .actions{justify-content:center}.small{margin-top:1rem;font-size:.78rem;color:rgba(255,255,255,.58)}footer{padding:2.2rem 0;background:#020914;border-top:1px solid var(--line);text-align:center}.foot{font-size:.76rem;color:rgba(255,255,255,.84);line-height:1.8}.disc{margin-top:.7rem;font-size:.68rem;color:rgba(255,255,255,.6)}@media(max-width:900px){nav{display:none}.cards,.analysis-grid,.steps{grid-template-columns:1fr}}@media(max-width:650px){.actions{flex-direction:column}.btn{width:100%}.hero{background-position:62% center}.hero .wrap{padding-left:1.1rem;padding-right:1.1rem}}</style></head>
-          <body><header class="top"><div class="topin"><a class="logo" href="/" aria-label="National Government Contract Center home"><div class="mark" aria-hidden="true">NG</div><div><div class="lname">NGCC</div><div class="lsub">National Government Contract Center</div></div></a><nav aria-label="Primary navigation"><a href="#who">Who It's For</a><a href="#how">How It Works</a><a href="#analyze">Analyze Fit</a><a href="#faq">FAQ</a><a href="#get-started">Get Started</a><a href="/member-login">Member Login</a><a href="https://ai4-product-purchasing.ai4businesses.org/ngcc-offer.html">Start Your 14-Day Free Trial</a></nav></div></header>
-          <main><section class="hero" aria-label="National Government Contract Center introduction"><div class="wrap"><div class="hero-inner"><div class="eyebrow">Apropos Group LLC · Federal Procurement Intelligence</div><h1>National Government Contract Center<em>Federal contract matching for registered contractors.</em></h1><div class="theme">Opportunity Builds Business. <em>Business Builds Community.</em></div><div class="hero-copy"><p>Apropos Group LLC is committed to supporting economic growth by helping registered federal contractors participate more effectively in the government marketplace.</p><p>When government contracts are fulfilled by qualified businesses, those businesses have an opportunity to grow, strengthen their capabilities, create jobs, and contribute to the economic vitality of the communities they serve.</p><p>When people gain access to meaningful employment, greater financial stability, and new opportunities for advancement, families become stronger and communities become more resilient.</p><p><strong>Businesses grow. People prosper. Communities become stronger.</strong></p></div><div class="actions"><a class="btn primary" href="https://ai4-product-purchasing.ai4businesses.org/ngcc-offer.html">Start Your 14-Day Free Trial</a><a class="btn secondary" href="/member-login">Member Login</a></div></div></div></section>
-          <section class="mission" id="mission"><div class="wrap"><div class="inside"><div class="eyebrow">A Shared Commitment to Economic Opportunity</div><h2>When opportunity reaches businesses, prosperity reaches communities.</h2><div class="big">NGCC is our contribution to that shared mission.</div><p>Apropos Group LLC recognizes that lasting economic progress is built through collaboration. Business-development organizations, workforce advocates, community institutions, local businesses, and those working to expand economic opportunity all play an important role.</p><p>By helping businesses discover government contracting opportunities and participate more effectively in the public marketplace, we aim to support the work already being done to strengthen local economies, create pathways to employment, and build more prosperous communities.</p><p><strong>Apropos Group LLC is proud to stand with those who are committed to helping businesses succeed, creating pathways to employment, and building stronger, more prosperous communities.</strong></p><div class="close">We are not working apart from that mission. We are proud to be part of it.</div></div></div></section>
-          <section id="who"><div class="wrap"><div class="head"><div class="eyebrow">Who It's For</div><h2>Built for registered federal contractors.</h2><p>NGCC serves registered federal contractors. NAT-CORP serves licensed contractors seeking applicable state and local opportunities.</p></div><div class="cards"><article class="card"><div class="tag">Registered Federal Contractors</div><h3>Your federal business profile becomes the foundation for opportunity matching.</h3><p>NGCC organizes federal opportunities around your capabilities, NAICS classifications, certifications, and procurement readiness.</p><div class="features"><div class="feature">Federal capability-profile matching</div><div class="feature">Intelligent opportunity rankings</div><div class="feature">Personalized federal contract dashboard</div><div class="feature">Guided onboarding and navigation</div></div><a class="btn primary" href="/intake?path=federal">Begin Federal Contractor Intake</a></article><article class="card membership"><div class="tag">NGCC Membership</div><h3>Start your 14-day free trial. Continue for $99 per month.</h3><p>Your active monthly membership provides continued access to NGCC's guided federal procurement experience. Cancel anytime before the next billing date; access continues through the current paid billing period.</p><div class="features"><div class="feature">14-day free trial</div><div class="feature">$99 monthly membership after trial</div><div class="feature">Additional Analyze Fit Report: $15 one-time</div><div class="feature">Contract Proposal Development priced separately</div></div><a class="btn secondary" href="https://ai4-product-purchasing.ai4businesses.org/ngcc-offer.html">Start Your 14-Day Free Trial</a></article></div><p class="commercial-note"><strong>NGCC is a subscription service for registered federal contractors.</strong></p></div></section>
-          <section class="flow" id="how"><div class="wrap"><div class="head"><div class="eyebrow">How It Works</div><h2>Build. Match. Decide.</h2><p>A guided path from contractor identification to an informed federal opportunity decision.</p></div><div class="steps"><div class="step"><div class="stepnum">01</div><h3>Build Your Federal Profile</h3><p>Confirm your registered contractor identity and establish the business capability information used for matching.</p></div><div class="step"><div class="stepnum">02</div><h3>Review Ranked Matches</h3><p>Your personalized dashboard organizes federal opportunities around your business and presents intelligent match ratings.</p></div><div class="step"><div class="stepnum">03</div><h3>Analyze the Fit</h3><p>Select an opportunity for deeper decision support before committing significant time and resources to a pursuit.</p></div></div></div></section>
-          <section id="analyze"><div class="wrap"><div class="head"><div class="eyebrow">From Discovery to Decision</div><h2>Understand the match before you pursue.</h2></div><div class="analysis-grid"><article class="analysis-card"><div class="tag">Analyze Fit</div><h3>Additional Analyze Fit Report: $15 one-time.</h3><p>The report provides deeper decision support concerning capability alignment, eligibility, certifications, set-asides, scope, deadlines, execution risk, and overall pursuit readiness. Match ratings provide decision support; contractors must review the official solicitation.</p></article><article class="analysis-card proposal"><div class="tag">Concierge and Proposal Support</div><h3>Contact APROPOS for concierge availability.</h3><p>Concierge pricing is to be determined. Contract Proposal Development is a separate professional service and is priced according to the selected opportunity and required scope of work.</p></article></div></div></section>
-          <section class="faq" id="faq"><div class="wrap"><div class="head"><div class="eyebrow">Frequently Asked Questions</div><h2>Clear answers about NGCC access and support.</h2></div><div class="faq-list"><div class="faq-item"><h3>Who does NGCC serve?</h3><p>NGCC serves registered federal contractors. Licensed contractors seeking applicable state and local opportunities are served through NAT-CORP.</p></div><div class="faq-item"><h3>What does NGCC cost?</h3><p>Start your 14-day free trial. Continue for $99 per month. The subscription remains active until canceled.</p></div><div class="faq-item"><h3>What does an additional Analyze Fit Report cost?</h3><p>An additional Analyze Fit Report costs $15 one-time.</p></div><div class="faq-item"><h3>Is NGCC a government agency or part of SAM.gov?</h3><p>No. NGCC is operated by APROPOS Group LLC. It is not a government agency and is not affiliated with or endorsed by SAM.gov. No contract award is guaranteed.</p></div><div class="faq-item"><h3>How is concierge support priced?</h3><p>Concierge pricing is to be determined. Contact APROPOS for concierge availability.</p></div></div></div></section>
-          <section class="cta" id="get-started"><div class="wrap"><div class="eyebrow">Get Started</div><h2>Prepare your personalized federal contract dashboard.</h2><p>Tell us about your business. NGCC will prepare your personalized federal contract dashboard.</p><div class="actions"><a class="btn primary" href="https://ai4-product-purchasing.ai4businesses.org/ngcc-offer.html">Start Your 14-Day Free Trial</a><a class="btn secondary" href="/member-login">Member Login</a></div><div class="small">Start your 14-day free trial. Continue for $99 per month. Additional Analyze Fit Reports cost $15 one-time.</div></div></section></main>
-          <footer><div class="wrap"><div class="foot">National Government Contract Center · Operated by APROPOS Group LLC</div><div class="disc">NGCC is not a government agency and is not affiliated with or endorsed by SAM.gov. Match ratings provide decision support. Contractors must review the official solicitation. No contract award is guaranteed.</div></div></footer></body></html>'''
+      - name: Validate SEO, schema, entity graph, crawl signals, and performance contract
+        run: node scripts/validate-rfcp-primary-identity.cjs
 
-          Path('index.html').write_text('\n'.join(line.strip() for line in html.splitlines() if line.strip()) + '\n', encoding='utf-8')
-          Path('robots.txt').write_text('User-agent: *\nAllow: /\n\nSitemap: https://ngcc.aproposgroupllc.com/sitemap.xml\n', encoding='utf-8')
-          Path('sitemap.xml').write_text('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://ngcc.aproposgroupllc.com/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url></urlset>\n', encoding='utf-8')
-
-          W,H=1200,630
-          image=Image.new('RGB',(W,H),(6,17,38)); draw=ImageDraw.Draw(image)
-          draw.rectangle((710,0,W,H),fill=(15,42,106)); draw.polygon([(680,0),(850,0),(1060,H),(890,H)],fill=(10,29,66)); draw.rectangle((0,520,W,H),fill=(3,10,25))
-          for i in range(7):
-              x=790+i*50; draw.rectangle((x,150,x+24,490),outline=(213,170,77),width=3)
-          draw.line((760,510,1150,510),fill=(232,201,130),width=4); draw.rectangle((58,54,142,138),outline=(213,170,77),width=3)
-          def font(path,size):
-              return ImageFont.truetype(path,size) if Path(path).exists() else ImageFont.load_default()
-          serif='/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf'; bold='/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf'; sans='/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'
-          draw.text((78,74),'NG',font=font(bold,28),fill=(232,201,130)); draw.text((58,175),'NATIONAL GOVERNMENT',font=font(serif,54),fill='white'); draw.text((58,240),'CONTRACT CENTER',font=font(bold,68),fill='white')
-          draw.text((60,342),'Federal Contract Matching for Registered Contractors',font=font(sans,25),fill=(232,201,130)); draw.text((60,392),'Guided onboarding • Personalized matches • Intelligent rankings',font=font(sans,18),fill=(220,226,238)); draw.text((60,425),'14-day free trial • $99/month',font=font(sans,18),fill=(220,226,238)); draw.text((60,552),'OPPORTUNITY BUILDS BUSINESS. BUSINESS BUILDS COMMUNITY.',font=font(sans,17),fill=(213,170,77))
-          image.save('og-ngcc.jpg','JPEG',quality=72,optimize=True,progressive=True,subsampling=2)
-          PY
-
-      - name: Validate metadata, positioning, schema, routes, and social image
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          from PIL import Image
-          import json,re
-          html=Path('index.html').read_text(encoding='utf-8')
-          def check(value,label):
-              if not value: raise SystemExit('FAIL: '+label)
-              print('PASS:',label)
-          check(html.count('<title>Federal Contract Matching for Registered Contractors | NGCC</title>')==1,'required title')
-          check('Registered federal contractors receive personalized federal contract matches, intelligent rankings, guided onboarding, Analyze Fit support, and a 14-day free trial.' in html,'required meta description')
-          check(len(re.findall(r'<link rel="canonical"',html))==1,'one canonical')
-          check(len(re.findall(r'<meta name="robots"',html))==1,'one robots directive')
-          check(len(re.findall(r'<h1(?:\s|>)',html,re.I))==1,'one H1')
-          check('NGCC serves registered federal contractors.' in html,'federal-only audience')
-          check('Start your 14-day free trial. Continue for $99 per month.' in html,'$99 commercial offer')
-          check('Additional Analyze Fit Report: $15 one-time' in html,'$15 Analyze Fit price')
-          check('Contact APROPOS for concierge availability.' in html,'concierge availability language')
-          for bad in ['Licensed State Businesses','Nevada and California opportunity pathways','Government contract discovery and matching are free','No subscription is required','Free opportunity matching','Unlimited free contract discovery','$19.99','START FREE']:
-              check(bad.lower() not in html.lower(),'prohibited absent: '+bad)
-          match=re.search(r'<script type="application/ld\+json">(.*?)</script>',html,re.S); check(bool(match),'JSON-LD present')
-          data=json.loads(match.group(1)); graph=data['@graph']; service=next(x for x in graph if x['@type']=='Service'); offer=service['offers']
-          check(all(any(x['@type']==t for x in graph) for t in ['Organization','WebSite','Service']),'required schema types')
-          check(offer['itemOffered']['name']=='NGCC Membership' and offer['price']=='99.00' and offer['priceCurrency']=='USD' and offer['priceSpecification']['billingDuration']=='P1M' and offer['availability'].endswith('InStock') and '14-day free trial' in offer['description'],'Offer accuracy')
-          check('href="/member-login"' in html and 'href="/intake?path=federal"' in html,'member and intake routes preserved')
-          check(Image.open('og-ngcc.jpg').size==(1200,630),'social image 1200x630')
-          check(Path('robots.txt').exists() and Path('sitemap.xml').exists(),'crawl files exist')
-          PY
-
-      - name: Commit generated correction to implementation branch
-        if: github.event_name == 'push'
-        run: |
-          git config user.name "APROPOS Automation"
-          git config user.email "actions@users.noreply.github.com"
-          git add index.html og-ngcc.jpg robots.txt sitemap.xml
-          git diff --cached --quiet && exit 0
-          git commit -m "Correct NGCC production metadata and positioning"
-          git push origin HEAD:fix-ngcc-production-metadata-v1
-
-      - name: Start local review server
-        if: github.event_name == 'pull_request'
-        run: |
-          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/ngcc-http.log 2>&1 &
-          for n in {1..20}; do curl --fail --silent http://127.0.0.1:8000/ >/dev/null && exit 0; sleep 1; done
-          cat /tmp/ngcc-http.log; exit 1
-
-      - name: Verify links and capture desktop/mobile
-        if: github.event_name == 'pull_request'
+      - name: Verify homepage contains no alternate schema identity
+        shell: bash
         run: |
           set -euo pipefail
-          curl --fail --silent http://127.0.0.1:8000/robots.txt | grep -F 'Sitemap: https://ngcc.aproposgroupllc.com/sitemap.xml'
-          curl --fail --silent http://127.0.0.1:8000/sitemap.xml | grep -F '<loc>https://ngcc.aproposgroupllc.com/</loc>'
-          curl --fail --silent http://127.0.0.1:8000/og-ngcc.jpg >/tmp/og-ngcc.jpg
-          curl --fail --location --silent --show-error --max-time 30 https://ai4-product-purchasing.ai4businesses.org/ngcc-offer.html >/dev/null
-          grep -Fq 'from = "/member-login"' netlify.toml && grep -Fq 'to = "/onboarding.html"' netlify.toml
-          mkdir -p validation-artifacts
-          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser)"
-          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --window-size=1440,1200 --screenshot=validation-artifacts/ngcc-desktop.png http://127.0.0.1:8000/
-          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --window-size=390,844 --screenshot=validation-artifacts/ngcc-mobile.png http://127.0.0.1:8000/
-          printf '%s\n' 'NGCC production metadata correction validation: PASS' > validation-artifacts/validation-report.txt
+          ! grep -Fq '"alternateName"' index.html
+          grep -Fq '<div class="lsub">Federal Procurement Intelligence</div>' index.html
+          grep -Fq 'https://federalcontractorportal.aproposgroupllc.com/#organization' index.html
+          grep -Fq 'https://federalcontractorportal.aproposgroupllc.com/#website' index.html
+          grep -Fq 'https://federalcontractorportal.aproposgroupllc.com/#service' index.html
+          grep -Fq 'https://federalcontractorportal.aproposgroupllc.com/#faq' index.html
+          grep -Fq 'APROPOS Marketing Marketplace' index.html
 
-      - uses: actions/upload-artifact@v4
-        if: github.event_name == 'pull_request'
-        with:
-          name: ngcc-production-correction-${{ github.event.pull_request.head.sha }}
-          path: validation-artifacts/
-          retention-days: 30
+      - name: Verify crawl assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'Sitemap: https://federalcontractorportal.aproposgroupllc.com/sitemap.xml' robots.txt
+          grep -Fq '<loc>https://federalcontractorportal.aproposgroupllc.com/</loc>' sitemap.xml
+
+      - name: Verify social image dimensions
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import struct
+          p = Path('og-ngcc.jpg')
+          if not p.exists():
+              raise SystemExit('social image missing')
+          data = p.read_bytes()
+          i = 2
+          width = height = None
+          while i < len(data) - 9:
+              if data[i] != 0xFF:
+                  i += 1
+                  continue
+              marker = data[i+1]
+              i += 2
+              if marker in (0xD8, 0xD9):
+                  continue
+              length = struct.unpack('>H', data[i:i+2])[0]
+              if marker in range(0xC0, 0xC4):
+                  height, width = struct.unpack('>HH', data[i+3:i+7])
+                  break
+              i += length
+          if (width, height) != (1200, 630):
+              raise SystemExit(f'unexpected social image size: {(width, height)}')
+          print('PASS: social image is 1200x630')
+          PY
