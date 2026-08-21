@@ -17,20 +17,6 @@
 [functions."generate-capability-background"]
   external_node_modules = ["adm-zip"]
 
-# NGCC is retained as an alias only. Consolidate every legacy hostname path
-# onto the Registered Federal Contractors Portal primary domain.
-[[redirects]]
-  from = "https://ngcc.aproposgroupllc.com/*"
-  to = "https://federalcontractorportal.aproposgroupllc.com/:splat"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "http://ngcc.aproposgroupllc.com/*"
-  to = "https://federalcontractorportal.aproposgroupllc.com/:splat"
-  status = 301
-  force = true
-
 [[redirects]]
   from = "/privacy"
   to = "/privacy.html"
@@ -156,7 +142,7 @@
   to = "/ops-dashboard.html"
   status = 200
 
-# Canonical portal procurement command center — NGCC remains an internal alias.
+# Canonical Registered Federal Contractors Portal procurement command center.
 [[redirects]]
   from = "/ops-command-center"
   to = "/ops-command-center-v5.html"
