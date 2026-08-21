@@ -46,18 +46,19 @@ function reconcileClaims(rows = [], noticeId) {
 function buildHandoffOptions({ noticeId, samUrl } = {}) {
   const id = clean(noticeId);
   const officialSamUrl = clean(samUrl) || (id ? `https://sam.gov/opp/${encodeURIComponent(id)}/view` : null);
+  const analyzeFitUrl = id ? `https://federalcontractorportal.aproposgroupllc.com/analyze-fit.html?id=${encodeURIComponent(id)}` : 'https://federalcontractorportal.aproposgroupllc.com/analyze-fit.html';
   return {
     analyze_fit: {
       service: 'Registered Federal Contractors Portal Analyze Fit',
-      url: id ? `https://federalcontractorportal.aproposgroupllc.com/analyze-fit.html?id=${encodeURIComponent(id)}` : 'https://federalcontractorportal.aproposgroupllc.com/analyze-fit.html',
+      url: analyzeFitUrl,
       requires_ngcc_session: true,
       note: 'Analyze Fit uses the registered contractor profile and the selected federal opportunity; the official SAM.gov record remains controlling.',
     },
     contract_assistance: {
-      service: 'APROPOS Contract Development Center — Contract Assistance',
-      url: 'https://cdc.aproposgroupllc.com/contract-assistance.html',
+      service: 'Registered Federal Contractors Portal Contract Assistance',
+      url: analyzeFitUrl,
       requires_package_upload: true,
-      note: 'Contract Assistance requires the business to supply the solicitation package and current amendments/addenda for review.',
+      note: 'Contract Assistance is handled within the current Registered Federal Contractors Portal Analyze Fit pathway and requires the solicitation package plus current amendments/addenda for review.',
     },
     official_opportunity: {
       service: 'SAM.gov',

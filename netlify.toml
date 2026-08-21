@@ -1,5 +1,5 @@
 [build]
-  command = "node scripts/apply-ngcc-tablet-sticky-execution.cjs && node scripts/apply-ngcc-it-search-preset.cjs && node scripts/apply-ngcc-qualification-v2-ui.cjs && node scripts/apply-ngcc-research-routing-v1.cjs && node scripts/apply-ngcc-stage05-auto-queue-gate.cjs && node scripts/apply-ngcc-outreach-review-v1.cjs && node scripts/apply-ngcc-marketplace-claim-email-v1.cjs && node scripts/apply-ngcc-controlled-test-delivery-v1.cjs && node scripts/apply-rfc-portal-vat-remediation-01.cjs && node scripts/validate-rfc-portal-vat-remediation-01.cjs && node scripts/apply-rfc-portal-vat-remediation-02.cjs && node scripts/validate-rfc-portal-vat-remediation-02.cjs && node scripts/apply-rfc-portal-internal-contract-workspace.cjs && node scripts/validate-rfc-portal-internal-contract-workspace.cjs && node scripts/validate-rfc-portal-vat-remediation-04.cjs && node scripts/apply-rfcp-primary-identity.cjs && node scripts/validate-rfcp-primary-identity.cjs && node scripts/validate-rfcp-wave1-authority.cjs"
+  command = "node scripts/apply-ngcc-tablet-sticky-execution.cjs && node scripts/apply-ngcc-it-search-preset.cjs && node scripts/apply-ngcc-qualification-v2-ui.cjs && node scripts/apply-ngcc-research-routing-v1.cjs && node scripts/apply-ngcc-stage05-auto-queue-gate.cjs && node scripts/apply-ngcc-outreach-review-v1.cjs && node scripts/apply-ngcc-marketplace-claim-email-v1.cjs && node scripts/apply-ngcc-controlled-test-delivery-v1.cjs && node scripts/apply-rfc-portal-vat-remediation-01.cjs && node scripts/validate-rfc-portal-vat-remediation-01.cjs && node scripts/apply-rfc-portal-vat-remediation-02.cjs && node scripts/validate-rfc-portal-vat-remediation-02.cjs && node scripts/apply-rfc-portal-internal-contract-workspace.cjs && node scripts/validate-rfc-portal-internal-contract-workspace.cjs && node scripts/validate-rfc-portal-vat-remediation-04.cjs && node scripts/apply-rfcp-primary-identity.cjs && node scripts/validate-rfcp-primary-identity.cjs && node scripts/validate-rfcp-wave1-authority.cjs && node scripts/apply-live-property-allowlist.cjs"
   publish = "."
   functions = "netlify/functions"
 
@@ -37,10 +37,12 @@
   to = "/pipeline-dashboard.html"
   status = 200
 
+# Retired CapGen public aliases now consolidate into the live RFCP property.
 [[redirects]]
   from = "/capgen"
-  to = "/capability-generator.html"
-  status = 200
+  to = "/"
+  status = 301
+  force = true
 
 [[redirects]]
   from = "/apropos"
@@ -56,17 +58,19 @@
 
 [[redirects]]
   from = "/pro"
-  to = "/capgen-pro.html"
-  status = 200
+  to = "/onboarding"
+  status = 301
+  force = true
 
 [[redirects]]
   from = "/pro/thankyou"
-  to = "/capgen-pro-thankyou.html"
-  status = 200
+  to = "/onboarding"
+  status = 301
+  force = true
 
 [[redirects]]
   from = "/offer"
-  to = "https://ai4-product-purchasing.ai4businesses.org/capgen-offer.html"
+  to = "/onboarding"
   status = 301
   force = true
 
@@ -80,6 +84,7 @@
   to = "/onboarding.html"
   status = 200
 
+# Voucher redemption remains operational inside RFCP; build-time cleanup removes retired branding.
 [[redirects]]
   from = "/redeem"
   to = "/capgen-redeem.html"
