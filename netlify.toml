@@ -1,5 +1,5 @@
 [build]
-  command = "node scripts/apply-ngcc-tablet-sticky-execution.cjs && node scripts/apply-ngcc-it-search-preset.cjs && node scripts/apply-ngcc-qualification-v2-ui.cjs && node scripts/apply-ngcc-research-routing-v1.cjs && node scripts/apply-ngcc-stage05-auto-queue-gate.cjs && node scripts/apply-ngcc-outreach-review-v1.cjs && node scripts/apply-ngcc-marketplace-claim-email-v1.cjs && node scripts/apply-ngcc-controlled-test-delivery-v1.cjs && node scripts/apply-rfc-portal-vat-remediation-01.cjs && node scripts/validate-rfc-portal-vat-remediation-01.cjs && node scripts/apply-rfc-portal-vat-remediation-02.cjs && node scripts/validate-rfc-portal-vat-remediation-02.cjs && node scripts/apply-rfc-portal-internal-contract-workspace.cjs && node scripts/validate-rfc-portal-internal-contract-workspace.cjs && node scripts/validate-rfc-portal-vat-remediation-04.cjs"
+  command = "node scripts/apply-ngcc-tablet-sticky-execution.cjs && node scripts/apply-ngcc-it-search-preset.cjs && node scripts/apply-ngcc-qualification-v2-ui.cjs && node scripts/apply-ngcc-research-routing-v1.cjs && node scripts/apply-ngcc-stage05-auto-queue-gate.cjs && node scripts/apply-ngcc-outreach-review-v1.cjs && node scripts/apply-ngcc-marketplace-claim-email-v1.cjs && node scripts/apply-ngcc-controlled-test-delivery-v1.cjs && node scripts/apply-rfc-portal-vat-remediation-01.cjs && node scripts/validate-rfc-portal-vat-remediation-01.cjs && node scripts/apply-rfc-portal-vat-remediation-02.cjs && node scripts/validate-rfc-portal-vat-remediation-02.cjs && node scripts/apply-rfc-portal-internal-contract-workspace.cjs && node scripts/validate-rfc-portal-internal-contract-workspace.cjs && node scripts/validate-rfc-portal-vat-remediation-04.cjs && node scripts/apply-rfcp-primary-identity.cjs && node scripts/validate-rfcp-primary-identity.cjs"
   publish = "."
   functions = "netlify/functions"
 
@@ -142,7 +142,7 @@
   to = "/ops-dashboard.html"
   status = 200
 
-# Canonical NGCC procurement command center — stable v5 implementation.
+# Canonical portal procurement command center — NGCC remains an internal alias.
 [[redirects]]
   from = "/ops-command-center"
   to = "/ops-command-center-v5.html"
