@@ -4,7 +4,9 @@ const fs = require('fs');
 const path = require('path');
 const root = process.cwd();
 const rfcp = 'https://federalcontractorportal.aproposgroupllc.com';
+const rfcpBare = 'federalcontractorportal.aproposgroupllc.com';
 const nebcWebsite = 'https://nebc.aproposgroupllc.com/website-builder.html';
+const nebcWebsiteBare = 'nebc.aproposgroupllc.com/website-builder.html';
 
 function walk(dir) {
   if (!fs.existsSync(dir)) return [];
@@ -21,22 +23,34 @@ function walk(dir) {
 function normalizeDomains(value) {
   return value
     .replaceAll('https://ngcc.aproposgroupllc.com', rfcp)
+    .replaceAll('http://ngcc.aproposgroupllc.com', rfcp)
+    .replaceAll('ngcc.aproposgroupllc.com', rfcpBare)
     .replaceAll('https://capgenmkt.aproposgroupllc.com', rfcp)
+    .replaceAll('http://capgenmkt.aproposgroupllc.com', rfcp)
+    .replaceAll('capgenmkt.aproposgroupllc.com', rfcpBare)
+    .replaceAll('https://www.ai4websitedesign.com', nebcWebsite)
+    .replaceAll('http://www.ai4websitedesign.com', nebcWebsite)
     .replaceAll('https://ai4websitedesign.com', nebcWebsite)
-    .replace(/https:\/\/cdc\.aproposgroupllc\.com\/[A-Za-z0-9._~!$&'()*+,;=:@%/?#-]*/gi, `${rfcp}/analyze-fit.html`)
-    .replace(/https:\/\/ai4-product-purchasing\.ai4businesses\.org\/analyze-fit(?:\.html)?[^"'\s<]*/gi, `${rfcp}/analyze-fit.html`)
-    .replace(/https:\/\/ai4-product-purchasing\.ai4businesses\.org\/[A-Za-z0-9._~!$&()*+,;=:@%/?#-]*/gi, `${rfcp}/onboarding`);
+    .replaceAll('http://ai4websitedesign.com', nebcWebsite)
+    .replaceAll('www.ai4websitedesign.com', nebcWebsiteBare)
+    .replaceAll('ai4websitedesign.com', nebcWebsiteBare)
+    .replace(/https?:\/\/cdc\.aproposgroupllc\.com\/[A-Za-z0-9._~!$&'()*+,;=:@%/?#-]*/gi, `${rfcp}/analyze-fit.html`)
+    .replace(/https?:\/\/ai4-product-purchasing\.ai4businesses\.org\/analyze-fit(?:\.html)?[^"'\s<]*/gi, `${rfcp}/analyze-fit.html`)
+    .replace(/https?:\/\/ai4-product-purchasing\.ai4businesses\.org\/[A-Za-z0-9._~!$&()*+,;=:@%/?#-]*/gi, `${rfcp}/onboarding`)
+    .replace(/ai4-product-purchasing\.ai4businesses\.org\/analyze-fit(?:\.html)?/gi, `${rfcpBare}/analyze-fit.html`)
+    .replaceAll('ai4-product-purchasing.ai4businesses.org', rfcpBare)
+    .replaceAll('cdc.aproposgroupllc.com', `${rfcpBare}/analyze-fit.html`);
 }
 
 function normalizeRenderedHtml(value) {
-  const domainClean = normalizeDomains(value);
+  let domainClean = normalizeDomains(value)
+    .replaceAll('National Government Contract Center', 'Registered Federal Contractors Portal')
+    .replaceAll('NGCC Analyze Fit', 'Registered Federal Contractors Portal Analyze Fit')
+    .replace(/Analyze Fit Report \| NGCC/gi, 'Analyze Fit Report | Registered Federal Contractors Portal');
   const parts = domainClean.split(/(<script\b[\s\S]*?<\/script>)/gi);
   return parts.map(part => {
     if (/^<script\b/i.test(part)) return part;
     return part
-      .replaceAll('National Government Contract Center', 'Registered Federal Contractors Portal')
-      .replaceAll('NGCC Analyze Fit', 'Registered Federal Contractors Portal Analyze Fit')
-      .replace(/Analyze Fit Report \| NGCC/gi, 'Analyze Fit Report | Registered Federal Contractors Portal')
       .replaceAll('CapGen Pro', 'Registered Federal Contractors Portal')
       .replaceAll('CapGen', 'Registered Federal Contractors Portal');
   }).join('');
