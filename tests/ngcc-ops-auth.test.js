@@ -22,7 +22,7 @@ function loadAuth(overrides = {}) {
 function post(password) {
   return {
     httpMethod: 'POST',
-    headers: { origin: 'https://ngcc.aproposgroupllc.com' },
+    headers: { origin: 'https://federalcontractorportal.aproposgroupllc.com' },
     body: JSON.stringify({ password }),
   };
 }
@@ -74,7 +74,7 @@ test('test_operator role can be excluded from privileged guards', async () => {
   const { opsGuard } = require(opsPath);
   const denied = opsGuard({
     headers: {
-      origin: 'https://ngcc.aproposgroupllc.com',
+      origin: 'https://federalcontractorportal.aproposgroupllc.com',
       authorization: `Bearer ${login.token}`,
     },
   }, ['operator']);
