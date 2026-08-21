@@ -3,14 +3,42 @@
 const fs = require('fs');
 const path = require('path');
 
-const file = path.join(process.cwd(), 'index.html');
-let html = fs.readFileSync(file, 'utf8');
-
+const root = process.cwd();
+const file = path.join(root, 'index.html');
 const PRIMARY = 'https://federalcontractorportal.aproposgroupllc.com/';
+const PRIMARY_ORIGIN = PRIMARY.slice(0, -1);
 const ORG_ID = `${PRIMARY}#organization`;
 const WEBSITE_ID = `${PRIMARY}#website`;
 const SERVICE_ID = `${PRIMARY}#service`;
 const FAQ_ID = `${PRIMARY}#faq`;
+
+// Final deploy-artifact sanitation. Historical source scripts and compatibility
+// modules may still use older technical namespaces, but no generated text file
+// or bundled function should emit the retired public hostname or former full
+// product name. Runtime function/table/environment identifiers are left intact.
+const legacyHostPattern = /https?:\/\/ngcc\.aproposgroupllc\.com/gi;
+const legacyFullName = ['National', 'Government', 'Contract', 'Center'].join(' ');
+const textExtensions = new Set(['.html', '.js', '.mjs', '.cjs', '.json', '.toml', '.md', '.yml', '.yaml', '.txt', '.xml']);
+function sanitizeTree(directory) {
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    if (entry.name === '.git' || entry.name === 'node_modules') continue;
+    const target = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      sanitizeTree(target);
+      continue;
+    }
+    if (!entry.isFile() || !textExtensions.has(path.extname(entry.name).toLowerCase())) continue;
+    let source;
+    try { source = fs.readFileSync(target, 'utf8'); } catch { continue; }
+    const remediated = source
+      .replace(legacyHostPattern, PRIMARY_ORIGIN)
+      .split(legacyFullName).join('Registered Federal Contractors Portal');
+    if (remediated !== source) fs.writeFileSync(target, remediated, 'utf8');
+  }
+}
+sanitizeTree(root);
+
+let html = fs.readFileSync(file, 'utf8');
 
 function replaceRequired(pattern, replacement, label) {
   if (!pattern.test(html)) throw new Error(`[rfcp-primary-identity] required marker not found: ${label}`);
@@ -152,5 +180,5 @@ if ((html.match(/rel="preload" as="image" href="\/headquarters\.webp"/g) || []).
 }
 
 fs.writeFileSync(file, html, 'utf8');
-console.log('[rfcp-primary-identity] Applied primary portal identity, schema graph, FAQ entities, network links, and hero preload.');
+console.log('[rfcp-primary-identity] Applied primary portal identity, schema graph, FAQ entities, network links, deploy hostname sanitation, and hero preload.');
 require('./apply-nonblocking-fonts.cjs');
