@@ -16,5 +16,14 @@ jobs:
         with:
           node-version: '18'
       - run: npm install --ignore-scripts --no-audit --no-fund
-      - name: Run exact Netlify build command
-        run: node scripts/apply-ngcc-tablet-sticky-execution.cjs && node scripts/apply-ngcc-it-search-preset.cjs && node scripts/apply-ngcc-qualification-v2-ui.cjs && node scripts/apply-ngcc-research-routing-v1.cjs && node scripts/apply-ngcc-stage05-auto-queue-gate.cjs && node scripts/apply-ngcc-outreach-review-v1.cjs && node scripts/apply-ngcc-marketplace-claim-email-v1.cjs && node scripts/apply-ngcc-controlled-test-delivery-v1.cjs && node scripts/apply-rfc-portal-vat-remediation-01.cjs && node scripts/validate-rfc-portal-vat-remediation-01.cjs && node scripts/apply-rfc-portal-vat-remediation-02.cjs && node scripts/validate-rfc-portal-vat-remediation-02.cjs && node scripts/apply-rfc-portal-internal-contract-workspace.cjs && node scripts/validate-rfc-portal-internal-contract-workspace.cjs && node scripts/validate-rfc-portal-vat-remediation-04.cjs && node scripts/apply-rfcp-primary-identity.cjs && node scripts/validate-rfcp-primary-identity.cjs && node scripts/validate-rfcp-wave1-authority.cjs && node scripts/apply-live-property-allowlist.cjs
+      - name: Run exact Netlify build command and expose retirement residuals
+        shell: bash
+        run: |
+          set +e
+          node scripts/apply-ngcc-tablet-sticky-execution.cjs && node scripts/apply-ngcc-it-search-preset.cjs && node scripts/apply-ngcc-qualification-v2-ui.cjs && node scripts/apply-ngcc-research-routing-v1.cjs && node scripts/apply-ngcc-stage05-auto-queue-gate.cjs && node scripts/apply-ngcc-outreach-review-v1.cjs && node scripts/apply-ngcc-marketplace-claim-email-v1.cjs && node scripts/apply-ngcc-controlled-test-delivery-v1.cjs && node scripts/apply-rfc-portal-vat-remediation-01.cjs && node scripts/validate-rfc-portal-vat-remediation-01.cjs && node scripts/apply-rfc-portal-vat-remediation-02.cjs && node scripts/validate-rfc-portal-vat-remediation-02.cjs && node scripts/apply-rfc-portal-internal-contract-workspace.cjs && node scripts/validate-rfc-portal-internal-contract-workspace.cjs && node scripts/validate-rfc-portal-vat-remediation-04.cjs && node scripts/apply-rfcp-primary-identity.cjs && node scripts/validate-rfcp-primary-identity.cjs && node scripts/validate-rfcp-wave1-authority.cjs && node scripts/apply-live-property-allowlist.cjs
+          rc=$?
+          if [ "$rc" -ne 0 ]; then
+            echo '--- residual former-name contexts ---'
+            grep -R -n -C 1 --include='*.html' 'National Government Contract Center' . | head -120 || true
+          fi
+          exit "$rc"
