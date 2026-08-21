@@ -22,5 +22,19 @@ html = html.replace(
   `"parentOrganization":{"@type":"Organization","@id":"${CORPORATE}","name":"APROPOS Group LLC"`,
 );
 
+// Phase 2B performance: make the CSS background hero discoverable before CSS parsing.
+const heroHref = '/headquarters.webp';
+const heroPreload = `<link rel="preload" as="image" href="${heroHref}" type="image/webp" fetchpriority="high">`;
+if (!html.includes(`url('${heroHref}')`) && !html.includes(`url("${heroHref}")`) && !html.includes(`url(${heroHref})`)) {
+  throw new Error('RFCP performance remediation: active homepage hero reference not found.');
+}
+if (!html.includes(heroPreload)) {
+  if (!/<\/head>/i.test(html)) throw new Error('RFCP performance remediation: closing head tag not found.');
+  html = html.replace(/<\/head>/i, `${heroPreload}\n</head>`);
+}
+if ((html.match(/rel="preload" as="image" href="\/headquarters\.webp"/g) || []).length !== 1) {
+  throw new Error('RFCP performance remediation: hero preload must appear exactly once.');
+}
+
 fs.writeFileSync(file, html, 'utf8');
-console.log('[rfcp-primary-identity] Applied primary portal identity, corporate entity link, and NGCC aliases.');
+console.log('[rfcp-primary-identity] Applied primary portal identity, corporate entity link, NGCC aliases, and high-priority hero preload.');
