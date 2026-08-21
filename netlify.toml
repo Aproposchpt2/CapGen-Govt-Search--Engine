@@ -17,6 +17,20 @@
 [functions."generate-capability-background"]
   external_node_modules = ["adm-zip"]
 
+# NGCC is retained as an alias only. Consolidate every legacy hostname path
+# onto the Registered Federal Contractors Portal primary domain.
+[[redirects]]
+  from = "https://ngcc.aproposgroupllc.com/*"
+  to = "https://federalcontractorportal.aproposgroupllc.com/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "http://ngcc.aproposgroupllc.com/*"
+  to = "https://federalcontractorportal.aproposgroupllc.com/:splat"
+  status = 301
+  force = true
+
 [[redirects]]
   from = "/privacy"
   to = "/privacy.html"
