@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://ngcc.aproposgroupllc.com/sitemap.xml
+Sitemap: https://federalcontractorportal.aproposgroupllc.com/sitemap.xml
