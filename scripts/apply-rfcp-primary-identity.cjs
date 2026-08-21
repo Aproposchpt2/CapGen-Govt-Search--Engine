@@ -19,7 +19,7 @@ html = html.replaceAll('"alternateName":"NGCC"', '"alternateName":["National Gov
 // Tie the portal Organization node to the single corporate APROPOS entity.
 html = html.replace(
   '"parentOrganization":{"@type":"Organization","name":"Apropos Group LLC"',
-  `"parentOrganization":{"@type":"Organization","@id":"${CORPORATE}","name":"Apropos Group LLC"`,
+  `"parentOrganization":{"@type":"Organization","@id":"${CORPORATE}","name":"APROPOS Group LLC"`,
 );
 
 fs.writeFileSync(file, html, 'utf8');
