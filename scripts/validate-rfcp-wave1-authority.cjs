@@ -5,6 +5,7 @@ const path = require('path');
 
 const ROOT = process.cwd();
 const ORIGIN = 'https://federalcontractorportal.aproposgroupllc.com';
+const legacyFullName = ['National', 'Government', 'Contract', 'Center'].join(' ');
 const failures = [];
 
 const pages = [
@@ -26,7 +27,7 @@ const pages = [
   {
     file: 'guides/naics-codes-government-contracts/index.html',
     url: `${ORIGIN}/guides/naics-codes-government-contracts/`,
-    required: ['Registered Federal Contractors Portal', 'APROPOS Group LLC', 'https://www.census.gov/naics/', 'https://sam.gov/opportunities'],
+    required: ['Registered Federal Contractors Portal', 'APROPOS Group LLC', 'https://www.census.gov/naics/', 'https://sam.gov/opportunities', 'https://www.sba.gov/size'],
   },
   {
     file: 'guides/sam-gov-registration-small-business/index.html',
@@ -58,7 +59,7 @@ function checkPage(page) {
   if (!html.includes('/assets/federal-authority.css')) failures.push(`${page.file}: shared authority stylesheet missing`);
   if (/\$(?:15(?:\.00)?|49\.99)\b/.test(html)) failures.push(`${page.file}: obsolete Analyze Fit price found`);
   if (/https?:\/\/ngcc\.aproposgroupllc\.com/i.test(html)) failures.push(`${page.file}: retired public hostname found`);
-  if (html.includes('National Government Contract Center')) failures.push(`${page.file}: former full product name found as primary content`);
+  if (html.includes(legacyFullName)) failures.push(`${page.file}: former full product name found as primary content`);
   for (const token of page.required) if (!html.includes(token)) failures.push(`${page.file}: missing required token ${token}`);
 
   const blocks = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/gi)];
