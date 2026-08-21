@@ -94,3 +94,5 @@ if (failures.length) {
 }
 
 console.log(`[rfcp-wave1-authority] PASS — ${pages.length} canonical federal authority destinations, sitemap entries, source links, identity, pricing and font-loading controls validated.`);
+require('./apply-rfcp-wave2-authority.cjs');
+require('./validate-rfcp-wave2-authority.cjs');
