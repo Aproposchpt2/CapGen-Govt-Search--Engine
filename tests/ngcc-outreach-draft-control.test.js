@@ -9,7 +9,7 @@ const {
   PRODUCTION_SEND,
 } = require('../netlify/functions/ngcc-ops-outreach');
 
-const unsubscribeUrl = 'https://ngcc.aproposgroupllc.com/.netlify/functions/ngcc-unsubscribe?email=client%40example.com&t=secret-token';
+const unsubscribeUrl = 'https://federalcontractorportal.aproposgroupllc.com/.netlify/functions/ngcc-unsubscribe?email=client%40example.com&t=secret-token';
 const normalized = normalizeOutreachText(`Hello Client\n\nUnsubscribe from future opportunity introductions:\n${unsubscribeUrl}`, unsubscribeUrl);
 assert.doesNotMatch(normalized, /secret-token/, 'the editable draft must never expose the tokenized unsubscribe URL');
 assert.match(normalized, /UNSUBSCRIBE button at the end of this email/, 'the editable draft must preserve the approved unsubscribe instruction');
@@ -34,7 +34,7 @@ const copy = outreachCopy({
 assert.match(copy.subject, /Qualified Contractor LLC/);
 assert.match(copy.text, /Opportunity Reference: NG-TEST/);
 assert.match(copy.text, /Claim this complimentary opportunity/);
-assert.equal(PRODUCTION_SEND, true, 'explicit operator-approved NGCC send must target the real prospective client');
+assert.equal(PRODUCTION_SEND, true, 'explicit operator-approved portal send must target the real prospective client');
 
 const source = fs.readFileSync(require.resolve('../netlify/functions/ngcc-ops-outreach'), 'utf8');
 const controlled = fs.readFileSync(require.resolve('../netlify/functions/ngcc-ops-controlled-outreach'), 'utf8');
@@ -47,4 +47,4 @@ assert.match(source, /action === 'send'/, 'outreach API must require an explicit
 assert.match(controlled, /PREPARES drafts only/, 'Stage 07 controlled entrypoint must prepare drafts rather than transmit email');
 assert.match(controlled, /action: 'prepare'/, 'controlled Stage 07 must explicitly invoke draft preparation');
 
-console.log('NGCC BusinessContracts-style outreach draft controls passed.');
+console.log('Registered Federal Contractors Portal BusinessContracts-style outreach draft controls passed.');

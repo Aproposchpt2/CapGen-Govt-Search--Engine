@@ -1,5 +1,5 @@
 // send-contractor-outreach.js
-// Sends personalized NGCC pitch emails to newly registered federal contractors.
+// Sends personalized Registered Federal Contractors Portal pitch emails to newly registered federal contractors.
 // Reads from contractor_contacts (Hunter-verified emails) joined with contractors.
 // Logs each send to email_batch. Updates outreach_status to 'sent' on the contractor.
 // Rate-limited to 2/sec to stay within Resend limits.
@@ -12,10 +12,10 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const RESEND_KEY   = process.env.RESEND_API_KEY;
 const FROM_EMAIL   = process.env.NGCC_OPPORTUNITY_EMAIL || 'opportunities@aproposcontracts.com';
-const FROM_NAME    = 'National Government Contract Center';
+const FROM_NAME    = 'Registered Federal Contractors Portal';
 const REPLY_TO     = process.env.NGCC_OUTREACH_REPLY_TO || 'jmitchell@aproposgroupllc.com';
 const MAILING_ADDRESS = process.env.MAILING_ADDRESS || 'APROPOS GROUP LLC, 5892 Losee Rd., Ste 132, North Las Vegas, NV 89081';
-const NGCC_URL     = 'https://ngcc.aproposgroupllc.com';
+const PORTAL_URL   = 'https://federalcontractorportal.aproposgroupllc.com';
 
 const NAICS_SHORT = {
   '541511':'Custom Software Development','541512':'IT Systems Design',
@@ -56,11 +56,11 @@ You've taken the first step. The next one — finding the right contracts to act
 
 That's exactly what we built.
 
-The National Government Contract Center (NGCC) matches your registered NAICS codes to open federal and state contracts, scores each one for fit against your capability profile, and gives you a clear bid/no-bid recommendation with the reasoning — before you spend a day writing a proposal.
+The Registered Federal Contractors Portal matches your registered NAICS codes to open federal and state contracts, scores each one for fit against your capability profile, and gives you a clear bid/no-bid recommendation with the reasoning — before you spend a day writing a proposal.
 
 For a ${primary} firm like ${biz}, we're already surfacing contracts across your registered codes including ${services}. You'll see what's open, what you qualify for, and which ones are worth pursuing.
 
-Start your dashboard here: ${NGCC_URL}
+Start your dashboard here: ${PORTAL_URL}
 
 The first 30 days are free. No credit card required to get started.
 
@@ -70,7 +70,7 @@ Best,
 Jeff Mitchell
 Founder, Apropos Group LLC
 ${MAILING_ADDRESS}
-${NGCC_URL}
+${PORTAL_URL}
 
 ---
 You're receiving this because ${biz} appears in official public records as a newly registered federal contractor. To unsubscribe, reply with "unsubscribe" in the subject line.`;

@@ -159,18 +159,15 @@ write('netlify/functions/analyze-fit-docx.mjs', docx);
 
 // ---------------------------------------------------------------------------
 // 7) Public portal identity reflects the completed Federal + State merger.
-//    Keep the historical /ngcc purchasing route for compatibility, but the
-//    public product name and canonical domain are the Registered Federal
-//    Contractors Portal at federalcontractorportal.aproposgroupllc.com.
+//    The Registered Federal Contractors Portal remains the canonical product
+//    identity at federalcontractorportal.aproposgroupllc.com.
 // ---------------------------------------------------------------------------
 let publicHome = read('index.html');
-publicHome = publicHome.replaceAll('https://ngcc.aproposgroupllc.com/', 'https://federalcontractorportal.aproposgroupllc.com/');
 publicHome = publicHome.replaceAll('Federal Contract Matching for Registered Contractors | Registered Federal Contractors Portal', 'Federal + State Contract Opportunities for Registered Contractors | Registered Federal Contractors Portal');
 publicHome = publicHome.replace('Registered federal contractors receive personalized federal contract matches, intelligent rankings, guided onboarding, Analyze Fit support, and a 14-day free trial.', 'Registered federal contractors receive personalized federal opportunities plus released state contract opportunities, intelligent rankings, guided onboarding, Analyze Fit support, and a 14-day free trial.');
 publicHome = publicHome.replace('Registered federal contractors receive guided onboarding, personalized federal contract matches, intelligent rankings, and Analyze Fit support.', 'Registered federal contractors receive guided onboarding, personalized federal opportunities, released state contract opportunities, intelligent rankings, and Analyze Fit support.');
 publicHome = publicHome.replace('Guided federal contractor onboarding, personalized opportunity matching, intelligent rankings, and Analyze Fit support.', 'Guided contractor onboarding, personalized federal and released state opportunity matching, intelligent rankings, and Analyze Fit support.');
 publicHome = publicHome.replace('Registered Federal Contractors Portal federal procurement intelligence platform', 'Registered Federal Contractors Portal Federal + State procurement intelligence platform');
-publicHome = publicHome.replace('"alternateName":"NGCC"', '"alternateName":"Registered Federal Contractors Portal"');
 publicHome = publicHome.replace('"name":"Federal Contract Matching for Registered Contractors","serviceType":"Personalized federal procurement opportunity matching"', '"name":"Federal + State Contract Opportunities for Registered Contractors","serviceType":"Personalized federal opportunity matching plus released state contract opportunity access"');
 publicHome = publicHome.replace('Apropos Group LLC · Federal Procurement Intelligence', 'Apropos Group LLC · Federal + State Procurement Intelligence');
 publicHome = publicHome.replace('Federal contract matching for registered contractors.', 'Federal + State contract opportunities for registered contractors.');
