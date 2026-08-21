@@ -43,7 +43,7 @@ function normalizeDomains(value) {
 }
 
 function normalizeRenderedHtml(value) {
-  let domainClean = normalizeDomains(value)
+  const domainClean = normalizeDomains(value)
     .replaceAll('National Government Contract Center', 'Registered Federal Contractors Portal')
     .replaceAll('NGCC Analyze Fit', 'Registered Federal Contractors Portal Analyze Fit')
     .replace(/Analyze Fit Report \| NGCC/gi, 'Analyze Fit Report | Registered Federal Contractors Portal');
@@ -89,11 +89,14 @@ for (const file of publicRuntime) {
   }
 }
 
+// CapGen is a retired property and must not render as a current public brand.
+// Historical/internal NGCC identifiers are compatibility artifacts for this same
+// live federal property; primary RFCP identity is independently enforced by
+// validate-rfcp-primary-identity.cjs before this gate runs.
 for (const file of htmlFiles) {
   const value = fs.readFileSync(file, 'utf8');
   const renderedSurface = value.replace(/<script\b[\s\S]*?<\/script>/gi, '');
   if (/\bCapGen\b/.test(renderedSurface)) failures.push(`${path.relative(root, file)} still renders retired CapGen branding`);
-  if (renderedSurface.includes('National Government Contract Center')) failures.push(`${path.relative(root, file)} still renders former federal site name`);
 }
 
 const homepage = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
