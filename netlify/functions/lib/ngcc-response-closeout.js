@@ -48,8 +48,8 @@ function buildHandoffOptions({ noticeId, samUrl } = {}) {
   const officialSamUrl = clean(samUrl) || (id ? `https://sam.gov/opp/${encodeURIComponent(id)}/view` : null);
   return {
     analyze_fit: {
-      service: 'NGCC Analyze Fit',
-      url: id ? `https://ngcc.aproposgroupllc.com/analyze-fit.html?id=${encodeURIComponent(id)}` : 'https://ngcc.aproposgroupllc.com/analyze-fit.html',
+      service: 'Registered Federal Contractors Portal Analyze Fit',
+      url: id ? `https://federalcontractorportal.aproposgroupllc.com/analyze-fit.html?id=${encodeURIComponent(id)}` : 'https://federalcontractorportal.aproposgroupllc.com/analyze-fit.html',
       requires_ngcc_session: true,
       note: 'Analyze Fit uses the registered contractor profile and the selected federal opportunity; the official SAM.gov record remains controlling.',
     },
