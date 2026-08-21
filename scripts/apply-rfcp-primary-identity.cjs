@@ -38,3 +38,4 @@ if ((html.match(/rel="preload" as="image" href="\/headquarters\.webp"/g) || []).
 
 fs.writeFileSync(file, html, 'utf8');
 console.log('[rfcp-primary-identity] Applied primary portal identity, corporate entity link, NGCC aliases, and high-priority hero preload.');
+require('./apply-nonblocking-fonts.cjs');
