@@ -22,5 +22,7 @@ assert.doesNotMatch(outreach, /Businesses grow\. People prosper\. Communities be
 
 assert.match(commandCenter, /outreach_approved:false/, 'Portal outreach contacts must default to unselected');
 assert.match(commandCenter, /BUSINESS_OUTREACH'&&!approvedContacts\(\)\.length/, 'Stage 07 must require an explicit selection');
+assert.match(commandCenter, /original\.outreach_approved=el\.checked;saveEvidence\(\);render\(\)/, 'individual selection must immediately refresh the Stage 07 CTA');
+assert.match(commandCenter, /No business is selected automatically/, 'operator guidance must describe the zero-selection default');
 
 console.log('RFCP concise outreach and zero-selection validation passed.');
