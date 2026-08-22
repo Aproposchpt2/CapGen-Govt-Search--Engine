@@ -57,7 +57,7 @@ assert.match(publicHome, /property="og:url" content="https:\/\/federalcontractor
 assert.doesNotMatch(publicHome, /https:\/\/ngcc\.aproposgroupllc\.com\//, 'legacy NGCC domain must not remain in public homepage metadata or schema');
 assert.match(publicHome, /Federal \+ State Contract Opportunities for Registered Contractors/, 'public product title must reflect Federal + State access');
 assert.match(publicHome, /Federal \+ State Procurement Intelligence/, 'public hero must reflect merged procurement scope');
-assert.match(publicHome, /Federal \+ State contract opportunities for registered contractors\./, 'public hero promise must reflect merged customer value');
+assert.match(publicHome, /A unified Federal and State public-sector contract access portal for registered Federal contractors\./, 'public hero promise must reflect the approved unified Federal and State portal value');
 assert.match(publicHome, /released state contract opportunities/, 'public positioning must describe released state inventory without claiming universal state coverage');
 assert.match(publicHome, /Personalized Federal \+ State Contract Dashboard/, 'public features must identify the canonical merged dashboard');
 assert.match(publicHome, /\$99 per month/, 'public homepage must preserve the current portal subscription price');
