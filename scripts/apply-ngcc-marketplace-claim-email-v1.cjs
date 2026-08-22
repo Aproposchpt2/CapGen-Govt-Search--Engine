@@ -28,7 +28,7 @@ else if (!outreach.includes('MARKETPLACE_CLAIM_FRONT_DOOR')) throw new Error('NG
 
 outreach = outreach.replace(
   '>Claim This Complimentary Opportunity</a>',
-  '>VISIT APROPOS MARKETPLACE</a>'
+  '>View Contract Opportunity</a>'
 );
 
 const oldInstructions = `Response deadline: \${deadline}
@@ -55,6 +55,55 @@ To claim your complimentary opportunity:
 
 if (outreach.includes(oldInstructions)) outreach = outreach.replace(oldInstructions, newInstructions);
 else if (!outreach.includes('CLAIM YOUR COMPLIMENTARY CONTRACT OPPORTUNITY')) throw new Error('NGCC Marketplace claim instruction patch anchor not found.');
+
+const legacyIntro = `Opportunity Builds Business. Business Builds Community.
+
+Apropos Group LLC is committed to supporting economic growth through a proactive approach to government procurement. We saw a gap: businesses are often forced to navigate fragmented procurement systems, monitor multiple agencies, and continuously search for relevant opportunities.
+
+We saw an opportunity to make a difference by reducing that burden and delivering timely, relevant search intelligence to businesses whose capabilities align with government contracts.
+
+Our system identified the government contract opportunity below because it appears relevant to your business.
+
+Based on your SAM.gov registration, this federal opportunity appears relevant to \${candidate.business_name} (NAICS \${contract.naicsCode || 'Unavailable'}).`;
+const conciseIntro = `Apropos Group LLC is a proactive procurement agency. Our automated system identifies qualified businesses whose services match contract requirements.
+
+We discovered your company while sourcing businesses for this opportunity.
+
+WHY YOUR BUSINESS WAS SELECTED
+Your SAM.gov registration includes industry classifications aligned with this federal contract opportunity. Matching NAICS: \${contract.naicsCode || 'See opportunity details'}.`;
+if (!outreach.includes(legacyIntro)) throw new Error('RFCP concise outreach introduction anchor not found.');
+outreach = outreach.replace(legacyIntro, conciseIntro);
+
+const legacyClosing = `When qualified businesses gain access to the right opportunities, they can grow revenue, strengthen capabilities, create jobs, and contribute to stronger communities.
+
+Businesses grow. People prosper. Communities become stronger.
+
+SAM.gov and the issuing agency remain authoritative. Restricted or controlled files may require direct access through SAM.gov or the issuing agency.`;
+const conciseClosing = `If you are interested, click the link below to visit our website and download the complete contract package.
+
+This service is complimentary—no purchase is required. You are also welcome to leave a comment or ask a question.
+
+Good luck!`;
+if (!outreach.includes(legacyClosing)) throw new Error('RFCP concise outreach closing anchor not found.');
+outreach = outreach.replace(legacyClosing, conciseClosing);
+
+const commandCenterFile = path.join(process.cwd(), 'ops-command-center-v3.html');
+let commandCenter = fs.readFileSync(commandCenterFile, 'utf8');
+commandCenter = commandCenter.replace(
+  'The list defaults to highest Contract Qualification score first and all eligible businesses selected. Use Clear All to choose recipients one by one. No email is sent until Stage 07 draft review and explicit operator approval.',
+  'Qualified businesses are listed for operator selection. No business is selected automatically. Select one or more businesses to activate Stage 07; no email is sent until draft review and explicit operator approval.'
+);
+commandCenter = commandCenter.replace(
+  '.sort((a,b)=>qscore(b)-qscore(a)).map(c=>({...c,outreach_approved:true}))}',
+  '.sort((a,b)=>qscore(b)-qscore(a)).map(c=>({...c,outreach_approved:false}))}'
+);
+commandCenter = commandCenter.replace(
+  'original.outreach_approved=el.checked;saveEvidence()});',
+  'original.outreach_approved=el.checked;saveEvidence();render()});'
+);
+if (!commandCenter.includes('outreach_approved:false')) throw new Error('RFCP zero-selection patch did not apply.');
+if (!commandCenter.includes('original.outreach_approved=el.checked;saveEvidence();render()')) throw new Error('RFCP selection refresh patch did not apply.');
+fs.writeFileSync(commandCenterFile, commandCenter);
 
 fs.writeFileSync(outreachFile, outreach);
 
