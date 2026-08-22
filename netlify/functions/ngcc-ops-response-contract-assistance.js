@@ -4,7 +4,7 @@ const { json, opsGuard, SUPABASE_URL, SUPABASE_KEY, sbHeaders } = require('./lib
 const { reconcileResponse, closeoutMission } = require('./lib/ngcc-response-closeout');
 
 async function loadClaims(noticeId) {
-  if (!SUPABASE_URL || !SUPABASE_KEY) return { rows: [], sourceStatus: 'UNAVAILABLE', sourceError: 'NGCC operational database is not configured.' };
+  if (!SUPABASE_URL || !SUPABASE_KEY) return { rows: [], sourceStatus: 'UNAVAILABLE', sourceError: 'RFCP operational database is not configured.' };
   const query = `?source=eq.ngcc_outreach_claim&source_reference=eq.${encodeURIComponent(noticeId)}&select=id,business_name,contact_name,contact_email,source_reference,redirect_url,source,created_at&order=created_at.desc&limit=100`;
   try {
     const response = await fetch(`${String(SUPABASE_URL).replace(/\/+$/, '')}/rest/v1/marketplace_lead_intake${query}`, { headers: sbHeaders() });

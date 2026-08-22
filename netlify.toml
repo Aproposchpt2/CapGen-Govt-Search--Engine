@@ -1,5 +1,5 @@
 [build]
-  command = "node scripts/apply-ngcc-tablet-sticky-execution.cjs && node scripts/apply-ngcc-it-search-preset.cjs && node scripts/apply-ngcc-qualification-v2-ui.cjs && node scripts/apply-ngcc-research-routing-v1.cjs && node scripts/apply-ngcc-stage05-auto-queue-gate.cjs && node scripts/apply-ngcc-outreach-review-v1.cjs && node scripts/apply-ngcc-marketplace-claim-email-v1.cjs && node scripts/validate-rfcp-concise-outreach.cjs && node scripts/apply-ngcc-controlled-test-delivery-v1.cjs && node scripts/apply-rfc-portal-vat-remediation-01.cjs && node scripts/validate-rfc-portal-vat-remediation-01.cjs && node scripts/apply-rfc-portal-vat-remediation-02.cjs && node scripts/validate-rfc-portal-vat-remediation-02.cjs && node scripts/apply-rfc-portal-internal-contract-workspace.cjs && node scripts/validate-rfc-portal-internal-contract-workspace.cjs && node scripts/validate-rfc-portal-vat-remediation-04.cjs && node scripts/apply-rfcp-primary-identity.cjs && node scripts/validate-rfcp-primary-identity.cjs && node scripts/validate-rfcp-wave1-authority.cjs && node scripts/apply-live-property-allowlist.cjs && node scripts/apply-rfcp-ga4.cjs && node scripts/validate-rfcp-ga4.cjs"
+  command = "npm run build"
   publish = "."
   functions = "netlify/functions"
 
@@ -165,3 +165,10 @@
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=()"
+    Content-Security-Policy-Report-Only = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://www.google-analytics.com https://www.googletagmanager.com; connect-src 'self' https://judislfknmhofcgzyozc.supabase.co wss://judislfknmhofcgzyozc.supabase.co https://www.google-analytics.com; frame-src 'self' https://buy.stripe.com; worker-src 'self' blob:; form-action 'self' https://buy.stripe.com"
+
+[[headers]]
+  for = "/ops-*"
+  [headers.values]
+    Cache-Control = "no-store, private"

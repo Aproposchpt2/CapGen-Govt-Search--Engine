@@ -78,7 +78,7 @@ export default async function handler(req) {
 
     return json(200, { ok: true, answer: text });
   } catch (error) {
-    console.error('[ngcc-ai-interview-open-qa]', error);
+    console.error('[rfcp-ai-interview-open-qa]', error);
     return json(500, { ok: false, error: 'The question could not be answered.' });
   }
 }

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Opportunity Pipeline — NGCC</title>
+<title>Opportunity Pipeline — RFCP</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital@0;1&family=Cormorant+Garamond:ital@1&family=Jost:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -251,8 +251,8 @@ tr:hover td{background:rgba(91,175,255,.04)}
 <!-- Auth gate -->
 <div id="auth-gate">
   <div class="auth-card">
-    <div class="auth-brand">NGCC</div>
-    <div class="auth-eye">National Government Contract Center</div>
+    <div class="auth-brand">RFCP</div>
+    <div class="auth-eye">Registered Federal Contractors Portal</div>
     <div id="auth-step1">
       <h1 class="auth-h1">Access your dashboard.</h1>
       <p class="auth-sub">Enter your registered business email for a secure one-time access code.</p>
@@ -282,7 +282,7 @@ tr:hover td{background:rgba(91,175,255,.04)}
     <div class="brand-mark">AG</div>
     <div>
       <div class="brand-name" id="hdr-biz">APROPOS GROUP LLC</div>
-      <div class="brand-sub">Federal Contract Pipeline · NGCC</div>
+      <div class="brand-sub">Federal + State Contract Dashboard · Registered Contractors Portal</div>
     </div>
   </div>
   <div class="header-right">
@@ -294,16 +294,12 @@ tr:hover td{background:rgba(91,175,255,.04)}
 <!-- Tabs -->
 <nav class="mkt-tabs">
   <button class="mkt-tab active" data-tab="federal">
-    <span class="tab-dot" style="background:var(--cyan)"></span>🇺🇸 Federal
+    <span class="tab-dot" style="background:var(--cyan)"></span>🇺🇸 Federal Contracts
     <span class="tab-count" id="tab-fed-count">—</span>
   </button>
   <button class="mkt-tab" data-tab="nevada">
-    <span class="tab-dot" style="background:#34d399"></span>◆ Nevada State
+    <span class="tab-dot" style="background:#34d399"></span>◆ State Contracts
     <span class="tab-count" id="tab-nv-count">—</span>
-  </button>
-  <button class="mkt-tab" data-tab="california">
-    <span class="tab-dot" style="background:var(--amber)"></span>☀ California
-    <span class="tab-count">Soon</span>
   </button>
 </nav>
 
@@ -373,7 +369,7 @@ tr:hover td{background:rgba(91,175,255,.04)}
 <div class="page">
 
   <!-- SERVICE SELECTOR -->
-  <div id="nv-service-panel" style="background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;margin-bottom:18px;overflow:hidden">
+  <div id="nv-service-panel" style="display:none;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;margin-bottom:18px;overflow:hidden">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;cursor:pointer;user-select:none" onclick="toggleNvServicePanel()">
       <div>
         <div style="font-size:.62rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--cyan);margin-bottom:3px">My Services</div>
@@ -391,29 +387,14 @@ tr:hover td{background:rgba(91,175,255,.04)}
     </div>
   </div>
 
-  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-bottom:18px">
-    <span style="font-size:.82rem;color:var(--muted)">Want the full standalone Nevada experience — saved preferences, email alerts, and more?</span>
-    <a id="nv-explore-link" href="https://nvgovcc.aproposgroupllc.com/welcome.html" target="_blank" rel="noopener" style="display:inline-block;background:linear-gradient(135deg,#fff,#34d399 55%,#10b981);color:#052e1f;font-weight:800;font-size:.78rem;padding:9px 18px;border-radius:8px;text-decoration:none;white-space:nowrap">Open Full Nevada Dashboard →</a>
-  </div>
+  <div style="background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-bottom:18px"><span style="font-size:.82rem;color:var(--muted)">State opportunities are matched automatically from your verified business capability profile and current released contract inventory.</span></div>
 
   <div class="controls">
-    <input class="ctrl-input" id="nv-search" type="text" placeholder="Search Nevada bids by title or agency…">
+    <input class="ctrl-input" id="nv-search" type="text" placeholder="Search state contracts by title, agency, or state…">
     <select class="ctrl-select" id="nv-type"><option value="">All Types</option><option value="RFP">RFP</option><option value="BID">Bid / IFB</option></select>
     <span class="count-lbl" id="nv-count-lbl"></span>
   </div>
   <div id="nv-cards"><div class="empty-row">Loading Nevada bids…</div></div>
-</div>
-</div>
-
-<!-- California panel -->
-<div id="panel-california" style="display:none">
-<div class="page">
-  <div class="coming-soon">
-    <span class="cs-tag">Coming Soon</span>
-    <h3 class="cs-title">California State Contracts</h3>
-    <p style="color:var(--muted);font-size:.9rem;line-height:1.7;max-width:360px">Open state, county, city, and school district opportunities across California — matched to your business profile. No federal registration required.</p>
-    <a id="ca-explore-link" href="https://calgovcc.aproposgroupllc.com/welcome.html" target="_blank" rel="noopener" style="display:inline-block;background:linear-gradient(135deg,#fff,#f59e0b 55%,#d97706);color:#1a0a00;font-weight:800;font-size:.82rem;padding:11px 24px;border-radius:8px;text-decoration:none;margin-top:4px">Explore California Contracts →</a>
-  </div>
 </div>
 </div>
 
@@ -424,7 +405,7 @@ tr:hover td{background:rgba(91,175,255,.04)}
 <div id="nvd-drawer">
   <div class="nvd-inner">
     <button class="nvd-close" id="nvd-close-btn">✕</button>
-    <div class="nvd-eyebrow">◆ Nevada State Procurement</div>
+    <div class="nvd-eyebrow">◆ State Procurement</div>
     <div class="nvd-title" id="nvd-title"></div>
     <div class="nvd-row" id="nvd-chips"></div>
     <div class="nvd-section"><div class="nvd-label">Agency</div><div class="nvd-value" id="nvd-agency"></div></div>
@@ -437,7 +418,7 @@ tr:hover td{background:rgba(91,175,255,.04)}
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px">
       <button onclick="analyzeNvBid()" style="flex:1;background:linear-gradient(135deg,#0F2A6A,#1a3a7a);color:#fff;border:1px solid rgba(91,211,255,.35);border-radius:10px;padding:12px 18px;font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:.15s" onmouseover="this.style.borderColor='var(--cyan)'" onmouseout="this.style.borderColor='rgba(91,211,255,.35)'">⚡ Analyze Fit</button>
     </div>
-    <div class="nvd-label" style="margin-bottom:10px">View full solicitation on the Nevada Procurement Portal</div>
+    <div class="nvd-label" style="margin-bottom:10px">View full solicitation on the official procurement source</div>
     <a class="nvd-portal-btn" id="nvd-portal-link" href="#" target="_blank" rel="noopener">Open Nevada Portal ↗</a>
   </div>
 </div>
@@ -569,44 +550,6 @@ function showApp(email) {
   if (email) {
     document.getElementById('hdr-biz').textContent = email;
   }
-  updateCaExploreLink();
-  updateNvExploreLink();
-}
-
-// Carries the already-authenticated user's identity into CalGovCC's fast-path
-// landing page so they never see a second "front door" — no repeated intake,
-// no re-entering Name/Business. Only business_name is available from this
-// dashboard's session (no personal-name field is stored client-side here);
-// CalGovCC's welcome.html and downstream services.html/dashboard.html never
-// display a personal name either, so this is not a functional gap.
-function updateCaExploreLink() {
-  var link = document.getElementById('ca-explore-link');
-  if (!link) return;
-  var business = '';
-  try { business = (JSON.parse(localStorage.getItem('capgen_session') || '{}').business_name) || ''; } catch(e) {}
-  var params = new URLSearchParams({ source: 'ngcc' });
-  if (business) params.set('business', business);
-  link.href = 'https://calgovcc.aproposgroupllc.com/welcome.html?' + params.toString();
-}
-
-// Same identity carry-forward as updateCaExploreLink(), for the secondary
-// "Open Full Nevada Dashboard" link next to the embedded Nevada panel.
-// No personal-name field is stored client-side here (same limitation as the
-// CA link), but email IS available on this session and nvgovcc's welcome.html
-// accepts it, so it's included here even though the CA link omits it.
-function updateNvExploreLink() {
-  var link = document.getElementById('nv-explore-link');
-  if (!link) return;
-  var business = '', email = '';
-  try {
-    var sess = JSON.parse(localStorage.getItem('capgen_session') || '{}');
-    business = sess.business_name || '';
-    email = sess.email || '';
-  } catch(e) {}
-  var params = new URLSearchParams({ source: 'ngcc' });
-  if (business) params.set('business', business);
-  if (email) params.set('email', email);
-  link.href = 'https://nvgovcc.aproposgroupllc.com/welcome.html?' + params.toString();
 }
 
 // ── Tab switching ─────────────────────────────────────────────────────────────
@@ -614,7 +557,7 @@ document.querySelectorAll('.mkt-tab').forEach(function(btn) {
   btn.addEventListener('click', function() {
     document.querySelectorAll('.mkt-tab').forEach(function(b) { b.classList.remove('active'); });
     btn.classList.add('active');
-    ['federal','nevada','california'].forEach(function(p) {
+    ['federal','nevada'].forEach(function(p) {
       document.getElementById('panel-' + p).style.display = btn.dataset.tab === p ? '' : 'none';
     });
   });
@@ -916,7 +859,7 @@ function runAnalysis(opp, force) {
     if (r.status === 401) { document.getElementById('fit-body').innerHTML = '<div class="fit-error">Session expired. Please <a href="/onboarding" style="color:var(--cyan)">sign in again</a>.</div>'; return null; }
     if (r.status === 409) { document.getElementById('fit-body').innerHTML = '<div class="fit-error">Complete your profile to unlock analysis.</div>'; return null; }
     if (r.status === 429) { document.getElementById('fit-body').innerHTML = '<div class="fit-error">Daily analysis limit reached. Try again tomorrow.</div>'; return null; }
-    if (r.status === 402) { document.getElementById('fit-body').innerHTML = '<div class="fit-error">No Analyze Fit report credits available. <a href="https://ai4-product-purchasing.ai4businesses.org/analyze-fit" target="_blank" rel="noopener" style="color:var(--cyan)">Purchase a report — $79 →</a></div>'; return null; }
+    if (r.status === 402) { document.getElementById('fit-body').innerHTML = '<div class="fit-error">No Analyze Fit report credits available. <a href="https://federalcontractorportal.aproposgroupllc.com/analyze-fit.html" target="_blank" rel="noopener" style="color:var(--cyan)">Purchase a report — $79 →</a></div>'; return null; }
     return r.json();
   })
   .then(function(d) {
@@ -998,7 +941,7 @@ function buildStage2(s2) {
       return '<label class="fit-check"><input type="checkbox" id="ck'+i+'"><div class="fit-check-text">'+esc(obj.item||'')+(obj.owner_hint?'<div style="font-size:.7rem;color:rgba(255,255,255,.36);margin-top:2px">Owner: '+esc(obj.owner_hint)+'</div>':'')+'</div></label>';
     }).join('') + '</div>';
   }
-  return '<div class="fit-section"><div class="fit-h">Full Pursuit Package</div><span class="fit-rule">Stage 2 — complete proposal prep</span></div>'
+  return '<div class="fit-section"><div class="fit-h">Pursuit Readiness Detail</div><span class="fit-rule">Stage 2 — deeper contract requirements and readiness analysis</span></div>'
     + '<div class="fit-acc">'
     + sec('Required Work Scope','What the government is buying', list(s2.required_work))
     + sec('Staffing & Delivery','Roles, clearances, delivery', list(s2.staffing_delivery))
@@ -1157,15 +1100,24 @@ function getNvServiceKeywords() {
 
 // ── Nevada pipeline ───────────────────────────────────────────────────────────
 function loadNevada() {
-  loadNvServicesFromStorage(); // restore saved service selections
-  fetch('/.netlify/functions/ngem-pipeline')
-    .then(function(r) { return r.json(); })
-    .then(function(d) {
-      nvAll = Array.isArray(d.bids) ? d.bids : (Array.isArray(d.results) ? d.results : []);
+  var tok = getToken();
+  if (!tok) return;
+  fetch('/api/state-matches', { headers: { Authorization: 'Bearer ' + tok } })
+    .then(function(r) {
+      if (r.status === 401) { signOut(); return null; }
+      return r.json().then(function(d) { return { ok: r.ok, data: d }; });
+    })
+    .then(function(result) {
+      if (!result) return;
+      var d = result.data || {};
+      if (!result.ok || !d.ok) throw new Error(d.error || 'State match request failed.');
+      nvAll = (Array.isArray(d.results) ? d.results : []).map(function(row) {
+        return { id: row.internal_id, bid_id: row.internal_id, title: row.title, description: row.description || '', agency: row.agency, solicitation_no: row.solicitation_number, type: row.procurement_type || 'Contract', close_date: row.response_deadline, issue_date: row.posted_at, url: row.source_url, state_code: row.state_code || '', jurisdiction_name: row.jurisdiction_name || '', naics_codes: row.naics_codes || [], package_document_count: row.package_document_count || 0, match: row.match || null };
+      });
       document.getElementById('tab-nv-count').textContent = nvAll.length;
       applyNvFilters();
     })
-    .catch(function() { document.getElementById('nv-cards').innerHTML = '<div class="empty-row">Could not load Nevada bids. Try again shortly.</div>'; });
+    .catch(function() { document.getElementById('nv-cards').innerHTML = '<div class="empty-row">Could not load state contract matches. Try again shortly.</div>'; });
 }
 
 document.getElementById('nv-search').addEventListener('input', applyNvFilters);
@@ -1176,7 +1128,7 @@ function applyNvFilters() {
   var tp = document.getElementById('nv-type').value;
   var svcKw = getNvServiceKeywords(); // from selected service checkboxes
   nvFiltered = nvAll.filter(function(b) {
-    var hay = (String(b.title||'') + ' ' + String(b.agency||'')).toLowerCase();
+    var hay = (String(b.title||'') + ' ' + String(b.agency||'') + ' ' + String(b.state_code||'') + ' ' + String(b.jurisdiction_name||'') + ' ' + String(b.description||'')).toLowerCase();
     if (q && !hay.includes(q)) return false;
     if (tp && (b.type||b.bid_type||'').toUpperCase() !== tp) return false;
     // If services selected, only show bids that match at least one keyword
@@ -1189,14 +1141,14 @@ function applyNvFilters() {
   document.getElementById('nv-count-lbl').textContent = nvFiltered.length + ' bids';
   document.getElementById('tab-nv-count').textContent = nvFiltered.length;
   var box = document.getElementById('nv-cards');
-  if (!nvFiltered.length) { box.innerHTML = '<div class="empty-row">No Nevada bids matched your filters.</div>'; return; }
+  if (!nvFiltered.length) { box.innerHTML = '<div class="empty-row">No state contracts matched your current filters.</div>'; return; }
   box.innerHTML = nvFiltered.map(function(b, i) {
     var u = urgency(b.close_date);
     var cls = u==='hot'?'badge-hot':u==='warm'?'badge-warm':'badge-ok';
     var typeChip = b.type ? '<span class="chip chip-rfp">'+esc(b.type)+'</span>' : '';
     return '<div class="nv-card" onclick="openNvDrawer(nvFiltered['+i+'])">'
       + '<div class="nv-title">' + esc(b.title||'Untitled') + '</div>'
-      + '<div class="nv-meta"><span>' + esc(b.agency||'—') + '</span>'
+      + '<div class="nv-meta"><span>' + esc(b.agency||'—') + '</span>' + (b.state_code ? '<span class="chip chip-naics">'+esc(b.state_code)+'</span>' : '')
       + typeChip
       + (b.close_date?'<span class="badge '+cls+'">'+esc(b.close_date)+'</span>':'')
       + '</div>'
@@ -1220,7 +1172,7 @@ function openNvDrawer(b) {
   document.getElementById('nvd-sol').textContent = b.solicitation_no || b.bid_id || b.id || '—';
   document.getElementById('nvd-issue').textContent = b.issue_date || '—';
   document.getElementById('nvd-close').textContent = b.close_date || '—';
-  document.getElementById('nvd-portal-link').href = b.url || 'https://nevada.ionwave.net';
+  document.getElementById('nvd-portal-link').href = b.url || '#';
 
   var chips = '';
   if (b.type) {
@@ -1249,14 +1201,14 @@ function nvBidAsOpp(b) {
     notice_id:   b.bid_id || b.id || b.solicitation_no || 'nv-' + (b.title||'').slice(0,20).replace(/\s+/g,'-').toLowerCase(),
     noticeId:    b.bid_id || b.id || b.solicitation_no || '',
     title:       b.title || 'Nevada Procurement Opportunity',
-    agency:      b.agency || 'Nevada State Agency',
+    agency:      b.agency || 'State Agency',
     naics:       '',
     set_aside:   b.type || '',
     deadline:    b.close_date || '',
     responseDeadline: b.close_date || '',
     url:         b.url || 'https://nevada.ionwave.net',
     solicitation_no: b.solicitation_no || b.id || '',
-    source:      'nevada_ngem'
+    source:      'apie_state_inventory'
   };
 }
 

@@ -14,8 +14,8 @@ const normalized = normalizeOutreachText(`Hello Client\n\nUnsubscribe from futur
 assert.doesNotMatch(normalized, /secret-token/, 'the editable draft must never expose the tokenized unsubscribe URL');
 assert.match(normalized, /UNSUBSCRIBE button at the end of this email/, 'the editable draft must preserve the approved unsubscribe instruction');
 
-const html = editableOutreachHtml(normalized, unsubscribeUrl, 'https://marketplace.aproposgroupllc.com/claim-federal-opportunity?ref=NG-TEST');
-assert.match(html, /Claim This Complimentary Opportunity/, 'saved outreach HTML must retain the Marketplace claim CTA');
+const html = editableOutreachHtml(normalized, unsubscribeUrl, 'https://federalcontractorportal.aproposgroupllc.com/claim.html?ref=NG-TEST');
+assert.match(html, /OPEN IN RFCP/, 'saved outreach HTML must retain the RFCP claim CTA');
 assert.match(html, />UNSUBSCRIBE</, 'saved outreach HTML must render an unsubscribe button');
 assert.match(html, /secret-token/, 'the unsubscribe token belongs only in the HTML action URL, not the editable text');
 
@@ -33,12 +33,12 @@ const copy = outreachCopy({
 }, unsubscribeUrl, 'NG-TEST');
 assert.match(copy.subject, /Qualified Contractor LLC/);
 assert.match(copy.text, /Opportunity Reference: NG-TEST/);
-assert.match(copy.text, /Claim this complimentary opportunity/);
-assert.equal(PRODUCTION_SEND, true, 'explicit operator-approved portal send must target the real prospective client');
+assert.match(copy.text, /Open the secure RFCP claim page/);
+assert.equal(PRODUCTION_SEND, false, 'outreach must remain in controlled delivery mode unless production delivery is explicitly configured');
 
 const source = fs.readFileSync(require.resolve('../netlify/functions/ngcc-ops-outreach'), 'utf8');
 const controlled = fs.readFileSync(require.resolve('../netlify/functions/ngcc-ops-controlled-outreach'), 'utf8');
-assert.match(source, /to: \[outreach\.contact_email\]/, 'production send must resolve the prospective-client recipient from the persisted outreach draft');
+assert.match(source, /PRODUCTION_SEND \? outreach\.contact_email : TEST_RECIPIENT/, 'controlled delivery must never target a prospective client');
 assert.match(source, /to: \[OPERATOR_NOTIFICATION_RECIPIENT\]/, 'operator notification must be a separate email');
 assert.match(source, /if \(outreach\.status !== 'sent'\)/, 'client send must be idempotent');
 assert.match(source, /operator_notification_status: 'SENT'/, 'operator notification result must be persisted');

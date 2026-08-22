@@ -1,4 +1,4 @@
-// NGCC — live federal contract matching for a verified business profile.
+// RFCP — live federal contract matching for a verified business profile.
 // Registered Federal Contractors Portal merge, 2026-08-16.
 //
 // The upstream federal source is queried server-side. Customer-facing payloads
@@ -13,6 +13,7 @@ const PER_CODE_LIMIT = 25;
 
 function opportunityView(row, matchedNaics) {
   return {
+    inventory_source: 'federal',
     notice_id: row.noticeId || row.solicitationNumber || null,
     title: row.title || 'Untitled opportunity',
     agency: row.fullParentPathName || row.department || row.subTier || row.organizationType || 'Federal agency',
@@ -25,6 +26,13 @@ function opportunityView(row, matchedNaics) {
     response_deadline: samDeadline(row),
     active: row.active,
     place_of_performance_state: row.placeOfPerformance?.state?.code || null,
+    match: {
+      source: 'Federal (SAM.gov-derived opportunity record)',
+      contractor_capability: `Confirmed contractor NAICS ${matchedNaics}`,
+      basis: 'sam_derived_naics',
+      evidence: { contractor_naics: matchedNaics, opportunity_naics: row.naicsCode || null },
+      limitations: ['NAICS alignment is an initial discovery signal, not proof of scope, eligibility, capacity, or package completeness.'],
+    },
   };
 }
 
@@ -45,7 +53,7 @@ export default async function handler(req) {
         results: [],
         naics_codes: [],
         data_source: { relation: 'Official federal public records (queried live server-side)' },
-        note: 'No NAICS classifications were confirmed on this profile yet, so no federal matching can run. Edit your profile to add NAICS candidates.',
+        note: 'No authoritative NAICS classifications were confirmed on this profile, so Federal NAICS matching cannot run until server verification is complete.',
       });
     }
 
@@ -54,7 +62,7 @@ export default async function handler(req) {
         const result = await searchSamOpportunities({ naicsCode: code, activeOnly: true, limit: PER_CODE_LIMIT, defaultDays: 120 });
         return result.rows.map((row) => opportunityView(row, code));
       } catch (error) {
-        console.error('[ngcc-federal-matches] naics', code, error.message);
+        console.error('[rfcp-federal-matches] naics', code, error.message);
         return [];
       }
     }));
@@ -81,7 +89,7 @@ export default async function handler(req) {
       data_source: { relation: 'Official federal public records (queried live server-side)' },
     });
   } catch (error) {
-    console.error('[ngcc-federal-matches]', error);
+    console.error('[rfcp-federal-matches]', error);
     return json(500, { ok: false, error: error instanceof Error ? error.message : 'Federal contract matching failed.' });
   }
 }

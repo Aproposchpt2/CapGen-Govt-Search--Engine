@@ -17,7 +17,7 @@ const EVENTS = 'ngcc_procurement_mission_events';
 const nowIso = () => new Date().toISOString();
 
 function ensureDb() {
-  if (!SUPABASE_URL || !SUPABASE_KEY) throw new Error('NGCC operational database configuration is incomplete.');
+  if (!SUPABASE_URL || !SUPABASE_KEY) throw new Error('RFCP operational database configuration is incomplete.');
 }
 
 async function db(table, method = 'GET', query = '', body, prefer = '') {
@@ -41,7 +41,7 @@ function missionNumber() {
 
 async function loadMission(missionId) {
   const mission = (await db(MISSIONS, 'GET', `?id=eq.${encodeURIComponent(missionId)}&select=*&limit=1`))[0];
-  if (!mission) throw new Error('NGCC procurement mission was not found.');
+  if (!mission) throw new Error('RFCP procurement mission was not found.');
   const steps = await db(STEPS, 'GET', `?mission_id=eq.${encodeURIComponent(missionId)}&select=*&order=sequence_number.asc`);
   const events = await db(EVENTS, 'GET', `?mission_id=eq.${encodeURIComponent(missionId)}&select=*&order=created_at.desc&limit=50`);
   const staleSeconds = Math.max(30, Number(process.env.NGCC_MISSION_STALE_SECONDS || 180));
@@ -203,7 +203,7 @@ exports.handler = async event => {
     if (action === 'heartbeat') return json(200, { ok: true, ...(await heartbeat(body)) });
     return json(400, { ok: false, error: 'Unknown mission-control action.' });
   } catch (error) {
-    console.error('[ngcc-ops-mission-control]', error);
+    console.error('[rfcp-ops-mission-control]', error);
     const message = String(error?.message || 'Mission-control failure.');
     const status = /locked|cannot|requires action/i.test(message) ? 409 : /required|not found/i.test(message) ? 400 : 500;
     return json(status, { ok: false, error: message });

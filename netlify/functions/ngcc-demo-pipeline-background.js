@@ -78,7 +78,7 @@ async function saveEvidence(event, missionId, evidence) {
   try {
     await call(missionEvidenceFn, event, { mission_id: missionId, operational_state: evidence });
   } catch (e) {
-    console.error('[ngcc-demo-pipeline-background] evidence save failed:', e.message);
+    console.error('[rfcp-demo-pipeline-background] evidence save failed:', e.message);
   }
 }
 
@@ -298,7 +298,7 @@ exports.handler = async event => {
 
     return { statusCode: 200, body: JSON.stringify({ ok: stepStatus === 'SUCCESS', mission_id: missionId, eligible: eligible.length, drafted: ready.length, already_sent: alreadySent.length, sent, send_errors: sendErrors }) };
   } catch (error) {
-    console.error('[ngcc-demo-pipeline-background]', error);
+    console.error('[rfcp-demo-pipeline-background]', error);
     return { statusCode: 200, body: JSON.stringify({ ok: false, mission_id: missionId, error: String(error?.message || error) }) };
   }
 };

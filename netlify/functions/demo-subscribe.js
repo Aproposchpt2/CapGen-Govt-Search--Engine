@@ -6,7 +6,7 @@ const crypto       = require('crypto');
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const RESEND_KEY   = process.env.RESEND_API_KEY;
-const FROM_EMAIL   = process.env.RESEND_FROM_EMAIL || 'CapGen by Apropos Group <jmitchell@ai4websitedesign.com>';
+const FROM_EMAIL   = process.env.RESEND_FROM_EMAIL || 'CapGen by Apropos Group <jmitchell@nebc.aproposgroupllc.com/website-builder.html>';
 const SITE_URL     = process.env.DEPLOY_URL || process.env.URL || '';
 
 const CORS = {

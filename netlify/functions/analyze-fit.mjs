@@ -1,37 +1,140 @@
-// analyze-fit.mjs — Free NGCC Analyze Fit orchestrator
-// POST { opportunityId, force?, deep?, opportunity?, view_token?, beta_token? }
+import { createHash } from 'node:crypto';
+import { loadMergedAnalyzeProfile } from './_shared/ngcc-analyze-profile.mjs';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SITE_URL = process.env.DEPLOY_URL || process.env.URL || '';
+const INTERNAL_TOKEN = process.env.ANALYZE_FIT_INTERNAL_SECRET || process.env.AUTH_TOKEN_SECRET;
 const MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6';
-const CORS = {'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type, Authorization'};
-function sbH(extra={}){return {apikey:SUPABASE_KEY,Authorization:`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json',...extra}}
-async function sbGet(path){const r=await fetch(`${SUPABASE_URL}/rest/v1/${path}`,{headers:sbH()});if(!r.ok)throw new Error(`Supabase GET: ${(await r.text()).slice(0,200)}`);return r.json()}
-async function sbInsert(table,row){const r=await fetch(`${SUPABASE_URL}/rest/v1/${table}`,{method:'POST',headers:sbH({Prefer:'return=representation'}),body:JSON.stringify(row)});if(!r.ok)throw new Error(`Supabase insert: ${(await r.text()).slice(0,200)}`);const rows=await r.json();return Array.isArray(rows)?rows[0]:rows}
-async function sbPatch(table,filter,update){const r=await fetch(`${SUPABASE_URL}/rest/v1/${table}?${filter}`,{method:'PATCH',headers:sbH({Prefer:'return=representation'}),body:JSON.stringify(update)});if(!r.ok)throw new Error(`Supabase PATCH: ${(await r.text()).slice(0,200)}`);const rows=await r.json();return Array.isArray(rows)?rows[0]:rows}
-async function sbDelete(table,filter){const r=await fetch(`${SUPABASE_URL}/rest/v1/${table}?${filter}`,{method:'DELETE',headers:sbH()});if(!r.ok)throw new Error(`Supabase DELETE: ${(await r.text()).slice(0,200)}`)}
-async function verifySession(h){if(!h?.startsWith('Bearer '))return null;const t=h.slice(7).trim();if(!t)return null;try{const rows=await sbGet(`client_sessions?session_token=eq.${encodeURIComponent(t)}&revoked=eq.false&limit=1`);if(!rows[0]||new Date(rows[0].expires_at)<new Date())return null;return rows[0].email.toLowerCase().trim()}catch{return null}}
-async function verifyBeta(t){if(!t||!t.startsWith('beta_'))return null;try{const rows=await sbGet(`beta_testers?access_token=eq.${encodeURIComponent(t)}&status=eq.active&limit=1`);if(!rows[0])return null;if(rows[0].token_expires_at&&new Date(rows[0].token_expires_at)<new Date())return null;return rows[0].email.toLowerCase().trim()}catch{return null}}
-async function verifyViewToken(t){if(!t)return null;try{const rows=await sbGet(`demo_snapshots?view_token=eq.${encodeURIComponent(t)}&status=eq.complete&select=requester_email&limit=1`);return rows[0]?.requester_email?.toLowerCase().trim()||null}catch{return null}}
+const HEADERS = { 'Content-Type': 'application/json' };
 
-// Credit gate -- 2026-08-15, revised same day when Jeff changed the pricing
-// model: subscriptions no longer include any Analyze Fit credit at all
-// (unlimited contract downloads only), so this no longer checks for an
-// active subscription -- every report, subscriber or not, is a separate
-// $79 purchase. Just a direct balance check against product_code='ngcc'
-// (this file only runs on the NGCC site, so that's hardcoded, not resolved
-// from an entitlement lookup the way it briefly was earlier today).
-const CREDIT_PRODUCT = 'ngcc';
-async function creditBalance(email, product) {
-  const rows = await sbGet(`analyze_fit_credit_ledger?customer_email=eq.${encodeURIComponent(email)}&product_code=eq.${product}&select=credit_delta`);
-  return rows.reduce((sum, r) => sum + Number(r.credit_delta || 0), 0);
+function sbHeaders(extra = {}) { return { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', ...extra }; }
+async function sbGet(path) {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { headers: sbHeaders() });
+  if (!response.ok) throw new Error(`Supabase GET ${response.status}: ${(await response.text()).slice(0, 180)}`);
+  return response.json();
 }
-async function consumeCredit(email, product, opportunityId) {
-  return sbInsert('analyze_fit_credit_ledger', {
-    customer_email: email.toLowerCase().trim(), product_code: product, credit_delta: -1,
-    reason: 'usage', metadata: { opportunity_id: opportunityId }
-  });
+async function sbInsert(table, row) {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, { method: 'POST', headers: sbHeaders({ Prefer: 'return=representation' }), body: JSON.stringify(row) });
+  if (!response.ok) throw new Error(`Supabase insert ${response.status}: ${(await response.text()).slice(0, 180)}`);
+  return (await response.json())[0];
 }
-export const handler=async event=>{if(event.httpMethod==='OPTIONS')return{statusCode:204,headers:CORS,body:''};if(event.httpMethod!=='POST')return{statusCode:405,headers:CORS,body:JSON.stringify({error:'POST only'})};let body;try{body=JSON.parse(event.body||'{}')}catch{return{statusCode:400,headers:CORS,body:JSON.stringify({error:'Invalid JSON'})}}let accountEmail=await verifySession(event.headers?.authorization||event.headers?.Authorization||'');let isBeta=false;if(!accountEmail&&body.beta_token){accountEmail=await verifyBeta(body.beta_token);isBeta=!!accountEmail}if(!accountEmail&&body.view_token)accountEmail=await verifyViewToken(body.view_token);if(!accountEmail)return{statusCode:401,headers:CORS,body:JSON.stringify({error:'UNAUTHORIZED'})};const {opportunityId,force=false,deep=false,opportunity:inlineOpp}=body;if(!opportunityId)return{statusCode:400,headers:CORS,body:JSON.stringify({error:'opportunityId required'})};if(!isBeta){const snaps=await sbGet(`demo_snapshots?requester_email=eq.${encodeURIComponent(accountEmail)}&status=eq.complete&order=created_at.desc&limit=1`);if(!snaps.length)return{statusCode:409,headers:CORS,body:JSON.stringify({error:'PROFILE_REQUIRED'})}}const ae=encodeURIComponent(accountEmail),oid=encodeURIComponent(opportunityId);const cached=await sbGet(`opportunity_analyses?account_email=eq.${ae}&opportunity_id=eq.${oid}&profile_version=eq.0&limit=1`);if(cached.length&&!force){const row=cached[0];if(deep&&!row.stage2&&(row.status==='complete'||row.status==='stage1_complete')){await sbPatch('opportunity_analyses',`id=eq.${row.id}`,{status:'stage1_complete'});await fireBackground({rowId:row.id,accountEmail,opportunityId,profileVersion:0,deep:true,skipStage1:true,opportunity:inlineOpp});return{statusCode:200,headers:CORS,body:JSON.stringify({...row,status:'stage1_complete',cached:false})}}return{statusCode:200,headers:CORS,body:JSON.stringify({...row,cached:true})}}const since=new Date(Date.now()-86400000).toISOString();const recent=await sbGet(`opportunity_analyses?account_email=eq.${ae}&created_at=gte.${encodeURIComponent(since)}&select=id`);if(recent.length>=50)return{statusCode:429,headers:CORS,body:JSON.stringify({error:'DAILY_LIMIT',message:'Analyze Fit daily safety limit reached. Try again later.'})};const creditBal=await creditBalance(accountEmail,CREDIT_PRODUCT);if(creditBal<1)return{statusCode:402,headers:CORS,body:JSON.stringify({error:'OUT_OF_CREDITS',message:'No Analyze Fit report credits available. Purchase a report at ai4-product-purchasing.ai4businesses.org/analyze-fit to continue.',purchase_url:'https://ai4-product-purchasing.ai4businesses.org/analyze-fit'})};if(force&&cached.length)try{await sbDelete('opportunity_analyses',`id=eq.${cached[0].id}`)}catch{}await consumeCredit(accountEmail,CREDIT_PRODUCT,opportunityId);let row;try{row=await sbInsert('opportunity_analyses',{account_email:accountEmail,opportunity_id:opportunityId,profile_version:0,stage1:{},recommendation:'PENDING',fit_score:0,model:MODEL,status:'pending'})}catch(e){const inFlight=await sbGet(`opportunity_analyses?account_email=eq.${ae}&opportunity_id=eq.${oid}&profile_version=eq.0&limit=1`);if(inFlight.length)return{statusCode:200,headers:CORS,body:JSON.stringify({...inFlight[0],cached:true})};try{await sbInsert('analyze_fit_credit_ledger',{customer_email:accountEmail.toLowerCase().trim(),product_code:CREDIT_PRODUCT,credit_delta:1,reason:'refund_reversal',metadata:{opportunity_id:opportunityId,refund_for:'insert_failed'}})}catch{}return{statusCode:500,headers:CORS,body:JSON.stringify({error:'Insert failed: '+e.message})}}await fireBackground({rowId:row.id,accountEmail,opportunityId,profileVersion:0,isBeta,deep,skipStage1:false,opportunity:inlineOpp});return{statusCode:202,headers:CORS,body:JSON.stringify({id:row.id,status:'pending',opportunity_id:opportunityId,cached:false})}};
-async function fireBackground(payload){try{await fetch(`${SITE_URL}/.netlify/functions/analyze-fit-background`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})}catch{}}
+async function sbRpc(name, body) {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`, { method: 'POST', headers: sbHeaders(), body: JSON.stringify(body) });
+  if (!response.ok) {
+    const error = new Error((await response.text()).slice(0, 240) || `RPC ${name} failed`);
+    error.status = response.status;
+    throw error;
+  }
+  const text = await response.text();
+  return text ? JSON.parse(text) : null;
+}
+async function verifySession(header) {
+  if (!header?.startsWith('Bearer ')) return null;
+  const token = header.slice(7).trim();
+  if (!token) return null;
+  try {
+    const rows = await sbGet(`client_sessions?session_token=eq.${encodeURIComponent(token)}&revoked=eq.false&limit=1`);
+    if (!rows[0] || new Date(rows[0].expires_at) < new Date()) return null;
+    return rows[0].email.toLowerCase().trim();
+  } catch { return null; }
+}
+async function verifyBeta(token) {
+  if (!token?.startsWith('beta_')) return null;
+  const rows = await sbGet(`beta_testers?access_token=eq.${encodeURIComponent(token)}&status=eq.active&limit=1`);
+  if (!rows[0] || (rows[0].token_expires_at && new Date(rows[0].token_expires_at) < new Date())) return null;
+  return rows[0].email.toLowerCase().trim();
+}
+async function verifyViewToken(token) {
+  if (!token) return null;
+  const rows = await sbGet(`demo_snapshots?view_token=eq.${encodeURIComponent(token)}&status=eq.complete&select=requester_email&limit=1`);
+  return rows[0]?.requester_email?.toLowerCase().trim() || null;
+}
+
+function normalizeSource(value) { return value === 'state_local' ? 'state_local' : 'federal'; }
+function validOpportunityId(source, id) {
+  if (!id || id.length > 160) return false;
+  return source === 'state_local' ? /^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(id) : /^[A-Za-z0-9._:-]+$/.test(id);
+}
+async function loadOpportunity(source, id) {
+  if (source === 'state_local') {
+    const select = 'id,title,description,issuing_organization,solicitation_number,state_code,jurisdiction_name,place_of_performance_county,procurement_type,response_deadline,posted_at,package_document_count,match_readiness_status,status';
+    const rows = await sbGet(`state_contract_opportunities?id=eq.${encodeURIComponent(id)}&natcorp_release_status=eq.eligible&is_latest_version=eq.true&select=${select}&limit=1`);
+    const row = rows[0];
+    if (!row) return null;
+    return {
+      inventory_source: 'state_local', source_opportunity_id: row.id, notice_id: row.id,
+      title: row.title, description: row.description, agency: row.issuing_organization,
+      solicitation_number: row.solicitation_number, response_deadline: row.response_deadline,
+      package_document_count: Number(row.package_document_count || 0),
+      package_status: Number(row.package_document_count || 0) > 0 ? 'available_not_asserted_complete' : 'unavailable',
+      match_basis: 'business_capability_keywords',
+      limitations: ['State/local matching does not use SAM NAICS.', 'Package completeness is not assumed.'],
+      raw: { placeOfPerformance: { state: { code: row.state_code }, county: row.place_of_performance_county }, procurement_type: row.procurement_type },
+    };
+  }
+  const rows = await sbGet(`sam_opportunities?notice_id=eq.${encodeURIComponent(id)}&select=notice_id,title,agency,naics_code,set_aside,response_deadline,solicitation_number,raw,resolved_description&limit=1`);
+  if (!rows[0]) return null;
+  return { ...rows[0], inventory_source: 'federal', source_opportunity_id: rows[0].notice_id, match_basis: 'sam_derived_naics', limitations: ['SAM.gov and the complete solicitation remain authoritative.'] };
+}
+function response(statusCode, body) { return { statusCode, headers: HEADERS, body: JSON.stringify(body) }; }
+
+export const handler = async event => {
+  if (event.httpMethod !== 'POST') return response(405, { error: 'POST only' });
+  let body;
+  try { body = JSON.parse(event.body || '{}'); } catch { return response(400, { error: 'Invalid JSON' }); }
+
+  let accountEmail = await verifySession(event.headers?.authorization || event.headers?.Authorization || '');
+  let authorizedTest = false;
+  if (!accountEmail && body.beta_token) { accountEmail = await verifyBeta(body.beta_token); authorizedTest = Boolean(accountEmail); }
+  if (!accountEmail && body.view_token) accountEmail = await verifyViewToken(body.view_token);
+  if (!accountEmail) return response(401, { error: 'UNAUTHORIZED' });
+
+  const source = normalizeSource(body.inventorySource);
+  const opportunityId = String(body.opportunityId || '').trim();
+  if (!validOpportunityId(source, opportunityId)) return response(400, { error: 'INVALID_OPPORTUNITY_ID' });
+  const opportunity = await loadOpportunity(source, opportunityId);
+  if (!opportunity) return response(404, { error: 'OPPORTUNITY_NOT_FOUND' });
+
+  if (!authorizedTest && !(await loadMergedAnalyzeProfile(sbGet, accountEmail))) return response(409, { error: 'PROFILE_REQUIRED' });
+
+  const opportunityKey = `${source}:${opportunityId}`;
+  const emailFilter = encodeURIComponent(accountEmail);
+  const keyFilter = encodeURIComponent(opportunityKey);
+  const cached = await sbGet(`opportunity_analyses?account_email=eq.${emailFilter}&opportunity_id=eq.${keyFilter}&profile_version=eq.0&limit=1`);
+  if (cached.length) return response(200, { ...cached[0], cached: true, inventory_source: source });
+
+  const since = encodeURIComponent(new Date(Date.now() - 86400000).toISOString());
+  const recent = await sbGet(`opportunity_analyses?account_email=eq.${emailFilter}&created_at=gte.${since}&select=id`);
+  if (recent.length >= 50) return response(429, { error: 'DAILY_LIMIT', message: 'Analyze Fit daily safety limit reached.' });
+
+  const requestedKey = String(event.headers?.['idempotency-key'] || '').trim();
+  const idempotencyKey = createHash('sha256').update(`${accountEmail}|${opportunityKey}|${requestedKey || 'default'}`).digest('hex');
+  let reservation;
+  try {
+    const rows = await sbRpc('rfcp_reserve_analyze_fit', { p_customer_email: accountEmail, p_opportunity_key: opportunityKey, p_idempotency_key: idempotencyKey });
+    reservation = Array.isArray(rows) ? rows[0] : rows;
+  } catch (error) {
+    if (/No Analyze Fit entitlement/i.test(error.message)) return response(402, { error: 'OUT_OF_CREDITS', message: 'No active Analyze Fit entitlement or credit is available.' });
+    return response(503, { error: 'ENTITLEMENT_UNAVAILABLE', message: 'Analyze Fit authorization could not be confirmed.' });
+  }
+
+  let row;
+  try {
+    row = await sbInsert('opportunity_analyses', {
+      account_email: accountEmail, opportunity_id: opportunityKey, profile_version: 0,
+      stage1: { _inventory_source: source, _source_opportunity_id: opportunityId, _package_status: opportunity.package_status || null },
+      recommendation: 'PENDING', fit_score: 0, model: MODEL, status: 'pending',
+    });
+    if (!INTERNAL_TOKEN) throw new Error('Analyze Fit internal authorization is not configured.');
+    const background = await fetch(`${SITE_URL}/.netlify/functions/analyze-fit-background`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'x-rfcp-internal-token': INTERNAL_TOKEN },
+      body: JSON.stringify({ rowId: row.id, accountEmail, opportunityId, opportunityKey, inventorySource: source, reservationId: reservation.request_id, profileVersion: 0, deep: true, isBeta: authorizedTest }),
+    });
+    if (!background.ok) throw new Error(`Background reservation failed (${background.status}).`);
+  } catch (error) {
+    if (reservation?.request_id) await sbRpc('rfcp_release_analyze_fit', { p_request_id: reservation.request_id, p_failure_code: 'orchestration_failed' }).catch(() => {});
+    return response(500, { error: 'ANALYSIS_START_FAILED', message: error.message });
+  }
+  return response(202, { id: row.id, status: 'pending', opportunity_id: opportunityKey, inventory_source: source, cached: false });
+};

@@ -85,7 +85,9 @@ function issueOpsSession({ role = 'operator', expiresAt } = {}) {
 function verifyOpsSessionDetails(event) {
   const headers = event.headers || {};
   const header = headers.authorization || headers.Authorization || '';
-  const token = header.startsWith('Bearer ') ? header.slice(7).trim() : '';
+  const cookieHeader = headers.cookie || headers.Cookie || '';
+  const cookieToken = cookieHeader.split(';').map(value => value.trim()).find(value => value.startsWith('rfcp_ops='))?.slice('rfcp_ops='.length) || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7).trim() : decodeURIComponent(cookieToken);
   const parts = token.split('.');
   if (parts.length !== 2 && parts.length !== 3) return null;
   const [expStr, roleOrSig, versionedSig] = parts;

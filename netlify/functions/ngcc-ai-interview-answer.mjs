@@ -121,7 +121,7 @@ export default async function handler(req) {
       interview_complete_pending_open_qa: !remaining.length,
     });
   } catch (error) {
-    console.error('[ngcc-ai-interview-answer]', error);
+    console.error('[rfcp-ai-interview-answer]', error);
     return json(500, { ok: false, error: 'The interview could not continue.' });
   }
 }

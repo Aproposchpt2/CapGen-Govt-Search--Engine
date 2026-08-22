@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>NGCC Command Center</title></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>RFCP Command Center</title></head>
 <body>
 <script>
 (async()=>{
@@ -9,7 +9,7 @@
     if(!res.ok)throw new Error(`Unable to load command center (${res.status}).`);
     let shell=await res.text();
     const marker='    document.open();';
-    if(!shell.includes(marker))throw new Error('NGCC v5 composition marker not found.');
+    if(!shell.includes(marker))throw new Error('RFCP v5 composition marker not found.');
 
     const patch = [
       "    // v6 operator workflow: add Start New Task without generating nested script tags.",

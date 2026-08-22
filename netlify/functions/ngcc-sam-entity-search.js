@@ -1,4 +1,4 @@
-// NGCC ops — SAM.gov registered-contractor search by NAICS code.
+// RFCP ops — SAM.gov registered-contractor search by NAICS code.
 // This is the "one source for both entities" piece: the same SAM.gov
 // Entity Management API this repo already uses in bulk
 // (import-active-contractors.js), here used as a live, on-demand reverse
@@ -26,7 +26,7 @@ exports.handler = async (event) => {
     const { entities, totalRecords } = await samEntitySearchByNaics({ naicsCode, state: state || undefined, limit });
     return json(200, { ok: true, naicsCode, state: state || null, count: entities.length, total_records: totalRecords, truncated: totalRecords > entities.length, entities });
   } catch (error) {
-    console.error('[ngcc-sam-entity-search]', error.message);
+    console.error('[rfcp-sam-entity-search]', error.message);
     return json(200, { ok: false, error: error.message });
   }
 };

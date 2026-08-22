@@ -143,7 +143,11 @@ function scoreMatch(capabilityProfile, opportunity, options = {}) {
   signalScores.semantic_evidence = features.concepts.length ? weights.semanticEvidence : 0;
   signalScores.set_aside = weights.setAside;
   signalScores.psc = features.psc ? weights.psc : 0;
-  signalScores.market = /dla|defense|navy|air force|nasa|nist|microelectronics/i.test(String(opportunity.agency || '')) ? weights.market : 0;
+  // “Naval” is the formal agency wording used by Naval Air Systems Command.
+  // Treat it as the same defense-market signal as “Navy”; this signal applies
+  // only to the agency field and therefore does not inflate matches merely
+  // because solicitation prose mentions naval work.
+  signalScores.market = /dla|defense|navy|naval|air force|nasa|nist|microelectronics/i.test(String(opportunity.agency || '')) ? weights.market : 0;
   signalScores.geography_capacity = weights.geographyCapacity;
 
   let hardDisqualifier = null;

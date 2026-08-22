@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>CapGen — Leads Intelligence</title>
+<title>Registered Federal Contractors Portal — Leads Intelligence</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
@@ -84,7 +84,7 @@ tr:hover td{background:rgba(91,175,255,.04)}
 <body>
 
 <div class="top-banner">
-  <span class="banner-title">CapGen — Leads Intelligence Dashboard</span>
+  <span class="banner-title">Registered Federal Contractors Portal — Leads Intelligence Dashboard</span>
   <span class="badge-admin">ADMIN ONLY</span>
 </div>
 
@@ -141,7 +141,7 @@ tr:hover td{background:rgba(91,175,255,.04)}
           <th class="sortable" onclick="toggleSort('award')">Total Awards ↕</th>
           <th>Awards</th>
           <th>Last Award</th>
-          <th>CapGen Status</th>
+          <th>Registered Federal Contractors Portal Status</th>
         </tr>
       </thead>
       <tbody id="tableBody"><tr><td colspan="9" class="loading">Loading…</td></tr></tbody>
@@ -290,7 +290,7 @@ function exportCsv() {
     return true;
   }).sort(function(a,b){ return (b.total_award_value||0) - (a.total_award_value||0); });
 
-  const header = ['Company','NAICS','City','State','Total Awards','Award Count','Last Award','Top Agency','CapGen Status'];
+  const header = ['Company','NAICS','City','State','Total Awards','Award Count','Last Award','Top Agency','RFCP Status'];
   const csv    = [header, ...rows.map(function(r) {
     return [
       r.legal_name, r.primary_naics, r.address_city, r.address_state,

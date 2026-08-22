@@ -172,7 +172,7 @@ export const handler = async (event) => {
 
     return { statusCode: 200, body: 'complete' };
   } catch (error) {
-    console.error('[ngcc-ai-interview-start-background]', error.message || error);
+    console.error('[rfcp-ai-interview-start-background]', error.message || error);
     try { await sbPatch(`id=eq.${rowId}`, { status: 'failed' }); } catch {}
     return { statusCode: 200, body: 'failed' };
   }

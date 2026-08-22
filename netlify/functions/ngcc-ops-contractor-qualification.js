@@ -89,7 +89,7 @@ exports.handler = async event => {
       persistence: run?.id ? 'DURABLE — qualification updated the same contractor rows researched during Stage 05.' : 'UNAVAILABLE — a persisted search run is required.',
     });
   } catch (error) {
-    console.error('[ngcc-ops-contractor-qualification]', error);
+    console.error('[rfcp-ops-contractor-qualification]', error);
     return json(200, {
       ok: false,
       stage: 'CONTRACTOR_QUALIFICATION',

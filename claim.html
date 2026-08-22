@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Claim a Contract Opportunity | RFCP</title>
+  <meta name="description" content="Securely claim a complimentary contract opportunity in the Registered Federal Contractors Portal.">
+  <style>
+    :root{color-scheme:light;--navy:#0f2a6a;--gold:#d5ae55;--ink:#172033;--muted:#5f6878;--line:#dbe1ec}
+    *{box-sizing:border-box}body{margin:0;background:#eef1f7;color:var(--ink);font:16px/1.5 Arial,sans-serif}
+    header{background:var(--navy);color:#fff;border-bottom:4px solid var(--gold);padding:22px}.brand{max-width:760px;margin:auto;font-weight:800;letter-spacing:.04em}
+    main{max-width:760px;margin:42px auto;padding:0 18px}.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:28px;box-shadow:0 8px 30px #0f2a6a14}
+    h1{margin:0 0 8px;font-size:clamp(1.7rem,5vw,2.4rem)}p{color:var(--muted)}label{display:block;font-weight:700;margin:16px 0 6px}input{width:100%;padding:12px;border:1px solid #aab4c5;border-radius:7px;font:inherit}
+    button{margin-top:22px;background:var(--navy);color:#fff;border:0;border-radius:8px;padding:13px 20px;font-weight:800;cursor:pointer}button[disabled]{opacity:.55;cursor:wait}.status{margin-top:18px;padding:12px;border-radius:7px;display:none}.status.error{display:block;background:#fff0f0;color:#8b1820}.status.ok{display:block;background:#edf8f0;color:#185b2d}
+  </style>
+</head>
+<body>
+  <header><div class="brand">REGISTERED FEDERAL CONTRACTORS PORTAL · RFCP</div></header>
+  <main><section class="card">
+    <h1>Claim your contract opportunity</h1>
+    <p>Confirm the business information associated with the RFCP opportunity introduction. Your reference is verified against the original delivery record.</p>
+    <form id="claimForm">
+      <label for="name">Your name</label><input id="name" name="name" autocomplete="name" required>
+      <label for="business">Legal business name</label><input id="business" name="business_name" autocomplete="organization" required>
+      <label for="email">Business email</label><input id="email" name="email" type="email" autocomplete="email" required>
+      <label for="reference">Opportunity Reference</label><input id="reference" name="opportunity_reference" required pattern="NG-[A-Z0-9]{8}" aria-describedby="referenceHelp">
+      <p id="referenceHelp">Use the NG- reference shown in your RFCP email.</p>
+      <button type="submit">Open secure opportunity workspace</button>
+      <div id="status" class="status" role="status" aria-live="polite"></div>
+    </form>
+  </section></main>
+  <script>
+    const form=document.getElementById('claimForm');const status=document.getElementById('status');
+    const ref=new URLSearchParams(location.search).get('ref');if(ref)document.getElementById('reference').value=ref;
+    form.addEventListener('submit',async event=>{event.preventDefault();const button=form.querySelector('button');button.disabled=true;status.className='status';
+      try{const payload=Object.fromEntries(new FormData(form));const response=await fetch('/.netlify/functions/ngcc-federal-claim',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});const result=await response.json();if(!response.ok)throw new Error(result.error||'The claim could not be verified.');
+        if(!result.workspace_token)throw new Error('A secure workspace could not be issued.');status.textContent='Verified. Opening your RFCP opportunity workspace…';status.className='status ok';location.assign('/federal-opportunity-workspace.html?t='+encodeURIComponent(result.workspace_token));
+      }catch(error){status.textContent=error.message;status.className='status error';button.disabled=false;}});
+  </script>
+</body>
+</html>

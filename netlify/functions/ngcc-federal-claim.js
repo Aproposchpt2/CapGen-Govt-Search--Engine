@@ -37,7 +37,7 @@ async function notifyOperator({ outreach, name, businessName, email, reference, 
     }),
     signal: AbortSignal.timeout(20000),
   });
-  if (!response.ok) console.error('[ngcc-federal-claim] operator notification failed:', response.status, await response.text().catch(() => ''));
+  if (!response.ok) console.error('[rfcp-federal-claim] operator notification failed:', response.status, await response.text().catch(() => ''));
 }
 
 exports.handler = async event => {
@@ -48,20 +48,39 @@ exports.handler = async event => {
   try { body = JSON.parse(event.body || '{}'); }
   catch { return json(400, { ok: false, error: 'Invalid request body.' }); }
 
-  const noticeId = safe(body.notice_id || body.source_reference);
+  // REFERENCE_ONLY_FEDERAL_CLAIM: the common Marketplace claim page does not need
+  // to expose SAM notice metadata. Resolve the original sent outreach from the
+  // recipient identity + NG Opportunity Reference when notice_id is absent.
+  let noticeId = safe(body.notice_id || body.source_reference);
   const name = safe(body.name || body.contact_name);
   const businessName = safe(body.business_name);
   const email = safe(body.email || body.contact_email).toLowerCase();
   const reference = safe(body.opportunity_reference).toUpperCase();
 
-  if (!noticeId || !name || !businessName || !email || !reference) {
-    return json(400, { ok: false, error: 'Name, business name, business email, Opportunity Reference, and SAM.gov notice are required.' });
+  if (!name || !businessName || !email || !reference) {
+    return json(400, { ok: false, error: 'Name, business name, business email, and Opportunity Reference are required.' });
   }
   if (!EMAIL_RE.test(email)) return json(400, { ok: false, error: 'A valid business email is required.' });
 
   try {
-    const outreach = await loadOutreachForClaim(noticeId, email);
-    if (!outreach) return json(404, { ok: false, error: 'This complimentary federal opportunity could not be verified for that business email.' });
+    let outreach = null;
+    if (noticeId) {
+      outreach = await loadOutreachForClaim(noticeId, email);
+    } else {
+      const rows = await sb(
+        'ngcc_outreach_events',
+        'GET',
+        `?contact_email=eq.${encodeURIComponent(email)}&status=eq.sent&select=*&order=created_at.desc&limit=50`
+      );
+      outreach = (rows || []).find(row => {
+        const rowNoticeId = safe(row.notice_id);
+        return rowNoticeId
+          && claimReference(rowNoticeId, email) === reference
+          && normalize(businessName) === normalize(row.business_name);
+      }) || null;
+      noticeId = safe(outreach?.notice_id);
+    }
+    if (!outreach || !noticeId) return json(404, { ok: false, error: 'This complimentary federal opportunity could not be verified for that business email and Opportunity Reference.' });
     if (String(outreach.status || '').toLowerCase() !== 'sent') {
       return json(409, { ok: false, error: 'This opportunity introduction is not currently available for claim.' });
     }
@@ -79,7 +98,7 @@ exports.handler = async event => {
     const workspace = issueWorkspaceToken(outreach.outreach_id);
     let sam = null;
     try { sam = await loadSamOpportunity(noticeId, currentPayload.posted_date); }
-    catch (error) { console.warn('[ngcc-federal-claim] SAM refresh warning:', error.message); }
+    catch (error) { console.warn('[rfcp-federal-claim] SAM refresh warning:', error.message); }
     const opportunity = opportunitySnapshot(outreach, sam);
     const claimedAt = new Date().toISOString();
 
@@ -109,7 +128,7 @@ exports.handler = async event => {
     }, 'return=minimal');
 
     try { await notifyOperator({ outreach, name, businessName, email, reference: expectedReference, workspaceExpiresAt: workspace.expires_at }); }
-    catch (error) { console.error('[ngcc-federal-claim] notifyOperator:', error.message); }
+    catch (error) { console.error('[rfcp-federal-claim] notifyOperator:', error.message); }
 
     return json(200, {
       ok: true,
@@ -119,7 +138,7 @@ exports.handler = async event => {
       opportunity,
     });
   } catch (error) {
-    console.error('[ngcc-federal-claim]', error);
+    console.error('[rfcp-federal-claim]', error);
     return json(500, { ok: false, error: 'The complimentary federal opportunity claim could not be completed.' });
   }
 };

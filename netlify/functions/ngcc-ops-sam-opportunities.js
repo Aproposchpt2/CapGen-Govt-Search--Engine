@@ -1,4 +1,4 @@
-// NGCC ops — live, on-demand SAM.gov Opportunities search for the internal
+// RFCP ops — live, on-demand SAM.gov Opportunities search for the internal
 // proactive procurement command center.
 //
 // Governing inventory rule: operator-defined scope drives the search.
@@ -264,7 +264,7 @@ exports.handler = async (event) => {
           return batch.rows;
         } catch (error) {
           console.error(
-            '[ngcc-ops-sam-opportunities]',
+            '[rfcp-ops-sam-opportunities]',
             path.setAsideCode || 'ANY',
             path.naicsCode,
             stateParam,
@@ -372,7 +372,7 @@ exports.handler = async (event) => {
       execution,
     });
   } catch (error) {
-    console.error('[ngcc-ops-sam-opportunities]', error.message);
+    console.error('[rfcp-ops-sam-opportunities]', error.message);
     return json(500, { ok: false, search_status: 'FAILED', error: error.message, active_count: 0, results: [] });
   }
 };

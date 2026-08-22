@@ -1,6 +1,6 @@
 'use strict';
 
-// NGCC opportunity outreach follows the proven BusinessContracts operator
+// RFCP opportunity outreach follows the proven BusinessContracts operator
 // control pattern: PREPARE DRAFT -> REVIEW/EDIT -> SAVE -> APPROVE & SEND.
 // Nothing in draft preparation transmits email. A real business email is sent
 // only after an authenticated operator explicitly invokes action=send.
@@ -11,7 +11,7 @@ const {
 
 const OPERATOR_NOTIFICATION_RECIPIENT = process.env.OPERATOR_NOTIFICATION_EMAIL || TEST_RECIPIENT;
 const UNSUBSCRIBE_COPY = 'To unsubscribe from future opportunity introductions, use the UNSUBSCRIBE button at the end of this email.';
-const PRODUCTION_SEND = true;
+const PRODUCTION_SEND = true && String(process.env.NGCC_OUTREACH_DELIVERY_MODE || 'test').trim().toLowerCase() === 'production';
 
 async function sb(table, method, query, body, prefer) {
   const headers = { ...sbHeaders() };
@@ -38,16 +38,13 @@ function claimReference(contract, candidate) {
   return `NG-${sha256Hex(`${contract.noticeId}|${clean(candidate.contact_email).toLowerCase()}`).slice(0, 8).toUpperCase()}`;
 }
 
+const RFCP_CLAIM_FRONT_DOOR = 'https://federalcontractorportal.aproposgroupllc.com/claim.html';
+
 function claimUrl(contract, candidate, reference) {
   const params = new URLSearchParams({
-    notice_id: contract.noticeId || '',
-    sam_url: contract.samUrl || '',
-    title: contract.title || '',
-    agency: contract.agency || '',
-    solicitation: contract.solicitationNumber || '',
     ref: reference || claimReference(contract, candidate),
   });
-  return `https://marketplace.aproposgroupllc.com/claim-federal-opportunity?${params.toString()}`;
+  return `${RFCP_CLAIM_FRONT_DOOR}?${params.toString()}`;
 }
 
 function normalizeOutreachText(bodyText, unsubscribeUrl) {
@@ -67,12 +64,12 @@ function normalizeOutreachText(bodyText, unsubscribeUrl) {
 function editableOutreachHtml(bodyText, unsubscribeUrl, claimLink) {
   const safeBody = esc(bodyText);
   const claimButton = claimLink
-    ? `<div style="margin:26px 0;text-align:left"><a href="${esc(claimLink)}" style="display:inline-block;background:#0F2A6A;color:#fff;text-decoration:none;padding:13px 20px;border-radius:8px;font-weight:700">Claim This Complimentary Opportunity</a></div>`
+    ? `<div style="margin:26px 0;text-align:left"><a href="${esc(claimLink)}" style="display:inline-block;background:#0F2A6A;color:#fff;text-decoration:none;padding:13px 20px;border-radius:8px;font-weight:700">OPEN IN RFCP</a></div>`
     : '';
   const unsubscribeButton = unsubscribeUrl
     ? `<div style="border-top:1px solid #e4e8ee;padding-top:18px;margin-top:24px;text-align:center"><a href="${esc(unsubscribeUrl)}" style="display:inline-block;background:#667085;color:#fff;text-decoration:none;padding:11px 18px;border-radius:8px;font-size:12px;font-weight:800;letter-spacing:.04em">UNSUBSCRIBE</a></div>`
     : '';
-  return `<!doctype html><html><body style="margin:0;background:#EEF1F7;font-family:Arial,sans-serif;color:#172033"><table width="100%" cellpadding="0" cellspacing="0" style="padding:28px 12px"><tr><td align="center"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:660px;background:#fff;border:1px solid #dbe1ec;border-radius:14px;overflow:hidden"><tr><td style="background:#0F2A6A;padding:24px 28px;color:#fff;border-bottom:3px solid #D5AE55"><div style="font-weight:700;letter-spacing:.08em;font-size:13px">NATIONAL GOVERNMENT CONTRACT CENTER</div><div style="font-size:12px;color:#dbe5ff;margin-top:4px">Apropos Group LLC</div></td></tr><tr><td style="padding:28px;white-space:pre-line;line-height:1.58">${safeBody}${claimButton}${unsubscribeButton}</td></tr></table></td></tr></table></body></html>`;
+  return `<!doctype html><html><body style="margin:0;background:#EEF1F7;font-family:Arial,sans-serif;color:#172033"><table width="100%" cellpadding="0" cellspacing="0" style="padding:28px 12px"><tr><td align="center"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:660px;background:#fff;border:1px solid #dbe1ec;border-radius:14px;overflow:hidden"><tr><td style="background:#0F2A6A;padding:24px 28px;color:#fff;border-bottom:3px solid #D5AE55"><div style="font-weight:700;letter-spacing:.08em;font-size:13px">REGISTERED FEDERAL CONTRACTORS PORTAL · RFCP</div><div style="font-size:12px;color:#dbe5ff;margin-top:4px">Apropos Group LLC</div></td></tr><tr><td style="padding:28px;white-space:pre-line;line-height:1.58">${safeBody}${claimButton}${unsubscribeButton}</td></tr></table></td></tr></table></body></html>`;
 }
 
 function outreachCopy(contract, candidate, unsubscribeUrl, reference) {
@@ -83,33 +80,34 @@ function outreachCopy(contract, candidate, unsubscribeUrl, reference) {
   const claimLink = claimUrl(contract, candidate, reference);
   const text = normalizeOutreachText(`Hello${candidate.contact_name ? ` ${candidate.contact_name}` : ''},
 
-Opportunity Builds Business. Business Builds Community.
+Apropos Group LLC is a proactive procurement agency. Our automated system identifies qualified businesses whose services match contract requirements.
 
-Apropos Group LLC is committed to supporting economic growth through a proactive approach to government procurement. We saw a gap: businesses are often forced to navigate fragmented procurement systems, monitor multiple agencies, and continuously search for relevant opportunities.
+We discovered your company while sourcing businesses for this opportunity.
 
-We saw an opportunity to make a difference by reducing that burden and delivering timely, relevant search intelligence to businesses whose capabilities align with government contracts.
-
-Our system identified the government contract opportunity below because it appears relevant to your business.
-
-Based on your SAM.gov registration, this federal opportunity appears relevant to ${candidate.business_name} (NAICS ${contract.naicsCode || 'Unavailable'}).
+WHY YOUR BUSINESS WAS SELECTED
+Your SAM.gov registration includes industry classifications aligned with this federal contract opportunity. Matching NAICS: ${contract.naicsCode || 'See opportunity details'}.
 
 Opportunity: ${contract.title}
 Agency: ${contract.agency || 'Unavailable'}
 Solicitation: ${contract.solicitationNumber || 'Unavailable'}
 NAICS: ${contract.naicsCode || 'Unavailable'}
 Response deadline: ${deadline}
+
+Claim Your Complimentary Contract Opportunity
+
+APROPOS has identified this contract opportunity for your business.
+
+Open the secure RFCP claim page below and enter your business information.
+
 Opportunity Reference: ${reference}
 
-Claim this complimentary opportunity to open your secure APROPOS Opportunity Workspace:
-${claimLink}
+If you are interested, click the link below to visit our website and download the complete contract package.
 
-When qualified businesses gain access to the right opportunities, they can grow revenue, strengthen capabilities, create jobs, and contribute to stronger communities.
+This service is complimentary—no purchase is required. You are also welcome to leave a comment or ask a question.
 
-Businesses grow. People prosper. Communities become stronger.
+Good luck!
 
-SAM.gov and the issuing agency remain authoritative. Restricted or controlled files may require direct access through SAM.gov or the issuing agency.
-
-National Government Contract Center
+Registered Federal Contractors Portal
 Apropos Group LLC
 ${MAILING_ADDRESS}
 
@@ -149,7 +147,7 @@ async function generateOutreach(contract, candidate) {
   if (prior && prior.status === 'sent') return prior;
 
   const unsubToken = sha256Hex(`unsub.${email}.${process.env.AUTH_TOKEN_SECRET}`);
-  const unsubscribeUrl = `https://ngcc.aproposgroupllc.com/.netlify/functions/ngcc-unsubscribe?email=${encodeURIComponent(email)}&t=${unsubToken}`;
+  const unsubscribeUrl = `https://federalcontractorportal.aproposgroupllc.com/.netlify/functions/ngcc-unsubscribe?email=${encodeURIComponent(email)}&t=${unsubToken}`;
   const reference = claimReference(contract, candidate);
   const copy = outreachCopy(contract, candidate, unsubscribeUrl, reference);
   const providerPayload = {
@@ -239,14 +237,14 @@ async function sendOperatorNotification(outreach) {
   if (!OPERATOR_NOTIFICATION_RECIPIENT) throw new Error('Operator notification recipient is not configured.');
   const reference = outreach.provider_payload?.claim_reference || 'Unavailable';
   const claimLink = outreach.provider_payload?.marketplace_claim_url || 'Unavailable';
-  const text = `NGCC opportunity outreach sent.\n\nBusiness: ${outreach.business_name || 'Unavailable'}\nContact: ${outreach.contact_name || 'Unavailable'}\nRecipient: ${outreach.contact_email || 'Unavailable'}\nContract: ${outreach.contract_title || 'Unavailable'}\nAgency: ${outreach.contract_agency || 'Unavailable'}\nOpportunity Reference: ${reference}\n\nClaim URL:\n${claimLink}\n\nThis notification confirms that the approved opportunity introduction was sent to the prospective client.`;
+  const text = `RFCP opportunity outreach sent.\n\nBusiness: ${outreach.business_name || 'Unavailable'}\nContact: ${outreach.contact_name || 'Unavailable'}\nRecipient: ${outreach.contact_email || 'Unavailable'}\nContract: ${outreach.contract_title || 'Unavailable'}\nAgency: ${outreach.contract_agency || 'Unavailable'}\nOpportunity Reference: ${reference}\n\nClaim URL:\n${claimLink}\n\nThis notification confirms that the approved opportunity introduction was sent to the prospective client.`;
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       from: RESEND_FROM,
       to: [OPERATOR_NOTIFICATION_RECIPIENT],
-      subject: `NGCC outreach sent: ${outreach.business_name || 'prospective client'}`,
+      subject: `RFCP outreach sent: ${outreach.business_name || 'prospective client'}`,
       text,
       reply_to: OPERATOR_NOTIFICATION_RECIPIENT,
       tags: [
@@ -263,8 +261,8 @@ async function sendOperatorNotification(outreach) {
 }
 
 async function sendOutreach(outreachId) {
-  if (!PRODUCTION_SEND) throw new Error('Production outreach is disabled.');
   if (!RESEND_KEY) throw new Error('RESEND_API_KEY is not configured.');
+  if (!PRODUCTION_SEND && !TEST_RECIPIENT) throw new Error('Controlled test delivery recipient is not configured.');
   let outreach = await loadOutreach(outreachId);
 
   // Idempotency: once the prospective-client message is sent, never send it
@@ -275,19 +273,20 @@ async function sendOutreach(outreachId) {
     const suppressed = await sb('unsubscribe_suppressions', 'GET', `?email_hash=eq.${encodeURIComponent(sha256Hex(outreach.contact_email.toLowerCase()))}&select=id`);
     if (suppressed?.length) throw new Error('This email is suppressed from future outreach.');
 
+    const deliveryRecipient = PRODUCTION_SEND ? outreach.contact_email : TEST_RECIPIENT;
     const clientResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         from: RESEND_FROM,
-        to: [outreach.contact_email],
+        to: [deliveryRecipient],
         subject: outreach.subject,
         text: outreach.body_text,
         html: outreach.provider_payload?.email_html,
         reply_to: OPERATOR_NOTIFICATION_RECIPIENT || undefined,
         tags: [
           { name: 'service', value: 'ngcc' },
-          { name: 'mode', value: 'production' },
+          { name: 'mode', value: PRODUCTION_SEND ? 'production' : 'controlled_test' },
           { name: 'outreach_id', value: clean(outreach.outreach_id).replaceAll('-', '').slice(0, 32) },
         ],
       }),
@@ -310,8 +309,10 @@ async function sendOutreach(outreachId) {
       provider_payload: {
         ...(outreach.provider_payload || {}),
         resend: clientData,
-        production_send: true,
-        delivered_recipient: outreach.contact_email,
+        production_send: PRODUCTION_SEND,
+        delivery_mode: PRODUCTION_SEND ? 'production' : 'controlled_test',
+        intended_recipient: outreach.contact_email,
+        delivered_recipient: deliveryRecipient,
         operator_notification_recipient: OPERATOR_NOTIFICATION_RECIPIENT || null,
         operator_notification_status: 'PENDING',
       },
@@ -355,7 +356,7 @@ async function sendOutreach(outreachId) {
     prospective_client_sent: outreach.status === 'sent',
     operator_notification_sent: operatorNotificationSent,
     operator_notification_error: operatorNotificationError,
-    production_mode: true,
+    production_mode: PRODUCTION_SEND,
   };
 }
 
@@ -385,7 +386,7 @@ async function prepareOutreach(contract, candidates) {
     acc[result.outcome] = (acc[result.outcome] || 0) + 1;
     return acc;
   }, { total: 0 });
-  return { summary, results, drafts, production_mode: true };
+  return { summary, results, drafts, production_mode: PRODUCTION_SEND };
 }
 
 exports.handler = async event => {
@@ -398,7 +399,7 @@ exports.handler = async event => {
       const noticeId = clean(event.queryStringParameters?.notice_id);
       if (!noticeId) return json(400, { ok: false, error: 'notice_id is required.' });
       const outreach = await listOutreach(noticeId);
-      return json(200, { ok: true, outreach, production_mode: true });
+      return json(200, { ok: true, outreach, production_mode: PRODUCTION_SEND });
     }
     if (event.httpMethod !== 'POST') return json(405, { ok: false, error: 'GET or POST only.' });
 
@@ -443,7 +444,7 @@ exports.handler = async event => {
       ...prepared,
     });
   } catch (error) {
-    console.error('[ngcc-ops-outreach]', error.message);
+    console.error('[rfcp-ops-outreach]', error.message);
     return json(500, { ok: false, error: error.message });
   }
 };

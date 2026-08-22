@@ -149,7 +149,7 @@ exports.handler = async event => {
       : 'PUBLIC_NOTICE_ONLY';
 
     const summary = {
-      prepared_by: 'APROPOS GROUP LLC / National Government Contract Center',
+      prepared_by: 'APROPOS GROUP LLC / Registered Federal Contractors Portal',
       package_type: 'SAM.gov public opportunity resources',
       package_status: status,
       generated_at: new Date().toISOString(),
@@ -211,7 +211,7 @@ exports.handler = async event => {
       body: bytes.toString('base64'),
     };
   } catch (error) {
-    console.error('[ngcc-federal-package]', error);
+    console.error('[rfcp-federal-package]', error);
     return json(500, { ok: false, error: error.message || 'The federal contract package could not be generated.' });
   }
 };

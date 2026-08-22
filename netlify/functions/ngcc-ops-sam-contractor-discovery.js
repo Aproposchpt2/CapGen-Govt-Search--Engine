@@ -91,7 +91,7 @@ exports.handler = async event => {
       persistence: 'DURABLE — candidates are stored by mission/search run; new searches preserve prior runs.',
     });
   } catch (error) {
-    console.error('[ngcc-ops-sam-contractor-discovery]', error);
+    console.error('[rfcp-ops-sam-contractor-discovery]', error);
     if (run?.id) {
       try {
         await updateSearchRun(run.id, {
@@ -101,7 +101,7 @@ exports.handler = async event => {
           completed_at: new Date().toISOString(),
         });
       } catch (persistError) {
-        console.error('[ngcc-ops-sam-contractor-discovery:persist-failure]', persistError);
+        console.error('[rfcp-ops-sam-contractor-discovery:persist-failure]', persistError);
       }
     }
     return json(200, {

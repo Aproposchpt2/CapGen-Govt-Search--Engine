@@ -4,7 +4,7 @@
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const RESEND_KEY   = process.env.RESEND_API_KEY;
-const FROM_EMAIL   = process.env.RESEND_FROM_EMAIL || 'CapGen <jmitchell@ai4websitedesign.com>';
+const FROM_EMAIL   = process.env.RESEND_FROM_EMAIL || 'CapGen <jmitchell@nebc.aproposgroupllc.com/website-builder.html>';
 const SITE_URL     = 'https://capgen.aproposgroupllc.com';
 
 const CORS = {

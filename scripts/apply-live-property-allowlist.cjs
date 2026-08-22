@@ -22,8 +22,8 @@ function walk(dir) {
 
 function normalizeDomains(value) {
   return value
-    .replaceAll('https://ngcc.aproposgroupllc.com', rfcp)
-    .replaceAll('http://ngcc.aproposgroupllc.com', rfcp)
+    .replaceAll('https://federalcontractorportal.aproposgroupllc.com', rfcp)
+    .replaceAll('https://federalcontractorportal.aproposgroupllc.com', rfcp)
     .replaceAll('ngcc.aproposgroupllc.com', rfcpBare)
     .replaceAll('https://capgenmkt.aproposgroupllc.com', rfcp)
     .replaceAll('http://capgenmkt.aproposgroupllc.com', rfcp)
@@ -44,7 +44,7 @@ function normalizeDomains(value) {
 
 function normalizeRenderedHtml(value) {
   const domainClean = normalizeDomains(value)
-    .replaceAll('National Government Contract Center', 'Registered Federal Contractors Portal')
+    .replaceAll('Registered Federal Contractors Portal', 'Registered Federal Contractors Portal')
     .replaceAll('NGCC Analyze Fit', 'Registered Federal Contractors Portal Analyze Fit')
     .replace(/Analyze Fit Report \| NGCC/gi, 'Analyze Fit Report | Registered Federal Contractors Portal');
   const parts = domainClean.split(/(<script\b[\s\S]*?<\/script>)/gi);

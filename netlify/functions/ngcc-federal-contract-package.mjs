@@ -97,7 +97,7 @@ export default async function handler(req) {
       },
     });
   } catch (error) {
-    console.error('[ngcc-federal-contract-package]', error);
+    console.error('[rfcp-federal-contract-package]', error);
     return json(500, { ok: false, error: 'The federal contract package could not be generated.' });
   }
 }
