@@ -64,13 +64,13 @@ We saw an opportunity to make a difference by reducing that burden and deliverin
 
 Our system identified the government contract opportunity below because it appears relevant to your business.
 
-Based on your SAM.gov registration, this federal opportunity appears relevant to ${candidate.business_name} (NAICS ${contract.naicsCode || 'Unavailable'}).`;
+Based on your SAM.gov registration, this federal opportunity appears relevant to \${candidate.business_name} (NAICS \${contract.naicsCode || 'Unavailable'}).`;
 const conciseIntro = `Apropos Group LLC is a proactive procurement agency. Our automated system identifies qualified businesses whose services match contract requirements.
 
 We discovered your company while sourcing businesses for this opportunity.
 
 WHY YOUR BUSINESS WAS SELECTED
-Your SAM.gov registration includes industry classifications aligned with this federal contract opportunity. Matching NAICS: ${contract.naicsCode || 'See opportunity details'}.`;
+Your SAM.gov registration includes industry classifications aligned with this federal contract opportunity. Matching NAICS: \${contract.naicsCode || 'See opportunity details'}.`;
 if (!outreach.includes(legacyIntro)) throw new Error('RFCP concise outreach introduction anchor not found.');
 outreach = outreach.replace(legacyIntro, conciseIntro);
 
