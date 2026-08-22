@@ -78,7 +78,7 @@ exports.handler = async event => {
       },
     });
   } catch (error) {
-    console.error('[ngcc-federal-workspace]', error);
+    console.error('[rfcp-federal-workspace]', error);
     return json(500, { ok: false, error: 'The federal Opportunity Workspace could not be loaded.' });
   }
 };

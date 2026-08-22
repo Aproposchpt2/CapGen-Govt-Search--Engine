@@ -98,7 +98,7 @@ export default async function handler(req) {
 
     return json(200, { ok: true, opportunity_id: opportunityId, count: documents.length, documents });
   } catch (error) {
-    console.error('[ngcc-state-contract-documents]', error);
+    console.error('[rfcp-state-contract-documents]', error);
     return json(500, { ok: false, error: safe(error?.message, 500) || 'The solicitation package could not be loaded.' });
   }
 }

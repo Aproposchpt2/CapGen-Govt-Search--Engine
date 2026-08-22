@@ -39,7 +39,7 @@ export default async function handler(req) {
 
     return json(201, { ok: true, session_token: token, email, business_name: rows[0].business_name || '', expires_at: expiresAt, reused: false });
   } catch (error) {
-    console.error('[ngcc-profile-session-bridge]', error);
+    console.error('[rfcp-profile-session-bridge]', error);
     return json(500, { ok: false, error: 'Customer session bridge failed.' });
   }
 }

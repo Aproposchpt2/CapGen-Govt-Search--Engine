@@ -1,1 +1,15 @@
-{"name":"sam-intake-system","version":"1.0.0","private":true,"dependencies":{"adm-zip":"^0.5.16"}}
+{
+  "name": "registered-federal-contractors-portal",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "generate": "node scripts/apply-rfcp-var-001-remediation.cjs && node scripts/verify-generated-assets.cjs --write",
+    "verify:generated": "node scripts/verify-generated-assets.cjs",
+    "test": "node --test tests/*.test.js",
+    "lint": "node scripts/lint-rfcp.cjs",
+    "build": "npm run verify:generated && npm test && npm run lint"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.16"
+  }
+}

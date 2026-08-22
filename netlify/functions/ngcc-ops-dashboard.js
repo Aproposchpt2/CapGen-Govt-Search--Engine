@@ -1,4 +1,4 @@
-// NGCC ops — monitoring dashboard data. Turns the two tables the
+// RFCP ops — monitoring dashboard data. Turns the two tables the
 // ops-outreach tool already writes to (ngcc_outreach_events,
 // marketplace_lead_intake) into a single at-a-glance view: how many
 // contracts have been worked, how many businesses emailed, how many
@@ -77,7 +77,7 @@ exports.handler = async (event) => {
       recent,
     });
   } catch (error) {
-    console.error('[ngcc-ops-dashboard]', error.message);
+    console.error('[rfcp-ops-dashboard]', error.message);
     return json(500, { ok: false, error: error.message });
   }
 };

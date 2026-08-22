@@ -22,7 +22,8 @@ assert.equal(reconciliation.status, 'RESPONSE_RECEIVED');
 assert.equal(reconciliation.response_count, 1);
 assert.equal(reconciliation.handoff_options.official_opportunity.authoritative, true);
 assert.match(reconciliation.handoff_options.analyze_fit.url, /analyze-fit\.html\?id=NOTICE-1/);
-assert.match(reconciliation.handoff_options.contract_assistance.url, /cdc\.aproposgroupllc\.com\/contract-assistance\.html/);
+assert.equal(reconciliation.handoff_options.contract_assistance.url, reconciliation.handoff_options.analyze_fit.url);
+assert.doesNotMatch(reconciliation.handoff_options.contract_assistance.url, /cdc|proposal-development/i);
 
 const closeout = closeoutMission({ reconciliation, decision: 'HANDOFF_BOTH', operatorNote: 'Business requested assistance.' });
 assert.equal(closeout.mission_outcome, 'CONTRACTOR_ENGAGED');

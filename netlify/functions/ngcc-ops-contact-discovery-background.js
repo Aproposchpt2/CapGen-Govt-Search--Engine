@@ -246,7 +246,7 @@ exports.handler = async event => {
       try {
         await runResearchWorker({ agent, byId, contractDna, missionId, searchRunId, attemptNumber });
       } catch (error) {
-        console.error(`[ngcc-research-worker:${agent.agent_slot}]`, error);
+        console.error(`[rfcp-research-worker:${agent.agent_slot}]`, error);
         await updateAgent(agent.id, {
           status: 'FAILED',
           progress_percentage: 100,
@@ -312,7 +312,7 @@ exports.handler = async event => {
 
     return { statusCode: 200, body: '' };
   } catch (error) {
-    console.error('[ngcc-ops-contact-discovery-background]', error);
+    console.error('[rfcp-ops-contact-discovery-background]', error);
     try {
       await updateResearchStep(missionId, {
         status: 'FAILED',
@@ -322,7 +322,7 @@ exports.handler = async event => {
         errorMessage: String(error?.message || error),
       });
     } catch (persistError) {
-      console.error('[ngcc-ops-contact-discovery-background:persist-failure]', persistError);
+      console.error('[rfcp-ops-contact-discovery-background:persist-failure]', persistError);
     }
     return { statusCode: 500, body: '' };
   }

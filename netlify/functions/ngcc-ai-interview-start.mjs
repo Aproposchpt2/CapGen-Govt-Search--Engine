@@ -1,7 +1,7 @@
 // ngcc-ai-interview-start.mjs -- 2026-08-18. Starts the AI Interview on the
 // Registered Federal Contractors Portal, standalone -- NOT part of, and not
 // dependent on, the commercial Analyze Fit product (that stays live only on
-// the public-facing CapGen/NGCC commercial sites; per Jeff, it is not part
+// the public-facing retired commercial sites; per Jeff, it is not part
 // of the DHS proposal).
 //
 // Fast-dispatch pattern (fixed 2026-08-18 after a live test hit a 504
@@ -50,7 +50,7 @@ async function dispatchBackground(rowId, noticeId, verifiedProfile) {
       body: JSON.stringify({ rowId, noticeId, verifiedProfile }),
     });
   } catch (e) {
-    console.error('[ngcc-ai-interview-start] background dispatch failed:', e.message);
+    console.error('[rfcp-ai-interview-start] background dispatch failed:', e.message);
   }
 }
 
@@ -92,7 +92,7 @@ export default async function handler(req) {
 
     return json(200, { ...toClientShape(row), resumed: false });
   } catch (error) {
-    console.error('[ngcc-ai-interview-start]', error);
+    console.error('[rfcp-ai-interview-start]', error);
     return json(500, { ok: false, error: 'The AI Interview could not be started.' });
   }
 }

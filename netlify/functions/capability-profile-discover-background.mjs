@@ -1,4 +1,4 @@
-// NGCC — background website-capability discovery worker, ported from NAT-CORP's
+// RFCP — background website-capability discovery worker, ported from NAT-CORP's
 // netlify/functions/capability-profile-discover-background.mjs (2026-08-16,
 // Registered Federal Contractors Portal merge). Netlify Background Function
 // (the -background filename suffix, not the .mjs extension, is what makes this

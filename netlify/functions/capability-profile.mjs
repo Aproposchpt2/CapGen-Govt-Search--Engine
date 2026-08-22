@@ -1,4 +1,4 @@
-// NGCC — business capability profile intake (website AI discovery), ported
+// RFCP — business capability profile intake (website AI discovery), ported
 // from NAT-CORP's netlify/functions/capability-profile.mjs (2026-08-16,
 // Registered Federal Contractors Portal merge). Persists into the SAME
 // shared aoie_business_profiles / aoie_business_classification_codes tables

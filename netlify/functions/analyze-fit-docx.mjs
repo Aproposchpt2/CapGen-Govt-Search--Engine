@@ -1,4 +1,5 @@
 import { buildAnalyzeFitDocx, analyzeFitDocxFilename } from './lib/analyze-fit-docx.mjs';
+import { loadMergedAnalyzeProfile } from './_shared/ngcc-analyze-profile.mjs';
 
 const SUPABASE_URL=process.env.SUPABASE_URL, SUPABASE_KEY=process.env.SUPABASE_SERVICE_ROLE_KEY;
 const CORS={'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type, Authorization','Cache-Control':'no-store'};
@@ -10,7 +11,9 @@ async function verifyViewToken(t){if(!t)return null;try{const rows=await sbGet(`
 function json(status,body){return{statusCode:status,headers:CORS,body:JSON.stringify(body)}}
 async function loadProfile(account){
   if(account.isBeta){const rows=await sbGet(`beta_testers?email=eq.${encodeURIComponent(account.email)}&limit=1`);const t=rows[0];if(!t)return null;return{business_name:t.company_name||'',legal_name:t.company_name||'',cage:t.cage_code||'',naics:[t.primary_naics,...(t.additional_naics||[])].filter(Boolean),set_asides:[],certifications:[],capabilities:'IT services, computer systems design',past_performance:'Not specified',team_size:'Not specified',keywords:[]}}
-  const rows=await sbGet(`demo_snapshots?requester_email=eq.${encodeURIComponent(account.email)}&status=eq.complete&order=created_at.desc&limit=1`);const snap=rows[0];if(!snap)return null;const p=snap.profile||{};return{...p,business_name:p.legal_name||snap.business_name||p.business_name||'',legal_name:p.legal_name||snap.business_name||p.business_name||'',naics:(p.naics||[]).map(n=>n?.code||n),capabilities:p.capabilities||'Not specified',past_performance:p.past_performance||'Not specified'}}
+  const merged=await loadMergedAnalyzeProfile(sbGet,account.email);if(merged)return merged;
+  const rows=await sbGet(`demo_snapshots?requester_email=eq.${encodeURIComponent(account.email)}&status=eq.complete&order=created_at.desc&limit=1`);const snap=rows[0];if(!snap)return null;const p=snap.profile||{};return{...p,business_name:p.legal_name||snap.business_name||p.business_name||'',legal_name:p.legal_name||snap.business_name||p.business_name||'',naics:(p.naics||[]).map(n=>n?.code||n),capabilities:p.capabilities||'Not specified',past_performance:p.past_performance||'Not specified'}
+}
 
 export const handler=async event=>{
   if(event.httpMethod==='OPTIONS')return{statusCode:204,headers:CORS,body:''};
@@ -21,16 +24,20 @@ export const handler=async event=>{
   if(!account&&body.view_token)account=await verifyViewToken(body.view_token);
   if(!account)return json(401,{error:'UNAUTHORIZED'});
   const opportunityId=body.opportunityId||body.opportunity_id;
+  const inventorySource=body.inventorySource==='state_local'?'state_local':'federal';
   if(!opportunityId)return json(400,{error:'opportunityId required'});
   try{
-    const ae=encodeURIComponent(account.email),oid=encodeURIComponent(opportunityId);
+    const opportunityKey=`${inventorySource}:${opportunityId}`;
+    const ae=encodeURIComponent(account.email),oid=encodeURIComponent(opportunityKey);
     const rows=await sbGet(`opportunity_analyses?account_email=eq.${ae}&opportunity_id=eq.${oid}&status=eq.complete&order=created_at.desc&limit=1`);
     const row=rows[0];if(!row)return json(404,{error:'Completed Analyze Fit report not found.'});
     const profile=await loadProfile(account);if(!profile)return json(409,{error:'Business profile not found.'});
-    const oppRows=await sbGet(`sam_opportunities?notice_id=eq.${oid}&limit=1`);
-    const opportunity=oppRows[0]||body.opportunity||{notice_id:opportunityId,title:row.stage1?._title||'Selected Opportunity'};
-    const payload={row,profile,opportunity,notice_id:opportunityId,report_standard:'APROPOS-ANALYZE-FIT-READABLE-v2'};
+    const oppRows=inventorySource==='state_local'
+      ? await sbGet(`state_contract_opportunities?id=eq.${encodeURIComponent(opportunityId)}&natcorp_release_status=eq.eligible&is_latest_version=eq.true&limit=1`)
+      : await sbGet(`sam_opportunities?notice_id=eq.${encodeURIComponent(opportunityId)}&limit=1`);
+    const opportunity=oppRows[0]||{notice_id:opportunityId,title:row.stage1?._title||'Selected Opportunity'};
+    const payload={row,profile,opportunity,notice_id:opportunityId,inventory_source:inventorySource,report_standard:'APROPOS-ANALYZE-FIT-READABLE-v2'};
     const document=buildAnalyzeFitDocx(payload),filename=analyzeFitDocxFilename(payload);
     return{statusCode:200,headers:{'Content-Type':'application/vnd.openxmlformats-officedocument.wordprocessingml.document','Content-Disposition':`attachment; filename="${filename}"`,'Content-Length':String(document.length),'Cache-Control':'no-store, private','Access-Control-Allow-Origin':'*','X-Content-Type-Options':'nosniff'},body:document.toString('base64'),isBase64Encoded:true};
-  }catch(error){console.error('[ngcc-analyze-fit-docx]',error);return json(500,{error:'The Word report could not be generated.'})}
+  }catch(error){console.error('[rfcp-analyze-fit-docx]',error);return json(500,{error:'The Word report could not be generated.'})}
 };

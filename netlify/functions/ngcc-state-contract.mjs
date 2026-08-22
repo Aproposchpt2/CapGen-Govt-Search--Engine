@@ -1,4 +1,4 @@
-// NGCC — internal State Contract Workspace detail endpoint. Mirrors
+// RFCP — internal State Contract Workspace detail endpoint. Mirrors
 // ngcc-federal-contract.mjs's pattern exactly: never expose the upstream
 // agency's own procurement-portal URL to the client. Fixed 2026-08-17 after
 // live testing caught dashboard.html's "View official listing" button
@@ -14,6 +14,9 @@ function safe(value) { return String(value ?? '').trim(); }
 
 function sanitizeOpportunity(row) {
   return {
+    id: row.id,
+    inventory_source: 'state_local',
+    source_opportunity_id: row.id,
     title: row.title || 'Untitled opportunity',
     agency: row.agency || 'Public agency',
     solicitation_number: row.solicitation_number || null,
@@ -28,6 +31,9 @@ function sanitizeOpportunity(row) {
     description: row.description || null,
     package_document_count: row.package_document_count || 0,
     match_readiness_status: row.match_readiness_status || null,
+    package_status: Number(row.package_document_count || 0) > 0 ? 'available_not_asserted_complete' : 'unavailable',
+    matching_basis: 'business_capability_keywords',
+    matching_limitations: ['SAM NAICS did not contribute to this State/local match.', 'Package completeness is not assumed.'],
   };
 }
 
@@ -51,10 +57,10 @@ export default async function handler(req) {
     return json(200, {
       ok: true,
       contract: sanitizeOpportunity(row),
-      provenance: { source_type: 'official government record', retained_internally: true },
+      provenance: { inventory_source: 'state_local', source_type: 'official State/local government record', retained_internally: true },
     });
   } catch (error) {
-    console.error('[ngcc-state-contract]', error);
+    console.error('[rfcp-state-contract]', error);
     return json(500, { ok: false, error: 'The state contract workspace could not be loaded.' });
   }
 }

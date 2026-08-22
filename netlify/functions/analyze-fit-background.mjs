@@ -1,3 +1,5 @@
+import { loadMergedAnalyzeProfile } from './_shared/ngcc-analyze-profile.mjs';
+import { timingSafeEqual } from 'node:crypto';
 // analyze-fit-background.mjs — Phase 2 (Netlify background function)
 // Invoked by analyze-fit.mjs. Runs Stage 1 → stage1_complete, then Stage 2 → complete.
 // No external auth required — only called server-to-server by analyze-fit.mjs.
@@ -22,6 +24,20 @@ async function sbGet(path) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { headers: sbH() });
   if (!res.ok) throw new Error(`Supabase GET: ${(await res.text()).slice(0,200)}`);
   return res.json();
+}
+
+async function sbRpc(name, body) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`, {
+    method: 'POST', headers: sbH(), body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`Supabase RPC ${name}: ${(await res.text()).slice(0,200)}`);
+}
+
+function internalRequestAuthorized(event) {
+  const expected = String(process.env.ANALYZE_FIT_INTERNAL_SECRET || process.env.AUTH_TOKEN_SECRET || '');
+  const supplied = String(event.headers?.['x-rfcp-internal-token'] || event.headers?.['X-Rfcp-Internal-Token'] || '');
+  if (!expected || expected.length !== supplied.length) return false;
+  return timingSafeEqual(Buffer.from(expected), Buffer.from(supplied));
 }
 
 async function sbPatch(filter, update) {
@@ -129,8 +145,8 @@ async function callClaudeWithRetry(system, user, maxTokens, model) {
 
 // ── Prompts ──────────────────────────────────────────────────────────────────
 
-const STAGE1_SYSTEM = `You are CapGen's federal contract fit analyst. You assess whether a specific
-small business contractor should pursue a specific federal opportunity.
+const STAGE1_SYSTEM = `You are RFCP's government contract fit analyst. You assess whether a specific
+small business contractor should pursue a specific Federal or State/local opportunity.
 Be direct and honest — a wrong BID recommendation costs the contractor weeks
 of wasted proposal effort. NO_BID is a valid and often correct answer.
 
@@ -157,7 +173,7 @@ not_specified_in_listing instead of guessing.
 Respond with ONLY a single valid JSON object. No markdown, no code fences,
 no commentary before or after the JSON.`;
 
-const STAGE2_SYSTEM = `You are CapGen's federal proposal strategist. The contractor has decided to
+const STAGE2_SYSTEM = `You are RFCP's government contract pursuit strategist. The contractor has decided to
 evaluate this opportunity seriously. Produce a concrete, actionable pursuit
 package. Be specific to THIS opportunity and THIS contractor — no generic
 boilerplate.
@@ -213,6 +229,7 @@ function buildOppBlock(o) {
     ? `${raw.placeOfPerformance.city.name}, ${raw.placeOfPerformance.state?.code || ''}`
     : 'Not specified';
   return `OPPORTUNITY:
+Inventory source: ${o.inventory_source || 'federal'}
 Title: ${o.title || 'Unknown'}
 Agency: ${o.agency || 'Unknown'}
 Notice ID: ${o.notice_id}
@@ -259,14 +276,15 @@ const STAGE2_SCHEMA = `Return JSON matching exactly this schema:
 
 export const handler = async (event) => {
   // Background functions return 202 immediately — Netlify keeps running this handler
-  if (event.httpMethod === 'OPTIONS') return { statusCode: 204, body: '' };
+  if (event.httpMethod !== 'POST') return { statusCode: 405, body: 'POST only' };
+  if (!internalRequestAuthorized(event)) return { statusCode: 401, body: 'Unauthorized' };
 
   let body;
   try { body = JSON.parse(event.body || '{}'); }
   catch { return { statusCode: 400, body: 'Invalid JSON' }; }
 
-  const { rowId, accountEmail, opportunityId, profileVersion, isBeta = false, deep = false, skipStage1 = false, opportunity: inlineOpp } = body;
-  if (!rowId) return { statusCode: 400, body: 'rowId required' };
+  const { rowId, accountEmail, opportunityId, opportunityKey, inventorySource = 'federal', reservationId, profileVersion, isBeta = false, deep = false, skipStage1 = false } = body;
+  if (!rowId || !accountEmail || !opportunityId || !opportunityKey || !reservationId) return { statusCode: 400, body: 'Complete reserved analysis context required' };
 
   console.log(`[bg] Starting analysis rowId=${rowId} skipStage1=${skipStage1} deep=${deep}`);
 
@@ -280,6 +298,7 @@ export const handler = async (event) => {
       const testers = await sbGet(`beta_testers?email=eq.${encodeURIComponent(accountEmail)}&limit=1`);
       if (!testers.length) {
         await sbPatch(markFilter, { status: 'failed', stage1: { error: 'Beta profile not found' } });
+        await sbRpc('rfcp_release_analyze_fit', { p_request_id: reservationId, p_failure_code: 'profile_not_found' });
         return { statusCode: 200, body: 'no beta profile' };
       }
       const t = testers[0];
@@ -296,25 +315,29 @@ export const handler = async (event) => {
         keywords:         [],
       };
     } else {
-      const snaps = await sbGet(`demo_snapshots?requester_email=eq.${encodeURIComponent(accountEmail)}&order=created_at.desc&limit=1`);
-      if (!snaps.length) {
-        await sbPatch(markFilter, { status: 'failed', stage1: { error: 'Profile not found' } });
-        return { statusCode: 200, body: 'no profile' };
+      profile = await loadMergedAnalyzeProfile(sbGet, accountEmail);
+      if (!profile) {
+        const snaps = await sbGet(`demo_snapshots?requester_email=eq.${encodeURIComponent(accountEmail)}&order=created_at.desc&limit=1`);
+        if (!snaps.length) {
+          await sbPatch(markFilter, { status: 'failed', stage1: { error: 'Profile not found' } });
+          await sbRpc('rfcp_release_analyze_fit', { p_request_id: reservationId, p_failure_code: 'profile_not_found' });
+          return { statusCode: 200, body: 'no profile' };
+        }
+        const snap = snaps[0];
+        const rawProf = snap.profile || {};
+        profile = {
+          business_name: rawProf.legal_name || snap.business_name || '',
+          uei: rawProf.uei || '',
+          cage: rawProf.cage || '',
+          naics: (rawProf.naics || []).map(n => n.code || n),
+          set_asides: rawProf.set_asides || [],
+          certifications: rawProf.set_asides || [],
+          capabilities: rawProf.capabilities || 'Not specified',
+          past_performance: rawProf.past_performance || 'Not specified',
+          team_size: rawProf.team_size || 'Not specified',
+          keywords: rawProf.keywords || [],
+        };
       }
-      const snap    = snaps[0];
-      const rawProf = snap.profile || {};
-      profile = {
-        business_name:    rawProf.legal_name || snap.business_name || '',
-        uei:              rawProf.uei  || '',
-        cage:             rawProf.cage || '',
-        naics:            (rawProf.naics || []).map(n => n.code || n),
-        set_asides:       rawProf.set_asides || [],
-        certifications:   rawProf.set_asides || [],
-        capabilities:     rawProf.capabilities || 'IT services, computer programming, systems design',
-        past_performance: rawProf.past_performance || 'Not specified',
-        team_size:        rawProf.team_size || 'Not specified',
-        keywords:         rawProf.keywords || [],
-      };
     }
 
     // Load existing row (to get stage1 if skipStage1)
@@ -323,10 +346,20 @@ export const handler = async (event) => {
 
     // Load opportunity
     let opp;
-    const opps = await sbGet(`sam_opportunities?notice_id=eq.${encodeURIComponent(opportunityId)}&limit=1`);
+    const opps = inventorySource === 'state_local'
+      ? await sbGet(`state_contract_opportunities?id=eq.${encodeURIComponent(opportunityId)}&natcorp_release_status=eq.eligible&is_latest_version=eq.true&limit=1`)
+      : await sbGet(`sam_opportunities?notice_id=eq.${encodeURIComponent(opportunityId)}&limit=1`);
     if (opps.length) {
-      opp = opps[0];
-      if (!opp.resolved_description) {
+      if (inventorySource === 'state_local') {
+        const state = opps[0];
+        opp = {
+          ...state, inventory_source: 'state_local', notice_id: state.id,
+          agency: state.issuing_organization, naics_code: null,
+          raw: { placeOfPerformance: { state: { code: state.state_code }, county: state.place_of_performance_county } },
+          package_status: Number(state.package_document_count || 0) > 0 ? 'AVAILABLE_NOT_ASSERTED_COMPLETE' : 'UNAVAILABLE',
+        };
+      } else opp = { ...opps[0], inventory_source: 'federal' };
+      if (inventorySource === 'federal' && !opp.resolved_description) {
         const rawDesc = String(opp.raw?.description || '');
         if (/^https?:\/\//i.test(rawDesc.trim())) {
           console.log(`[bg] Resolving SAM.gov description for ${opp.notice_id}…`);
@@ -339,18 +372,9 @@ export const handler = async (event) => {
           }
         }
       }
-    } else if (inlineOpp) {
-      opp = {
-        notice_id:         opportunityId,
-        title:             inlineOpp.title || '',
-        agency:            inlineOpp.agency || '',
-        naics_code:        inlineOpp.naics || '',
-        set_aside:         inlineOpp.set_aside || '',
-        response_deadline: inlineOpp.deadline || '',
-        raw:               {},
-      };
     } else {
       await sbPatch(markFilter, { status: 'failed', stage1: { error: 'Opportunity not found' } });
+      await sbRpc('rfcp_release_analyze_fit', { p_request_id: reservationId, p_failure_code: 'opportunity_not_found' });
       return { statusCode: 200, body: 'opp not found' };
     }
 
@@ -378,12 +402,13 @@ export const handler = async (event) => {
       } catch (err) {
         console.error('[bg] Stage 1 failed:', err.message || err);
         await sbPatch(markFilter, { status: 'failed', stage1: { error: String(err.message || err) } });
+        await sbRpc('rfcp_release_analyze_fit', { p_request_id: reservationId, p_failure_code: 'stage1_failed' });
         return { statusCode: 200, body: 'stage1 failed' };
       }
 
       // Persist Stage 1 — include opp metadata so UI can display without sessionStorage
       await sbPatch(markFilter, {
-        stage1: Object.assign({ _title: opp.title || '', _agency: opp.agency || '', _naics: opp.naics_code || '', _set_aside: opp.set_aside || '', _deadline: opp.response_deadline || '' }, stage1),
+        stage1: Object.assign({ _inventory_source: inventorySource, _source_opportunity_id: opportunityId, _opportunity_key: opportunityKey, _title: opp.title || '', _agency: opp.agency || '', _naics: opp.naics_code || '', _set_aside: opp.set_aside || '', _deadline: opp.response_deadline || '', _package_status: opp.package_status || null, _matching_basis: inventorySource === 'state_local' ? 'business_capability_keywords' : 'sam_derived_naics' }, stage1),
         recommendation,
         fit_score:    fitScore,
         input_tokens: s1Usage.input_tokens || 0,
@@ -396,6 +421,7 @@ export const handler = async (event) => {
     const runStage2 = deep || recommendation === 'BID' || recommendation === 'CONDITIONAL';
     if (!runStage2) {
       await sbPatch(markFilter, { status: 'complete' });
+      await sbRpc('rfcp_complete_analyze_fit', { p_request_id: reservationId });
       console.log('[bg] Stage 2 skipped (NO_BID, deep=false). Done.');
       return { statusCode: 200, body: 'complete' };
     }
@@ -416,6 +442,7 @@ export const handler = async (event) => {
         input_tokens:  (existingRow.input_tokens || s1Usage.input_tokens || 0),
         output_tokens: (existingRow.output_tokens || s1Usage.output_tokens || 0),
       });
+      await sbRpc('rfcp_complete_analyze_fit', { p_request_id: reservationId });
       return { statusCode: 200, body: 'complete (stage2 failed)' };
     }
 
@@ -425,6 +452,7 @@ export const handler = async (event) => {
       input_tokens:  (s1Usage.input_tokens  || 0) + (s2Usage.input_tokens  || 0),
       output_tokens: (s1Usage.output_tokens || 0) + (s2Usage.output_tokens || 0),
     });
+    await sbRpc('rfcp_complete_analyze_fit', { p_request_id: reservationId });
 
     console.log(`[bg] All done. rowId=${rowId}`);
     return { statusCode: 200, body: 'complete' };
@@ -433,6 +461,7 @@ export const handler = async (event) => {
     console.error('[bg] Fatal error:', err.message || err);
     try {
       await sbPatch(markFilter, { status: 'failed', stage1: { error: String(err.message || err) } });
+      await sbRpc('rfcp_release_analyze_fit', { p_request_id: reservationId, p_failure_code: 'fatal_error' });
     } catch { /* ignore secondary failure */ }
     return { statusCode: 200, body: 'failed' };
   }

@@ -1,4 +1,4 @@
-// NGCC ops — requirements-based NAICS derivation.
+// RFCP ops — requirements-based NAICS derivation.
 // Retained as a backward-compatible internal endpoint. Stage 02 Contract DNA
 // now uses the same shared intelligence implementation directly.
 'use strict';
@@ -28,7 +28,7 @@ exports.handler = async event => {
     try { description = await fetchSamDescription(noticeId); }
     catch (error) {
       descriptionError = error.message;
-      console.error('[ngcc-ops-derive-naics] description fetch failed:', error.message);
+      console.error('[rfcp-ops-derive-naics] description fetch failed:', error.message);
     }
 
     const derived = await deriveNaics({ title, agency, samNaicsCode, description });
@@ -43,7 +43,7 @@ exports.handler = async event => {
       description_error: descriptionError,
     });
   } catch (error) {
-    console.error('[ngcc-ops-derive-naics]', error);
+    console.error('[rfcp-ops-derive-naics]', error);
     return json(200, { ok: false, error: String(error?.message || 'NAICS derivation failed.') });
   }
 };

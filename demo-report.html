@@ -1,9 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-KMZ7QVXGP3"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-KMZ7QVXGP3');
+</script>
+
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Capability Report — CapGen</title>
+<title>Capability Report — Registered Federal Contractors Portal</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital@1&family=Jost:wght@400;600;700&display=swap" rel="stylesheet">
 <script>var _cs=sessionStorage.getItem('capgen_session');var _bt=new URLSearchParams(location.search).get('t')||localStorage.getItem('demo_view_token')||'';if(_cs||(_bt&&_bt.startsWith('beta_'))){document.documentElement.style.setProperty('--sub-bar','none');}</script>
@@ -82,7 +91,7 @@ header{background:var(--sap2);border-bottom:1px solid rgba(255,255,255,.1);paddi
   <div class="brand">
     <div class="brand-mark">CG</div>
     <div>
-      <div class="brand-name">CapGen</div>
+      <div class="brand-name">Registered Federal Contractors Portal</div>
       <div class="brand-sub">Capability Report</div>
     </div>
   </div>
@@ -105,12 +114,12 @@ header{background:var(--sap2);border-bottom:1px solid rgba(255,255,255,.1);paddi
 
 <div class="sub-bar">
   <div class="sub-bar-text"><strong>Subscribe</strong> to keep your report updated daily and unlock all features.</div>
-  <a href="https://ai4-product-purchasing.ai4businesses.org/capgen-offer.html" id="subCta" class="sub-cta">Subscribe Now →</a>
+  <a href="https://federalcontractorportal.aproposgroupllc.com/onboarding" id="subCta" class="sub-cta">Subscribe Now →</a>
 </div>
 
 <script>
 'use strict';
-const STRIPE_OFFER = 'https://ai4-product-purchasing.ai4businesses.org/capgen-offer.html';
+const STRIPE_OFFER = 'https://federalcontractorportal.aproposgroupllc.com/onboarding';
 const q = new URLSearchParams(location.search);
 const token = q.get('t') || localStorage.getItem('demo_view_token') || '';
 
@@ -232,7 +241,7 @@ ul{list-style:none} li{padding:3px 0 3px 16px;position:relative} li:before{conte
     <div class="d"><span>Web</span><span>apexgroup.example</span></div>
   </div>
 </div>
-<div class="f">CapGen sample capability profile &mdash; illustrative demo content, built automatically from your registered profile in the live product.</div>
+<div class="f">RFCP sample capability profile &mdash; illustrative demo content, built automatically from your registered profile in the live product.</div>
 </body></html>`;
   document.getElementById('loadingEl').style.display = 'none';
   document.getElementById('reportFrame').style.display = 'block';

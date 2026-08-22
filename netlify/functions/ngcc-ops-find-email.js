@@ -1,4 +1,4 @@
-// NGCC ops — find a real public contact email for a SAM-registered
+// RFCP ops — find a real public contact email for a SAM-registered
 // contractor, by searching the business's own website with an AI agent.
 // Note: this repo already has enricher-hunter.js, which finds emails via
 // Hunter.io domain search for its own bulk-campaign pipeline
@@ -72,7 +72,7 @@ exports.handler = async (event) => {
       evidence_note: data.evidence_note || '',
     });
   } catch (error) {
-    console.error('[ngcc-ops-find-email]', error.message);
+    console.error('[rfcp-ops-find-email]', error.message);
     return json(200, { ok: false, error: error.message });
   }
 };

@@ -17,18 +17,19 @@ const oldClaimUrl = `function claimUrl(contract, candidate, reference) {
   });
   return \`https://marketplace.aproposgroupllc.com/claim-federal-opportunity?\${params.toString()}\`;
 }`;
-const newClaimUrl = `const MARKETPLACE_CLAIM_FRONT_DOOR = 'https://marketplace.aproposgroupllc.com/';
+const newClaimUrl = `const RFCP_CLAIM_FRONT_DOOR = 'https://federalcontractorportal.aproposgroupllc.com/claim.html';
 
-function claimUrl() {
-  return MARKETPLACE_CLAIM_FRONT_DOOR;
+function claimUrl(contract, candidate, reference) {
+  const params = new URLSearchParams({ ref: reference || claimReference(contract, candidate) });
+  return \`\${RFCP_CLAIM_FRONT_DOOR}?\${params.toString()}\`;
 }`;
 
 if (outreach.includes(oldClaimUrl)) outreach = outreach.replace(oldClaimUrl, newClaimUrl);
-else if (!outreach.includes('MARKETPLACE_CLAIM_FRONT_DOOR')) throw new Error('NGCC Marketplace claim URL patch anchor not found.');
+else if (!outreach.includes('RFCP_CLAIM_FRONT_DOOR')) throw new Error('RFCP claim URL patch anchor not found.');
 
 outreach = outreach.replace(
   '>Claim This Complimentary Opportunity</a>',
-  '>View Contract Opportunity</a>'
+  '>OPEN IN RFCP</a>'
 );
 
 const oldInstructions = `Response deadline: \${deadline}
@@ -44,17 +45,12 @@ APROPOS has identified this contract opportunity for your business.
 
 To claim your complimentary opportunity:
 
-1. Visit:
-   marketplace.aproposgroupllc.com
+Open the secure RFCP claim page below and enter your business information.
 
-2. Select:
-   CLAIM YOUR COMPLIMENTARY CONTRACT OPPORTUNITY
-
-3. Enter your Opportunity Reference:
-   \${reference}`;
+Opportunity Reference: \${reference}`;
 
 if (outreach.includes(oldInstructions)) outreach = outreach.replace(oldInstructions, newInstructions);
-else if (!outreach.includes('CLAIM YOUR COMPLIMENTARY CONTRACT OPPORTUNITY')) throw new Error('NGCC Marketplace claim instruction patch anchor not found.');
+else if (!outreach.includes('Open the secure RFCP claim page')) throw new Error('RFCP claim instruction patch anchor not found.');
 
 const legacyIntro = `Opportunity Builds Business. Business Builds Community.
 

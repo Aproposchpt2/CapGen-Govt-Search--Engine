@@ -49,7 +49,7 @@ export default async function handler(req) {
       provenance: { source_type: 'official federal public record', retained_internally: true },
     });
   } catch (error) {
-    console.error('[ngcc-federal-contract]', error);
+    console.error('[rfcp-federal-contract]', error);
     return json(500, { ok: false, error: 'The federal contract workspace could not be loaded.' });
   }
 }

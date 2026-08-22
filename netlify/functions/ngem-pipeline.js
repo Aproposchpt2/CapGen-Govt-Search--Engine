@@ -1,4 +1,4 @@
-// NGCC — Nevada NGEM Pipeline
+// RFCP — Nevada NGEM Pipeline
 // Pulls live open solicitations from Nevada Government eMarketplace (Ionwave).
 // Identical data source to STATEGEN — shared and normalized for NGCC.
 

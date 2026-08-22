@@ -17,14 +17,12 @@ const copy = outreachCopy({
   contact_email: 'test@example.com',
 }, unsubscribeUrl, 'NG-ABC12345');
 
-assert.equal(copy.claimLink, 'https://marketplace.aproposgroupllc.com/');
+assert.equal(copy.claimLink, 'https://federalcontractorportal.aproposgroupllc.com/claim.html?ref=NG-ABC12345');
 assert.match(copy.text, /Claim Your Complimentary Contract Opportunity/);
-assert.match(copy.text, /1\. Visit:\s+marketplace\.aproposgroupllc\.com/);
-assert.match(copy.text, /2\. Select:\s+CLAIM YOUR COMPLIMENTARY CONTRACT OPPORTUNITY/);
-assert.match(copy.text, /3\. Enter your Opportunity Reference:\s+NG-ABC12345/);
-assert.doesNotMatch(copy.text, /claim-federal-opportunity/i);
-assert.match(copy.html, /VISIT APROPOS MARKETPLACE/);
-assert.doesNotMatch(copy.html, /claim-federal-opportunity/i);
+assert.match(copy.text, /Opportunity Reference: NG-ABC12345/);
+assert.doesNotMatch(copy.text, /marketplace\.aproposgroupllc\.com/i);
+assert.match(copy.html, /OPEN IN RFCP/);
+assert.match(copy.html, /REGISTERED FEDERAL CONTRACTORS PORTAL/);
 
 const claimSource = fs.readFileSync(require.resolve('../netlify/functions/ngcc-federal-claim'), 'utf8');
 assert.match(claimSource, /REFERENCE_ONLY_FEDERAL_CLAIM/);
@@ -32,4 +30,4 @@ assert.match(claimSource, /contact_email=eq\.\$\{encodeURIComponent\(email\)\}&s
 assert.match(claimSource, /claimReference\(rowNoticeId, email\) === reference/);
 assert.match(claimSource, /normalize\(businessName\) === normalize\(row\.business_name\)/);
 
-console.log('Registered Federal Contractors Portal Marketplace front-door claim routing passed.');
+console.log('Registered Federal Contractors Portal claim routing passed.');

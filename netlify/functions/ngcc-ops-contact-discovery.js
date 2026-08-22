@@ -107,7 +107,7 @@ exports.handler = async event => {
       ...state,
     });
   } catch (error) {
-    console.error('[ngcc-ops-contact-discovery]', error);
+    console.error('[rfcp-ops-contact-discovery]', error);
     return json(200, {
       ok: false,
       stage: 'CONTACT_DISCOVERY',

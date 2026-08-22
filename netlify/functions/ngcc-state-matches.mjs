@@ -1,4 +1,4 @@
-// NGCC — state contract matching for a verified business profile, reusing the
+// RFCP — state contract matching for a verified business profile, reusing the
 // state_contract_opportunities table already populated by the Procurement
 // Warehouse acquisition pipeline (CA/NV/AZ scrapers) in this repo's shared
 // Supabase project. Registered Federal Contractors Portal merge, 2026-08-16.
@@ -102,7 +102,15 @@ export default async function handler(req) {
         package_document_count: row.package_document_count || 0,
         match_readiness_status: row.match_readiness_status,
         naics_codes: row.naics_codes || [],
-        match: { basis: 'keyword', detail: hits.length ? `Matched on: ${hits.slice(0, 3).join(', ')}` : 'Matched on procurement-term keyword search.' },
+        inventory_source: 'state_local',
+        match: {
+          source: 'State/local official government record',
+          contractor_capability: hits.slice(0, 3),
+          basis: 'business_capability_keywords',
+          evidence: { matched_profile_terms: hits.slice(0, 6), searched_fields: ['title', 'description'] },
+          detail: hits.length ? `Matched contractor capability terms: ${hits.slice(0, 3).join(', ')}` : 'Matched on contractor capability terms.',
+          limitations: ['SAM NAICS did not contribute to this match.', 'Keyword overlap is a discovery signal and does not establish eligibility or package completeness.'],
+        },
       };
     });
 
@@ -110,10 +118,10 @@ export default async function handler(req) {
       ok: true,
       results,
       search_terms: terms,
-      data_source: { relation: 'State contract inventory — official government records' },
+      data_source: { relation: 'APIE released state contract inventory — official government records', readiness: 'MATCH_READY' },
     });
   } catch (error) {
-    console.error('[ngcc-state-matches]', error);
+    console.error('[rfcp-state-matches]', error);
     return json(500, { ok: false, error: error instanceof Error ? error.message : 'State contract matching failed.' });
   }
 }

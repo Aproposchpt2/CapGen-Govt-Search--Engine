@@ -5,7 +5,7 @@ const { json, opsGuard, SUPABASE_URL, SUPABASE_KEY, sbHeaders } = require('./lib
 const MISSIONS = 'ngcc_procurement_missions';
 
 function ensureDb() {
-  if (!SUPABASE_URL || !SUPABASE_KEY) throw new Error('NGCC operational database configuration is incomplete.');
+  if (!SUPABASE_URL || !SUPABASE_KEY) throw new Error('RFCP operational database configuration is incomplete.');
 }
 
 async function db(method, query = '', body, prefer = '') {
@@ -47,7 +47,7 @@ exports.handler = async event => {
     if (!updated.length) return json(404, { ok: false, error: 'Mission was not found.' });
     return json(200, { ok: true, mission_id: missionId, persisted: true });
   } catch (error) {
-    console.error('[ngcc-ops-mission-evidence]', error);
+    console.error('[rfcp-ops-mission-evidence]', error);
     return json(500, { ok: false, error: String(error?.message || 'Mission evidence persistence failed.') });
   }
 };

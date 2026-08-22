@@ -63,7 +63,7 @@ assert.match(v3, /researchQueueReady=Boolean\(evidence\.search_run_id\)/, 'built
 assert.match(v3, /Stage 05 requires a persisted SAM contractor queue from Stage 04\./, 'built v3 must explain the real Stage 05 prerequisite');
 assert.doesNotMatch(v3, /Select ranked contractors below before Stage 06\./, 'built v3 must not require retired manual Stage 05 contractor selection');
 assert.match(v3, /qualification_status==='QUALIFIED'&&c\.contact_verified===true/, 'Stage 07 selector must render only truly qualified contractors with verified public contacts');
-assert.match(v3, /outreach_approved:true/, 'qualified outreach-ready contractors must default selected');
+assert.match(v3, /outreach_approved:false/, 'qualified outreach-ready contractors must require explicit operator selection');
 assert.match(v3, /data-outreach-select/, 'Stage 07 must render individual recipient selection checkboxes');
 assert.match(v3, /Select All/, 'built v3 must expose outreach Select All');
 assert.match(v3, /Clear All/, 'built v3 must expose outreach Clear All');

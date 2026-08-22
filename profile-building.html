@@ -1,6 +1,15 @@
 <!doctype html>
 <html lang="en">
 <head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-KMZ7QVXGP3"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-KMZ7QVXGP3');
+</script>
+
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Building Your Business Profile | Registered Federal Contractors Portal</title>
@@ -11,22 +20,22 @@
 </head>
 <body>
 <div class="shell">
-<header class="top glass"><div class="brand">Registered Federal Contractors Portal<small>NGCC · Business Capability Intelligence</small></div><div class="status-pill"><span class="pulse" id="pulse"></span><span id="topStatus">Profile build active</span></div></header>
-<section class="hero"><div class="eyebrow">NGCC Activity</div><h1>NGCC is building <span>your business profile.</span></h1><p class="lede">Your intake is complete. The NGCC Agent is now reviewing your official website and organizing evidence-backed capabilities for you to verify. You can watch each stage below.</p></section>
+<header class="top glass"><div class="brand">Registered Federal Contractors Portal<small>RFCP · Business Capability Intelligence</small></div><div class="status-pill"><span class="pulse" id="pulse"></span><span id="topStatus">Profile build active</span></div></header>
+<section class="hero"><div class="eyebrow">RFCP Activity</div><h1>RFCP is building <span>your business profile.</span></h1><p class="lede">Your intake is complete. The RFCP Agent is now reviewing your official website and organizing evidence-backed capabilities for you to verify. You can watch each stage below.</p></section>
 <div class="business-card glass"><div><b id="businessName">Loading your business…</b><span id="businessWebsite"></span></div><div class="percent" id="percent">7%</div></div>
 <main class="progress-shell glass">
-<div class="progress-head"><div><div class="eyebrow">Activity Progress</div><h2 id="stageTitle">Preparing your workspace</h2><p class="current-copy" id="stageMessage">Connecting to your secure NGCC profile session.</p></div></div>
+<div class="progress-head"><div><div class="eyebrow">Activity Progress</div><h2 id="stageTitle">Preparing your workspace</h2><p class="current-copy" id="stageMessage">Connecting to your secure RFCP profile session.</p></div></div>
 <div class="track" aria-label="Business profile build progress"><div class="fill" id="fill"></div></div>
 <div class="layout">
 <section class="activity" id="activity" aria-live="polite"></section>
 <aside class="side">
-<div class="side-card"><div class="label">What NGCC is doing</div><strong id="detailTitle">Starting business discovery</strong><p id="detailCopy">The search starts only after your intake has been accepted and you reach this page.</p></div>
+<div class="side-card"><div class="label">What RFCP is doing</div><strong id="detailTitle">Starting business discovery</strong><p id="detailCopy">The search starts only after your intake has been accepted and you reach this page.</p></div>
 <div class="side-card"><div class="label">Evidence policy</div><strong>Official website evidence only</strong><p>Capabilities and classifications are not treated as business-certified facts until you review the profile.</p></div>
 <div class="side-card"><div class="label">Your control point</div><strong>Nothing matches contracts yet</strong><p>Contract matching begins only after you confirm or edit the Business Capability Profile.</p></div>
 </aside>
 </div>
 <div class="ready" id="ready"><div><h3>Your Business Capability Profile is ready.</h3><p>Review the discovered services, products, capabilities, resident state, and classification candidates before matching begins.</p></div><a class="btn primary" href="/profile-review.html">Review My Business Profile →</a></div>
-<div class="error-box" id="errorBox"><h3>Profile build needs attention.</h3><p id="errorMessage">NGCC could not complete this profile build.</p><div class="error-actions"><button class="btn primary" id="retryButton" type="button">Retry Profile Build</button><a class="btn secondary" href="/intake">Return to Intake</a></div></div>
+<div class="error-box" id="errorBox"><h3>Profile build needs attention.</h3><p id="errorMessage">RFCP could not complete this profile build.</p><div class="error-actions"><button class="btn primary" id="retryButton" type="button">Retry Profile Build</button><a class="btn secondary" href="/intake">Return to Intake</a></div></div>
 <p class="footnote">This page reads progress from your server-side profile session. Refreshing the page does not erase the profile build.</p>
 </main>
 </div>
@@ -34,8 +43,8 @@
 (()=>{'use strict';
 const $=id=>document.getElementById(id);
 const stages=[
- {key:'intake_received',title:'Intake received',copy:'Your business identity and website were accepted by NGCC.',pct:7},
- {key:'queued',title:'Agent assigned',copy:'NGCC assigned the business-profile discovery job.',pct:10},
+ {key:'intake_received',title:'Intake received',copy:'Your business identity and website were accepted by RFCP.',pct:7},
+ {key:'queued',title:'Agent assigned',copy:'RFCP assigned the business-profile discovery job.',pct:10},
  {key:'website_validation',title:'Website validation',copy:'Checking the official business domain used for evidence.',pct:18},
  {key:'agent_search',title:'Agent website search',copy:'Searching the business website for services, products, capabilities, markets, and public-sector evidence.',pct:34},
  {key:'evidence_review',title:'Evidence review',copy:'Reviewing source evidence and removing unsupported claims.',pct:58},
@@ -45,11 +54,11 @@ const stages=[
 ];
 let queued=false,timer=null;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-function fallbackActivity(session){if(session.discovery_status==='review_ready'||session.discovery_status==='verified')return{stage:'review_ready',percent:100,message:'Your Business Capability Profile is ready for review.',detail:'Review and edit the profile before contract matching.'};if(session.discovery_status==='discovering')return{stage:'agent_search',percent:34,message:'NGCC Agent is searching your business website.',detail:'The search continues in the background.'};return{stage:'intake_received',percent:7,message:'Your intake has been received.',detail:'Preparing to assign the NGCC business-profile Agent.'}}
+function fallbackActivity(session){if(session.discovery_status==='review_ready'||session.discovery_status==='verified')return{stage:'review_ready',percent:100,message:'Your Business Capability Profile is ready for review.',detail:'Review and edit the profile before contract matching.'};if(session.discovery_status==='discovering')return{stage:'agent_search',percent:34,message:'RFCP Agent is searching your business website.',detail:'The search continues in the background.'};return{stage:'intake_received',percent:7,message:'Your intake has been received.',detail:'Preparing to assign the RFCP business-profile Agent.'}}
 function renderStages(activity,failed=false){const current=failed?'failed':activity.stage;let activeIndex=stages.findIndex(s=>s.key===current);if(activeIndex<0)activeIndex=Math.max(0,stages.findIndex(s=>s.pct>=Number(activity.percent||0)));$('activity').innerHTML=stages.map((s,i)=>{let cls='pending',mark=String(i+1);if(!failed&&s.key==='review_ready'&&activity.stage==='review_ready'){cls='complete';mark='✓'}else if(!failed&&i<activeIndex){cls='complete';mark='✓'}else if(!failed&&i===activeIndex){cls='active';mark='•'}else if(failed&&i===Math.max(0,activeIndex)){cls='failed';mark='!'}return `<div class="activity-row ${cls}"><div class="node">${mark}</div><div><h3>${s.title}</h3><p>${s.copy}</p></div></div>`}).join('')}
-function render(session){const activity=session.draft_profile?.activity||fallbackActivity(session);const failed=session.discovery_status==='failed';const pct=failed?Number(activity.percent||10):Math.max(7,Math.min(100,Number(activity.percent||7)));$('businessName').textContent=session.business_name||'Your business';$('businessWebsite').textContent=session.website||'';$('percent').textContent=`${pct}%`;$('fill').style.width=`${pct}%`;$('stageTitle').textContent=failed?'Profile build interrupted':activity.message||'NGCC is building your business profile.';$('stageMessage').textContent=failed?(session.last_error||activity.detail||'The background discovery job could not finish.'):activity.detail||'Your profile is being built from official website evidence.';$('detailTitle').textContent=failed?'The Agent stopped before completion':activity.message||'Business profile activity';$('detailCopy').textContent=activity.detail||'NGCC is processing the next profile stage.';renderStages(activity,failed);$('ready').classList.toggle('on',session.discovery_status==='review_ready'||session.discovery_status==='verified');$('errorBox').classList.toggle('on',failed);$('errorMessage').textContent=session.last_error||activity.detail||'NGCC could not complete this profile build.';$('topStatus').textContent=failed?'Profile build needs attention':(session.discovery_status==='review_ready'||session.discovery_status==='verified'?'Profile ready':'Profile build active');$('pulse').style.animationPlayState=(failed||session.discovery_status==='review_ready'||session.discovery_status==='verified')?'paused':'running';return session.discovery_status}
-async function readSession(){const response=await fetch('/api/capability-profile',{headers:{Accept:'application/json'},cache:'no-store'});const result=await response.json().catch(()=>({}));if(response.status===401){location.replace('/intake');throw new Error('Session expired');}if(!response.ok)throw new Error(result.error||'NGCC could not read profile progress.');return result.session||{}}
-async function queueDiscovery(){if(queued)return;queued=true;const response=await fetch('/api/capability-profile-discover',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});if(response.status!==202&&!response.ok){queued=false;throw new Error('NGCC could not start the business-profile Agent.')}}
+function render(session){const activity=session.draft_profile?.activity||fallbackActivity(session);const failed=session.discovery_status==='failed';const pct=failed?Number(activity.percent||10):Math.max(7,Math.min(100,Number(activity.percent||7)));$('businessName').textContent=session.business_name||'Your business';$('businessWebsite').textContent=session.website||'';$('percent').textContent=`${pct}%`;$('fill').style.width=`${pct}%`;$('stageTitle').textContent=failed?'Profile build interrupted':activity.message||'RFCP is building your business profile.';$('stageMessage').textContent=failed?(session.last_error||activity.detail||'The background discovery job could not finish.'):activity.detail||'Your profile is being built from official website evidence.';$('detailTitle').textContent=failed?'The Agent stopped before completion':activity.message||'Business profile activity';$('detailCopy').textContent=activity.detail||'RFCP is processing the next profile stage.';renderStages(activity,failed);$('ready').classList.toggle('on',session.discovery_status==='review_ready'||session.discovery_status==='verified');$('errorBox').classList.toggle('on',failed);$('errorMessage').textContent=session.last_error||activity.detail||'RFCP could not complete this profile build.';$('topStatus').textContent=failed?'Profile build needs attention':(session.discovery_status==='review_ready'||session.discovery_status==='verified'?'Profile ready':'Profile build active');$('pulse').style.animationPlayState=(failed||session.discovery_status==='review_ready'||session.discovery_status==='verified')?'paused':'running';return session.discovery_status}
+async function readSession(){const response=await fetch('/api/capability-profile',{headers:{Accept:'application/json'},cache:'no-store'});const result=await response.json().catch(()=>({}));if(response.status===401){location.replace('/intake');throw new Error('Session expired');}if(!response.ok)throw new Error(result.error||'RFCP could not read profile progress.');return result.session||{}}
+async function queueDiscovery(){if(queued)return;queued=true;const response=await fetch('/api/capability-profile-discover',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});if(response.status!==202&&!response.ok){queued=false;throw new Error('RFCP could not start the business-profile Agent.')}}
 async function tick(){try{const session=await readSession();const status=render(session);if(status==='intake_created'){await queueDiscovery()}if(status==='review_ready'||status==='verified'||status==='failed')return}catch(error){$('stageMessage').textContent=error.message||'Unable to refresh profile progress.'}timer=setTimeout(tick,2500)}
 $('retryButton').addEventListener('click',async()=>{queued=false;$('errorBox').classList.remove('on');try{await queueDiscovery();await sleep(700);tick()}catch(error){$('errorBox').classList.add('on');$('errorMessage').textContent=error.message}});
 tick();

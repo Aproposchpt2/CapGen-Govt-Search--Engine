@@ -47,7 +47,7 @@ exports.handler = async event => {
       } : { replay_input: true },
     });
   } catch (error) {
-    console.error('[ngcc-ops-contract-dna]', error);
+    console.error('[rfcp-ops-contract-dna]', error);
     return json(200, {
       ok: false,
       stage: 'CONTRACT_DNA',

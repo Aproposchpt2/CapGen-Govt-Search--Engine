@@ -1,10 +1,19 @@
 <!doctype html>
 <html lang="en">
 <head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-KMZ7QVXGP3"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-KMZ7QVXGP3');
+</script>
+
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="robots" content="noindex, nofollow">
-<title>Watch the NGCC Concierge — Demo</title>
+<title>Watch the RFCP Concierge — Demo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital@1&family=Jost:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
@@ -103,14 +112,14 @@ footer{border-top:1px solid var(--line);padding-top:20px;margin-top:30px;font-si
 <header>
   <div class="brand">
     <div class="brand-mark">NG</div>
-    <div><div class="brand-name">NGCC</div><div class="brand-sub">Concierge Demo</div></div>
+    <div><div class="brand-name">RFCP</div><div class="brand-sub">Concierge Demo</div></div>
   </div>
   <span class="badge-demo">Demo · Scripted</span>
 </header>
 
 <div class="page">
   <div class="eyebrow">See It In Action</div>
-  <h1>Watch a real conversation with the NGCC concierge.</h1>
+  <h1>Watch a real conversation with the RFCP concierge.</h1>
   <p class="lede">This is a fixed playback of an actual conversation — same script, same real contract data, every time you watch it. <b>Talk to the live version</b> and it works exactly like this, live, with your own business.</p>
 
   <div class="stage">
@@ -131,7 +140,7 @@ footer{border-top:1px solid var(--line);padding-top:20px;margin-top:30px;font-si
     </div>
   </div>
 
-  <footer>National Government Contract Center · powered by the same live pipeline as the working concierge, replayed here as a fixed script for demonstration.</footer>
+  <footer>Registered Federal Contractors Portal · powered by the same live pipeline as the working concierge, replayed here as a fixed script for demonstration.</footer>
 </div>
 
 <script>
@@ -139,7 +148,7 @@ footer{border-top:1px solid var(--line);padding-top:20px;margin-top:30px;font-si
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 var SCRIPT = [
-  { who:'agent', text: "Hi, welcome to NGCC. What's the name of your business?" },
+  { who:'agent', text: "Hi, welcome to RFCP. What's the name of your business?" },
   { who:'user',  text: "Apropos Group LLC" },
   { who:'agent', text: "Found you — Apropos Group LLC, North Las Vegas, Nevada, active SAM registration. That the right one?" },
   { who:'user',  text: "Yes, that's us." },
@@ -158,7 +167,7 @@ var SCRIPT = [
   { who:'user',  text: "Okay, what else do you have?" },
   { who:'agent', text: "Second one's a National Geospatial-Intelligence Agency opportunity — also your primary NAICS, open competition, no set-aside restriction. A real-time data transfer node build." },
   { who:'user',  text: "That one sounds more realistic for us. If we wanted to move forward, what's next?" },
-  { who:'agent', text: "If you want to move forward on a contract, NGCC can put together a professional Contract Proposal Development package for it — tailored to the solicitation, built around your actual capability profile. Want me to send details?" },
+  { who:'agent', text: "If you want to move forward on a contract, RFCP can put together a professional Contract Proposal Development package for it — tailored to the solicitation, built around your actual capability profile. Want me to send details?" },
   { who:'user',  text: "Yes, send it over." },
   { who:'agent', text: "Done — that'll land in your inbox alongside your dashboard link. Good luck with it, Jeff." }
 ];
@@ -182,7 +191,7 @@ var playing = false;
 function addBubble(who, text){
   var b = document.createElement('div');
   b.className = 'bubble ' + who;
-  b.innerHTML = '<div class="who">' + (who === 'agent' ? 'NGCC Concierge' : 'Caller') + '</div>' + esc(text);
+  b.innerHTML = '<div class="who">' + (who === 'agent' ? 'RFCP Concierge' : 'Caller') + '</div>' + esc(text);
   el.transcript.appendChild(b);
   el.transcript.scrollTop = el.transcript.scrollHeight;
 }

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="robots" content="noindex,nofollow">
-  <title>NGCC Command Center</title>
+  <title>RFCP Command Center</title>
 </head>
 <body>
 <script>
@@ -35,7 +35,7 @@ async function createMission(opp,button){try{ctx=await req('/.netlify/functions/
     document.write(html);
     document.close();
   } catch (error) {
-    document.body.innerHTML = '<pre style="white-space:pre-wrap;color:#fff;background:#071a3c;padding:24px;min-height:100vh">NGCC Stage 01/02 development patch failed to initialize:\n' + String(error && error.message || error) + '</pre>';
+    document.body.innerHTML = '<pre style="white-space:pre-wrap;color:#fff;background:#071a3c;padding:24px;min-height:100vh">RFCP Stage 01/02 development patch failed to initialize:\n' + String(error && error.message || error) + '</pre>';
   }
 })();
 </script>
