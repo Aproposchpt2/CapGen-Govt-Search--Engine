@@ -87,6 +87,24 @@ Good luck!`;
 if (!outreach.includes(legacyClosing)) throw new Error('RFCP concise outreach closing anchor not found.');
 outreach = outreach.replace(legacyClosing, conciseClosing);
 
+const commandCenterFile = path.join(process.cwd(), 'ops-command-center-v3.html');
+let commandCenter = fs.readFileSync(commandCenterFile, 'utf8');
+commandCenter = commandCenter.replace(
+  'The list defaults to highest Contract Qualification score first and all eligible businesses selected. Use Clear All to choose recipients one by one. No email is sent until Stage 07 draft review and explicit operator approval.',
+  'Qualified businesses are listed for operator selection. No business is selected automatically. Select one or more businesses to activate Stage 07; no email is sent until draft review and explicit operator approval.'
+);
+commandCenter = commandCenter.replace(
+  '.sort((a,b)=>qscore(b)-qscore(a)).map(c=>({...c,outreach_approved:true}))}',
+  '.sort((a,b)=>qscore(b)-qscore(a)).map(c=>({...c,outreach_approved:false}))}'
+);
+commandCenter = commandCenter.replace(
+  'original.outreach_approved=el.checked;saveEvidence()});',
+  'original.outreach_approved=el.checked;saveEvidence();render()});'
+);
+if (!commandCenter.includes('outreach_approved:false')) throw new Error('RFCP zero-selection patch did not apply.');
+if (!commandCenter.includes('original.outreach_approved=el.checked;saveEvidence();render()')) throw new Error('RFCP selection refresh patch did not apply.');
+fs.writeFileSync(commandCenterFile, commandCenter);
+
 fs.writeFileSync(outreachFile, outreach);
 
 const claimFile = path.join(process.cwd(), 'netlify/functions/ngcc-federal-claim.js');
