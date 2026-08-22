@@ -17,7 +17,20 @@ const pages = [
   {
     file: 'federal-contract-opportunity-matching/index.html',
     url: `${ORIGIN}/federal-contract-opportunity-matching/`,
-    required: ['Registered Federal Contractors Portal', 'APROPOS Group LLC', 'https://sam.gov/opportunities', '$79.00 one-time'],
+    required: [
+      'Registered Federal Contractors Portal',
+      'APROPOS Group LLC',
+      'https://sam.gov/opportunities',
+      'https://www.gsa.gov/small-business/find-opportunities',
+      'https://www.sba.gov/contracting-officials/',
+      '$79.00 one-time',
+      'data-geo-answer',
+      '"@type":"FAQPage"',
+      '"@type":"Service"',
+      'Federal contract matching',
+      'NAICS',
+      'set-aside'
+    ],
   },
   {
     file: 'guides/how-to-find-government-contracts/index.html',
@@ -79,6 +92,7 @@ else {
   for (const page of pages) {
     if (!sitemap.includes(`<loc>${page.url}</loc>`)) failures.push(`sitemap missing ${page.url}`);
   }
+  if (!sitemap.includes(`<loc>${ORIGIN}/federal-contract-opportunity-matching/</loc><lastmod>2026-08-22</lastmod>`)) failures.push('matching authority sitemap freshness signal missing');
   const locs = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map(match => match[1]);
   const duplicates = locs.filter((url, index) => locs.indexOf(url) !== index);
   if (duplicates.length) failures.push(`sitemap contains duplicate URLs: ${[...new Set(duplicates)].join(', ')}`);
@@ -93,6 +107,6 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log(`[rfcp-wave1-authority] PASS — ${pages.length} canonical federal authority destinations, sitemap entries, source links, identity, pricing and font-loading controls validated.`);
+console.log(`[rfcp-wave1-authority] PASS — ${pages.length} canonical federal authority destinations, including GEO/FAQ federal matching authority, sitemap entries, source links, identity, pricing and font-loading controls validated.`);
 require('./apply-rfcp-wave2-authority.cjs');
 require('./validate-rfcp-wave2-authority.cjs');
